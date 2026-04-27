@@ -1,0 +1,7 @@
+(include_subdirs qualified)
+
+(rocq.theory
+ (name PROJECT)
+ (package PROJECT)
+ (modules :standard)
+ (theories Stdlib))
