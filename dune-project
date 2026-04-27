@@ -1,27 +1,27 @@
 (lang dune 3.21)
 (using rocq 0.11)
 
-(name PROJECT)
+(name lstar)
 
 (generate_opam_files true)
 
 (source
- (github GH_USERNAME/PROJECT))
+ (github CharlesAverill/lstar))
 
 (authors
- "NAME <EMAIL>")
+ "Charles Averill <charlesaverill20@gmail.com>")
 
 (maintainers
- "NAME <EMAIL>")
+ "Charles Averill <charlesaverill20@gmail.com>")
 
-(license LICENSE)
+(license MIT)
 
-(documentation https://github.com/GH_USERNAME/PROJECT)
+(documentation https://github.com/CharlesAverill/lstar)
 
 (package
- (name PROJECT)
- (synopsis "SYNOPSIS")
- (description "DESCRIPTION")
+ (name lstar)
+ (synopsis "L* implemented in Rocq")
+ (description "An implementation of the L* algorithm")
  (depends
    (dune (>= 3.21.0))
    (rocq (>= 9.0.0))))
