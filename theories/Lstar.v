@@ -4,6 +4,7 @@ From lstar Require Import Language DFA.
 From Stdlib Require Import Classes.RelationClasses.
 From Stdlib Require Import Setoids.Setoid.
 From Stdlib Require Import List.
+From Stdlib Require Import Lia.
 Import ListNotations.
 
 Module Lstar (s : Symbol) (L : L s).
@@ -80,7 +81,7 @@ Proof.
     assumption.
 Qed.
 
-(** But Σ∗ is a superset of all the T ’s, so IL refines every ≡T. *)
+(** But Σ∗ is a superset of all the T's, so IL refines every ≡T. *)
 
 Lemma total_refinement : forall T u v,
     (fun _ => true) [u == v] -> T [u == v].
@@ -165,6 +166,9 @@ Definition make_dfa (H : HypothesisDFA) : DFA.t.
             accept     := accept|}.
 Defined.
 
+Definition str_upd (S : string -> bool) k b :=
+    fun s => if str_eq s k then b else S s.
+
 Lemma find_separable :
   forall (H : HypothesisDFA)
          (w : string)
@@ -172,11 +176,64 @@ Lemma find_separable :
   { q_new : string &
   { t     : string &
       H.(Q) q_new = false /\
-      let Q' := fun s => if str_eq s q_new then true else H.(Q) s in
-      let T' := fun s => if str_eq s t then true else H.(T) s in
+      let Q' := str_upd H.(Q) q_new true in
+      let T' := str_upd H.(T) t true in
       separable Q' T' /\
       finite Q' /\
       finite T' }}.
+    intros.
+    (* Define p_i = δ∗(ε, w1w2 · · · wi) *)
+    set (p := fun i => run (make_dfa H) (firstn i w)).
+    (* We say a state p_i is correct if p_i w_(i+1) · · · w_m ∈ L ⇐⇒ w ∈ L. *)
+    set (correct (i : nat) :=
+            L.member (proj1_sig (p i) ++ skipn i w) =
+            L.member w).
+    (* Now, ε is correct trivially, and p_m is not correct since w is a counterexample. *)
+    assert (ExEps: correct 0) by reflexivity.
+    assert (ExFull: ~ correct (length w)). {
+        intro Contra. unfold correct, p in Contra.
+        rewrite firstn_all, skipn_all, app_nil_r in Contra.
+        apply Hce. unfold accept_string, accept.
+        cbn [make_dfa]. assumption.
+    }
+    (* Thus, there is some k such that p_(k−1) is correct but p_k is not *)
+    assert (ExK: {k : nat | correct k /\ ~ correct (S k)}). {
+        assert (correct_dec : forall i, {correct i} + {~ correct i}). {
+            intros. unfold correct. destruct member, member;
+                decide equality.
+        }
+        induction (length w) as [| n IH].
+          contradiction.
+          destruct (correct_dec n) as [Hn | Hn].
+            now exists n.
+            destruct (IH Hn) as [k [Hk HSk]]. now exists k.
+    } destruct ExK as (k & KCorrect & SKIncorrect).
+    (* Then t = w_(k+1) · · · w_m distinguishes p_k and p_(k−1)w_k. *)
+    assert (Dist: member (proj1_sig (p k) ++ skipn k w) <>
+                  member (proj1_sig (p (S k)) ++ skipn (S k) w)). {
+        unfold correct in KCorrect, SKIncorrect.
+        rewrite KCorrect. now symmetry.
+    }
+    (* Since p_(k−1)w_k ≡T p_k and p_k ∈ Q, by separability of Q,
+       p_(k−1)w_k is T-distinguishable from every element of Q\p_k. *)
+    assert (Hlt : k < length w). {
+        destruct (PeanoNat.Nat.le_gt_cases (length w) k) as [Hle | Hlt].
+        - exfalso. apply SKIncorrect.
+          unfold correct, p.
+          rewrite firstn_all2 by lia.
+          rewrite skipn_all2 by lia.
+          rewrite app_nil_r. admit.
+        - assumption.
+    }
+    assert {wk | nth_error w k = Some wk}. {
+        eexists. apply nth_error_nth'. assumption.
+    } destruct X as (wk & ?).
+    set (Q_pk := str_upd H.(Q) (proj1_sig (p k)) false).
+    assert (H.(T) [proj1_sig (p k) ++ [wk] == proj1_sig (p (S k))]). {
+        intros t Tt.
+    assert (forall x, Q_pk x = true -> ~ H.(T) [proj1_sig (p k) ++ [wk] == x]). {
+        intros.
+}
 Admitted.
 
 (** Lemma 3. If Q is separable with respect to T, it is possible to

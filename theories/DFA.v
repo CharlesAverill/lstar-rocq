@@ -10,8 +10,11 @@ Module DFA (s : Symbol) (L : L s).
         accept : state -> bool
     }.
 
+    Definition run (dfa : t) (s : string) : dfa.(state) :=
+        fold_left dfa.(transition) s dfa.(initial).
+
     Definition accept_string (dfa : t) (s : string) : bool :=
-        dfa.(accept) (fold_left dfa.(transition) s dfa.(initial)).
+        dfa.(accept) (run dfa s).
 
     Definition encodes (dfa : t) : Prop :=
         forall (s : string),
