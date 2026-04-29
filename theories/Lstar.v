@@ -1,6 +1,6 @@
 (** https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.pdf *)
 
-From lstar Require Import Language DFA.
+From lstar Require Import Language DFA ListLemmas.
 From Stdlib Require Import Classes.RelationClasses.
 From Stdlib Require Import Setoids.Setoid.
 From Stdlib Require Import List.
@@ -165,6 +165,7 @@ Definition make_dfa (H : HypothesisDFA) : DFA.t.
             accept     := accept|}.
 Defined.
 
+(** Updating sets of strings *)
 Definition str_upd (S : string -> bool) k b :=
     fun s => if str_eq s k then b else S s.
 
@@ -183,57 +184,14 @@ Proof.
     destruct str_eq; now subst.
 Qed.
 
-Lemma firstn_len_app : forall X (l1 l2 : list X),
-    firstn (length l1) (l1 ++ l2) = l1.
-Proof.
-    induction l1; intros; simpl in *.
-        reflexivity.
-    now rewrite IHl1.
-Qed.
-
-Lemma skipn_len_app : forall X (l1 l2 : list X),
-    skipn (length l1) (l1 ++ l2) = l2.
-Proof.
-    induction l1; intros; simpl in *.
-        reflexivity.
-    now rewrite IHl1.
-Qed.
-
-Lemma skipn_Slen_cons_app : forall X (l1 l2 : list X) x,
-    skipn (S (length l1)) (l1 ++ x :: l2) = l2.
-Proof.
-    induction l1; intros; simpl in *.
-        reflexivity.
-    now rewrite IHl1.
-Qed.
-
-Lemma skipn_S_wk : forall (X : Type) (w : list X) k wk,
-    nth_error w k = Some wk ->
-    skipn k w = wk :: skipn (S k) w.
-Proof.
-    intros X w. induction w; intros.
-    - destruct k; discriminate.
-    - destruct k.
-      + simpl in H. injection H. intro. subst. reflexivity.
-      + simpl in *. apply IHw. assumption.
-Qed.
-
-Lemma nth_error_split_sig :
-    forall {A : Type} (l : list A) (n : nat) (a : A),
-    nth_error l n = Some a ->
-    {l1 : list A & {l2 : list A | l = l1 ++ a :: l2 /\ length l1 = n}}.
-Proof.
-  intros. generalize dependent l.
-  induction n as [|n IH]; intros [|x l] H; [easy| |easy|].
-  - exists nil; exists l. now injection H as [= ->].
-  - destruct (IH _ H) as (l1 & l2 & H1 & H2).
-    exists (x::l1); exists l2; simpl; split; now f_equal.
-Qed.
 
 Lemma find_separable :
-  forall (H : HypothesisDFA)
+  forall (H : HypothesisDFA) (* Q is closed and separable wrt T *)
          (w : string)
+         (* w is a counterexample *)
          (Hce : accept_string (make_dfa H) w <> member w),
+  (* We can find q_new and t to add to Q, T s.t. Q' and T' are finite and
+     Q' is separable wrt T' *)
   { q_new : string &
   { t     : string &
       (H.(Q) q_new = false) *
@@ -286,11 +244,14 @@ Lemma find_separable :
           rewrite app_nil_r in *. assumption.
         - assumption.
     }
+    (* Retrieve w[k] *)
     assert {wk | nth_error w k = Some wk}. {
         destruct (nth_error w k) eqn:He.
         - now exists t0.
         - rewrite nth_error_None in He. lia.
     } destruct X as (wk & ?).
+    (* q_new := p_k w_k *)
+    (* t := w[S k:] *)
     exists (proj1_sig (p k) ++ [wk]), (skipn (S k) w).
     destruct (nth_error_split_sig _ _ _ e) as (l1 & l2 & Hw & Hlen).
     assert (Hfirstn : firstn (S k) w = firstn k w ++ [wk]). {
@@ -301,6 +262,7 @@ Lemma find_separable :
         rewrite firstn_cons. rewrite PeanoNat.Nat.sub_diag.
         rewrite firstn_0. now rewrite firstn_len_app.
     }
+    (* Perform a single step of the current DFA *)
     assert (run_step : forall i a, 
           run (make_dfa H) (firstn i w ++ [a]) = 
           (make_dfa H).(transition) (run (make_dfa H) (firstn i w)) a). {
