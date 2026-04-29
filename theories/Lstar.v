@@ -177,6 +177,13 @@ Proof.
     destruct str_eq; now subst.
 Qed.
 
+Lemma update_eq : forall S x k,
+    str_upd S x k x = k.
+Proof.
+    intros. unfold str_upd.
+    destruct str_eq; now subst.
+Qed.
+
 Lemma firstn_len_app : forall X (l1 l2 : list X),
     firstn (length l1) (l1 ++ l2) = l1.
 Proof.
@@ -199,6 +206,17 @@ Proof.
     induction l1; intros; simpl in *.
         reflexivity.
     now rewrite IHl1.
+Qed.
+
+Lemma skipn_S_wk : forall (X : Type) (w : list X) k wk,
+    nth_error w k = Some wk ->
+    skipn k w = wk :: skipn (S k) w.
+Proof.
+    intros X w. induction w; intros.
+    - destruct k; discriminate.
+    - destruct k.
+      + simpl in H. injection H. intro. subst. reflexivity.
+      + simpl in *. apply IHw. assumption.
 Qed.
 
 Lemma find_separable :
@@ -258,32 +276,35 @@ Lemma find_separable :
         - assumption.
     }
     assert {wk | nth_error w k = Some wk}. {
-        eexists. apply nth_error_nth'. assumption.
+        destruct (nth_error w k) eqn:He.
+        - now exists t0.
+        - rewrite nth_error_None in He. lia.
     } destruct X as (wk & ?).
-    exists (proj1_sig (p k) ++ [wk]), (skipn (S k) w). repeat split.
+    exists (proj1_sig (p k) ++ [wk]), (skipn (S k) w).
+    destruct (nth_error_split w k e) as (l1 & l2 & Hw & Hlen).
+    assert (Hfirstn : firstn (S k) w = firstn k w ++ [wk]). {
+        subst w.
+        rewrite firstn_app, Hlen, PeanoNat.Nat.sub_succ_l by lia.
+        subst.
+        rewrite firstn_all2 by lia.
+        rewrite firstn_cons. rewrite PeanoNat.Nat.sub_diag.
+        rewrite firstn_0. now rewrite firstn_len_app.
+    }
+    assert (run_step : forall i a, 
+          run (make_dfa H) (firstn i w ++ [a]) = 
+          (make_dfa H).(transition) (run (make_dfa H) (firstn i w)) a). {
+      intros. unfold run.
+      rewrite fold_left_app. reflexivity.
+    }
+    assert (HTeq : H.(T) [proj1_sig (p k) ++ [wk] == proj1_sig (p (S k))]). {
+        unfold p. rewrite Hfirstn, run_step. simpl.
+        set (q := run (make_dfa H) (firstn k w)).
+        destruct (delta H.(Q) H.(T) H.(clos)
+            (proj1_sig q) (wk :: nil) (proj2_sig q)) as [q' [Hq' Heq]].
+        now symmetry.
+    }
+    repeat split.
     - unfold p. pose proof H.(sep). unfold separable in H0.
-      assert (run_step : forall i a, 
-            run (make_dfa H) (firstn i w ++ [a]) = 
-            (make_dfa H).(transition) (run (make_dfa H) (firstn i w)) a). {
-        intros. unfold run.
-        rewrite fold_left_app. reflexivity.
-      }
-      destruct (nth_error_split w k e) as (l1 & l2 & Hw & Hlen).
-      assert (Hfirstn : firstn (S k) w = firstn k w ++ [wk]). {
-          subst w.
-          rewrite firstn_app, Hlen, PeanoNat.Nat.sub_succ_l by lia.
-          subst.
-          rewrite firstn_all2 by lia.
-          rewrite firstn_cons. rewrite PeanoNat.Nat.sub_diag.
-          rewrite firstn_0. now rewrite firstn_len_app.
-      }
-      assert (HTeq : H.(T) [proj1_sig (p k) ++ [wk] == proj1_sig (p (S k))]). {
-          unfold p. rewrite Hfirstn, run_step. simpl.
-          set (q := run (make_dfa H) (firstn k w)).
-          destruct (delta H.(Q) H.(T) H.(clos)
-              (proj1_sig q) (wk :: nil) (proj2_sig q)) as [q' [Hq' Heq]].
-          now symmetry.
-      }
       destruct (H.(Q) (proj1_sig (p k) ++ [wk])) eqn:HQ; auto.
       exfalso. apply Dist.
       assert (proj1_sig (p k) ++ [wk] = proj1_sig (p (S k))). {
@@ -296,11 +317,29 @@ Lemma find_separable :
       now rewrite <- app_assoc.
     - intros u v Qu Qv Neq Contra.
       unfold str_upd in Qu, Qv.
-      destruct (str_eq u (proj1_sig (p k) ++ [wk]));
-      destruct (str_eq v (proj1_sig (p k) ++ [wk])); subst.
+      destruct (str_eq u (proj1_sig (p k) ++ [wk])),
+               (str_eq v (proj1_sig (p k) ++ [wk])); try subst u; try subst v.
       + now apply Neq.
-      + admit.
-      + admit.
+      + apply (H.(sep) (proj1_sig (p (S k))) v (proj2_sig (p (S k))) Qv).
+          intro Contra'. subst v. unfold T_equiv in Contra.
+          apply Dist.
+          specialize (Contra (skipn (S k) w) (update_eq _ _ _)).
+          rewrite <- app_assoc in Contra. rewrite <- Contra.
+          now erewrite skipn_S_wk.
+        transitivity (proj1_sig (p k) ++ [wk]).
+          now symmetry.
+        eapply refined_distinguish; [| apply Contra].
+        intros. unfold str_upd. now destruct str_eq.
+      + apply (H.(sep) (proj1_sig (p (S k))) u (proj2_sig (p (S k))) Qu).
+          intro Contra'. subst u. unfold T_equiv in Contra.
+          apply Dist.
+          specialize (Contra (skipn (S k) w) (update_eq _ _ _)).
+          rewrite <- app_assoc in Contra. rewrite Contra.
+          now erewrite skipn_S_wk.
+        transitivity (proj1_sig (p k) ++ [wk]).
+          now symmetry.
+        eapply refined_distinguish; [| symmetry; apply Contra].
+        intros. unfold str_upd. now destruct str_eq.
       + apply (H.(sep) u v Qu Qv Neq).
         eapply refined_distinguish. 2: exact Contra.
         intros t Ht. unfold str_upd.
@@ -315,7 +354,7 @@ Lemma find_separable :
       destruct (str_eq s (skipn (S k) w)).
         subst. now constructor.
       apply in_cons, X. now rewrite update_neq in H0.
-Admitted.
+Qed.
 
 (** Lemma 3. If Q is separable with respect to T, it is possible to
     add finitely many strings to Q resulting in a set Q′ which is
