@@ -177,6 +177,30 @@ Proof.
     destruct str_eq; now subst.
 Qed.
 
+Lemma firstn_len_app : forall X (l1 l2 : list X),
+    firstn (length l1) (l1 ++ l2) = l1.
+Proof.
+    induction l1; intros; simpl in *.
+        reflexivity.
+    now rewrite IHl1.
+Qed.
+
+Lemma skipn_len_app : forall X (l1 l2 : list X),
+    skipn (length l1) (l1 ++ l2) = l2.
+Proof.
+    induction l1; intros; simpl in *.
+        reflexivity.
+    now rewrite IHl1.
+Qed.
+
+Lemma skipn_Slen_cons_app : forall X (l1 l2 : list X) x,
+    skipn (S (length l1)) (l1 ++ x :: l2) = l2.
+Proof.
+    induction l1; intros; simpl in *.
+        reflexivity.
+    now rewrite IHl1.
+Qed.
+
 Lemma find_separable :
   forall (H : HypothesisDFA)
          (w : string)
@@ -238,8 +262,49 @@ Lemma find_separable :
     } destruct X as (wk & ?).
     exists (proj1_sig (p k) ++ [wk]), (skipn (S k) w). repeat split.
     - unfold p. pose proof H.(sep). unfold separable in H0.
-      admit.
-    - intros u v Qu Qv Neq Contra. admit.
+      assert (run_step : forall i a, 
+            run (make_dfa H) (firstn i w ++ [a]) = 
+            (make_dfa H).(transition) (run (make_dfa H) (firstn i w)) a). {
+        intros. unfold run.
+        rewrite fold_left_app. reflexivity.
+      }
+      destruct (nth_error_split w k e) as (l1 & l2 & Hw & Hlen).
+      assert (Hfirstn : firstn (S k) w = firstn k w ++ [wk]). {
+          subst w.
+          rewrite firstn_app, Hlen, PeanoNat.Nat.sub_succ_l by lia.
+          subst.
+          rewrite firstn_all2 by lia.
+          rewrite firstn_cons. rewrite PeanoNat.Nat.sub_diag.
+          rewrite firstn_0. now rewrite firstn_len_app.
+      }
+      assert (HTeq : H.(T) [proj1_sig (p k) ++ [wk] == proj1_sig (p (S k))]). {
+          unfold p. rewrite Hfirstn, run_step. simpl.
+          set (q := run (make_dfa H) (firstn k w)).
+          destruct (delta H.(Q) H.(T) H.(clos)
+              (proj1_sig q) (wk :: nil) (proj2_sig q)) as [q' [Hq' Heq]].
+          now symmetry.
+      }
+      destruct (H.(Q) (proj1_sig (p k) ++ [wk])) eqn:HQ; auto.
+      exfalso. apply Dist.
+      assert (proj1_sig (p k) ++ [wk] = proj1_sig (p (S k))). {
+          destruct (str_eq (proj1_sig (p k) ++ [wk]) (proj1_sig (p (S k)))) as [|Hneq].
+          - assumption.
+          - destruct (H.(sep) _ _ HQ (proj2_sig (p (S k))) Hneq HTeq).
+      } subst.
+      rewrite <- H1.
+      rewrite skipn_len_app, skipn_Slen_cons_app.
+      now rewrite <- app_assoc.
+    - intros u v Qu Qv Neq Contra.
+      unfold str_upd in Qu, Qv.
+      destruct (str_eq u (proj1_sig (p k) ++ [wk]));
+      destruct (str_eq v (proj1_sig (p k) ++ [wk])); subst.
+      + now apply Neq.
+      + admit.
+      + admit.
+      + apply (H.(sep) u v Qu Qv Neq).
+        eapply refined_distinguish. 2: exact Contra.
+        intros t Ht. unfold str_upd.
+        now destruct (str_eq t (skipn (S k) w)).
     - unfold finite. destruct H.(fin_Q) as (l & X).
       exists ((proj1_sig (p k) ++ [wk]) :: l). intros.
       destruct (str_eq s (proj1_sig (p k) ++ [wk])).
