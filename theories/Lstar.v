@@ -93,15 +93,14 @@ Qed.
 
 (** The states Q and T that we maintain will be finite *)
 
-Definition finite (f : string -> bool) : Prop :=
-    exists (l : list string),
-        forall (s : string), f s = true ->
-        In s l.
+Definition finite (f : string -> bool) :=
+    {l : list string |
+        forall (s : string), f s = true <-> In s l}.
 
 (** Separable: A set Q ⊆ Σ∗ is said to be separable with respect to T,
     if the elements of Q are pairwise T-distinguishable. *)
 
-Definition separable (Q T : string -> bool) : Prop :=
+Definition separable (Q T : string -> bool) : Type :=
     forall (u v : string), Q u = true -> Q v = true ->
         u <> v ->
         ~ T [u == v].
@@ -219,17 +218,29 @@ Proof.
       + simpl in *. apply IHw. assumption.
 Qed.
 
+Lemma nth_error_split_sig :
+    forall {A : Type} (l : list A) (n : nat) (a : A),
+    nth_error l n = Some a ->
+    {l1 : list A & {l2 : list A | l = l1 ++ a :: l2 /\ length l1 = n}}.
+Proof.
+  intros. generalize dependent l.
+  induction n as [|n IH]; intros [|x l] H; [easy| |easy|].
+  - exists nil; exists l. now injection H as [= ->].
+  - destruct (IH _ H) as (l1 & l2 & H1 & H2).
+    exists (x::l1); exists l2; simpl; split; now f_equal.
+Qed.
+
 Lemma find_separable :
   forall (H : HypothesisDFA)
          (w : string)
          (Hce : accept_string (make_dfa H) w <> member w),
   { q_new : string &
   { t     : string &
-      H.(Q) q_new = false /\
+      (H.(Q) q_new = false) *
       let Q' := str_upd H.(Q) q_new true in
       let T' := str_upd H.(T) t true in
-      separable Q' T' /\
-      finite Q' /\
+      separable Q' T' *
+      finite Q' *
       finite T' }}.
     intros.
     (* Define p_i = δ∗(ε, w1w2 · · · wi) *)
@@ -281,7 +292,7 @@ Lemma find_separable :
         - rewrite nth_error_None in He. lia.
     } destruct X as (wk & ?).
     exists (proj1_sig (p k) ++ [wk]), (skipn (S k) w).
-    destruct (nth_error_split w k e) as (l1 & l2 & Hw & Hlen).
+    destruct (nth_error_split_sig _ _ _ e) as (l1 & l2 & Hw & Hlen).
     assert (Hfirstn : firstn (S k) w = firstn k w ++ [wk]). {
         subst w.
         rewrite firstn_app, Hlen, PeanoNat.Nat.sub_succ_l by lia.
@@ -304,7 +315,7 @@ Lemma find_separable :
         now symmetry.
     }
     repeat split.
-    - unfold p. pose proof H.(sep). unfold separable in H0.
+    - unfold p. pose proof H.(sep). unfold separable in X.
       destruct (H.(Q) (proj1_sig (p k) ++ [wk])) eqn:HQ; auto.
       exfalso. apply Dist.
       assert (proj1_sig (p k) ++ [wk] = proj1_sig (p (S k))). {
@@ -312,7 +323,7 @@ Lemma find_separable :
           - assumption.
           - destruct (H.(sep) _ _ HQ (proj2_sig (p (S k))) Hneq HTeq).
       } subst.
-      rewrite <- H1.
+      rewrite <- H0.
       rewrite skipn_len_app, skipn_Slen_cons_app.
       now rewrite <- app_assoc.
     - intros u v Qu Qv Neq Contra.
@@ -346,31 +357,76 @@ Lemma find_separable :
         now destruct (str_eq t (skipn (S k) w)).
     - unfold finite. destruct H.(fin_Q) as (l & X).
       exists ((proj1_sig (p k) ++ [wk]) :: l). intros.
-      destruct (str_eq s (proj1_sig (p k) ++ [wk])).
-        subst. now constructor.
-      apply in_cons, X. now rewrite update_neq in H0.
+      split; intro.
+      -- destruct (str_eq s (proj1_sig (p k) ++ [wk])).
+            subst. now constructor.
+            apply in_cons, X. now rewrite update_neq in H0.
+      -- simpl in H0. destruct H0. subst.
+            apply update_eq.
+         destruct (str_eq s (proj1_sig (p k) ++ [wk])). subst.
+            apply update_eq.
+         rewrite update_neq. now apply X. now symmetry.
     - unfold finite. destruct H.(fin_T) as (l & X).
       exists ((skipn (S k) w) :: l). intros.
-      destruct (str_eq s (skipn (S k) w)).
-        subst. now constructor.
-      apply in_cons, X. now rewrite update_neq in H0.
+      split; intro.
+      -- destruct (str_eq s (skipn (S k) w)).
+            subst. now constructor.
+            apply in_cons, X. now rewrite update_neq in H0.
+      -- simpl in H0. destruct H0. subst.
+            apply update_eq.
+         destruct (str_eq s (skipn (S k) w)). subst.
+            apply update_eq.
+         rewrite update_neq. now apply X. now symmetry.
 Qed.
 
 (** Lemma 3. If Q is separable with respect to T, it is possible to
     add finitely many strings to Q resulting in a set Q′ which is
     closed and separable with respect to T. *)
 
-Lemma union_closed :
-    forall Q T l
-    (sep: separable Q T),
-    let Q' := List.fold_left
-        (fun a i => (fun i' => if str_eq i i' then true else a i'))
-        l Q in
-    closed Q' T.
+Definition T_equiv_dec : forall T (u v : string),
+    finite T ->
+    {T [u == v]} + {~ T [u == v]}.
 Proof.
-    induction l;
-        unfold closed; intros; unfold separable in sep0.
-    - simpl in *. exists (q ++ a).
-Admitted.
+    intros. destruct X.
+    destruct (forallb (fun t =>
+        if Bool.eqb (member (u ++ t)) (member (v ++ t))
+        then true else false) x) eqn:Hfb.
+    - left. intros t Ht.
+        rewrite forallb_forall in Hfb.
+        assert (In t x) by now apply i.
+        specialize (Hfb t H).
+        destruct Bool.eqb eqn:E.
+            now rewrite Bool.eqb_true_iff in E.
+            discriminate.
+    - right. intro HTeq.
+        apply Bool.not_true_iff_false in Hfb.
+        apply Hfb. rewrite forallb_forall.
+        intros t' HIn'.
+        destruct Bool.eqb eqn:E; [reflexivity |].
+        exfalso. apply Bool.eqb_false_iff in E.
+        apply E. apply HTeq. apply i. assumption.
+Qed.
 
+Lemma union_closed :
+    forall Q T
+    (sep : separable Q T)
+    (finQ : finite Q)
+    (finT : finite T)
+    (nclos : closed Q T -> False),
+    { Q' : string -> bool &
+        closed Q' T *
+        separable Q' T *
+        finite Q' *
+        (forall s, Q s = true -> Q' s = true) }.
+Proof.
+    intros. unfold closed in nclos.
+    (* If Q is not closed, we can find a string q ∈ Q
+       and a letter a ∈ Σ such that q · a is T -distinguishable
+       from every element of Q. *)
+    assert {q : string & {a : s.t |
+        forall q', Q0 q = true -> Q0 q' = true ->
+        ~ T0 [q ++ [a] == q']}}. admit.
+    destruct X as (q & a & H).
+    exists (str_upd Q0 (q ++ [a]) true). repeat split.
+Abort.
 End Lstar.

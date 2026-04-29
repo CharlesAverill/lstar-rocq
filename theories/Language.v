@@ -5,6 +5,8 @@ Module Type Symbol.
     Parameter t : Type.
     Parameter eq_dec :
         forall (x y : t), {x = y} + {x <> y}.
+    Parameter enum : list t.
+    Parameter t_enumerable : forall (x : t), In x enum.
     Definition string := list t.
     Fixpoint str_eq (x y : string) {struct x} : {x = y} + {x <> y}.
         destruct x.
