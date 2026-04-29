@@ -169,6 +169,14 @@ Defined.
 Definition str_upd (S : string -> bool) k b :=
     fun s => if str_eq s k then b else S s.
 
+Lemma update_neq : forall S x y k,
+    x <> y ->
+    str_upd S x k y = S y.
+Proof.
+    intros. unfold str_upd.
+    destruct str_eq; now subst.
+Qed.
+
 Lemma find_separable :
   forall (H : HypothesisDFA)
          (w : string)
@@ -219,21 +227,29 @@ Lemma find_separable :
     assert (Hlt : k < length w). {
         destruct (PeanoNat.Nat.le_gt_cases (length w) k) as [Hle | Hlt].
         - exfalso. apply SKIncorrect.
-          unfold correct, p.
-          rewrite firstn_all2 by lia.
-          rewrite skipn_all2 by lia.
-          rewrite app_nil_r. admit.
+          unfold correct, p in *.
+          rewrite firstn_all2 in * by lia.
+          rewrite skipn_all2 in * by lia.
+          rewrite app_nil_r in *. assumption.
         - assumption.
     }
     assert {wk | nth_error w k = Some wk}. {
         eexists. apply nth_error_nth'. assumption.
     } destruct X as (wk & ?).
-    set (Q_pk := str_upd H.(Q) (proj1_sig (p k)) false).
-    assert (H.(T) [proj1_sig (p k) ++ [wk] == proj1_sig (p (S k))]). {
-        intros t Tt.
-    assert (forall x, Q_pk x = true -> ~ H.(T) [proj1_sig (p k) ++ [wk] == x]). {
-        intros.
-}
+    exists (proj1_sig (p k) ++ [wk]), (skipn (S k) w). repeat split.
+    - unfold p. pose proof H.(sep). unfold separable in H0.
+      admit.
+    - intros u v Qu Qv Neq Contra. admit.
+    - unfold finite. destruct H.(fin_Q) as (l & X).
+      exists ((proj1_sig (p k) ++ [wk]) :: l). intros.
+      destruct (str_eq s (proj1_sig (p k) ++ [wk])).
+        subst. now constructor.
+      apply in_cons, X. now rewrite update_neq in H0.
+    - unfold finite. destruct H.(fin_T) as (l & X).
+      exists ((skipn (S k) w) :: l). intros.
+      destruct (str_eq s (skipn (S k) w)).
+        subst. now constructor.
+      apply in_cons, X. now rewrite update_neq in H0.
 Admitted.
 
 (** Lemma 3. If Q is separable with respect to T, it is possible to
