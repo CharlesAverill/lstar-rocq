@@ -93,9 +93,63 @@ Qed.
 
 (** The states Q and T that we maintain will be finite *)
 
+Fixpoint InS {A : Type} (a : A) (l : list A) : Type :=
+    match l with
+    | [] => Empty_set
+    | b :: l' => (b = a) + InS a l'
+    end.
+
+Lemma In_to_InS : forall A a (l : list A)
+    (dec : forall (x y : A), {x = y} + {x <> y}),
+    In a l -> InS a l.
+Proof.
+    induction l; intros.
+        contradiction.
+    simpl in *. specialize (IHl dec).
+    destruct (dec a0 a); subst.
+        now left.
+    assert (In a l) by now destruct H.
+    right. now apply IHl.
+Qed.
+
+Lemma InS_to_In : forall A a (l : list A),
+    InS a l -> In a l.
+Proof.
+    intros. induction l.
+        contradiction.
+    destruct X; subst.
+        now left.
+    right. auto.
+Qed.
+
 Definition finite (f : string -> bool) :=
     {l : list string |
         forall (s : string), f s = true <-> In s l}.
+
+(** T-equivalence is decidable for finite sets *)
+Definition T_equiv_dec : forall T (u v : string),
+    finite T ->
+    {T [u == v]} + {~ T [u == v]}.
+Proof.
+    intros. destruct X.
+    destruct (forallb (fun t =>
+        if Bool.eqb (member (u ++ t)) (member (v ++ t))
+        then true else false) x) eqn:Hfb.
+    - left. intros t Ht.
+        rewrite forallb_forall in Hfb.
+        assert (In t x) by now apply i.
+        specialize (Hfb t H).
+        destruct Bool.eqb eqn:E.
+            now rewrite Bool.eqb_true_iff in E.
+            discriminate.
+    - right. intro HTeq.
+        apply Bool.not_true_iff_false in Hfb.
+        apply Hfb. rewrite forallb_forall.
+        intros t' HIn'.
+        destruct Bool.eqb eqn:E; [reflexivity |].
+        exfalso. apply Bool.eqb_false_iff in E.
+        apply E. apply HTeq. apply i. assumption.
+Qed.
 
 (** Separable: A set Q ⊆ Σ∗ is said to be separable with respect to T,
     if the elements of Q are pairwise T-distinguishable. *)
@@ -111,14 +165,14 @@ Definition separable (Q T : string -> bool) : Type :=
 Definition closed (Q T : string -> bool) :=
     forall q a,
         Q q = true ->
-        {q' : string | Q q' = true /\ T [(q ++ a) == q']}.
+        {q' : string | Q q' = true /\ T [(q ++ [a]) == q']}.
 
 (** Lemma 1. If Q is closed and separable with respect to T,
     the transition function δ : (q, a) → q′ ∈ Q such that
     q′ ≡T q · a, is well defined. *)
 
-Definition delta Q T (c : closed Q T) (q a : string) (Qq : Q q = true) :
-        {q' : string | Q q' = true /\ T [q' == (q ++ a)]}.
+Definition delta Q T (c : closed Q T) (q : string) (a : s.t) (Qq : Q q = true) :
+        {q' : string | Q q' = true /\ T [q' == (q ++ [a])]}.
     destruct (c q a Qq) as [q' [Hq' Heq]].
     now exists q'.
 Defined.
@@ -153,8 +207,7 @@ Definition make_dfa (H : HypothesisDFA) : DFA.t.
     }
     assert (transition : state -> s.t -> state). {
         intros q a.
-        set (r := delta H.(Q) H.(T) H.(clos) (proj1_sig q)
-                  (a :: nil) (proj2_sig q)).
+        set (r := delta H.(Q) H.(T) H.(clos) (proj1_sig q) a (proj2_sig q)).
         unfold state. destruct r as (q' & Qq' & Teq).
         exists q'. apply Qq'.
     }
@@ -183,7 +236,6 @@ Proof.
     intros. unfold str_upd.
     destruct str_eq; now subst.
 Qed.
-
 
 Lemma find_separable :
   forall (H : HypothesisDFA) (* Q is closed and separable wrt T *)
@@ -272,8 +324,8 @@ Lemma find_separable :
     assert (HTeq : H.(T) [proj1_sig (p k) ++ [wk] == proj1_sig (p (S k))]). {
         unfold p. rewrite Hfirstn, run_step. simpl.
         set (q := run (make_dfa H) (firstn k w)).
-        destruct (delta H.(Q) H.(T) H.(clos)
-            (proj1_sig q) (wk :: nil) (proj2_sig q)) as [q' [Hq' Heq]].
+        destruct (delta H.(Q) H.(T) H.(clos) (proj1_sig q)
+                  wk (proj2_sig q)) as [q' [Hq' Heq]].
         now symmetry.
     }
     repeat split.
@@ -345,50 +397,134 @@ Qed.
     add finitely many strings to Q resulting in a set Q′ which is
     closed and separable with respect to T. *)
 
-Definition T_equiv_dec : forall T (u v : string),
-    finite T ->
-    {T [u == v]} + {~ T [u == v]}.
+Lemma find_representative : forall Q T
+    (finQ : finite Q)
+    (finT : finite T)
+    (u : string),
+    { r | Q r = true /\ T [u == r] } +
+    { forall r, Q r = true -> ~ T [u == r] }.
 Proof.
-    intros. destruct X.
-    destruct (forallb (fun t =>
-        if Bool.eqb (member (u ++ t)) (member (v ++ t))
-        then true else false) x) eqn:Hfb.
-    - left. intros t Ht.
-        rewrite forallb_forall in Hfb.
-        assert (In t x) by now apply i.
-        specialize (Hfb t H).
-        destruct Bool.eqb eqn:E.
-            now rewrite Bool.eqb_true_iff in E.
-            discriminate.
-    - right. intro HTeq.
-        apply Bool.not_true_iff_false in Hfb.
-        apply Hfb. rewrite forallb_forall.
-        intros t' HIn'.
-        destruct Bool.eqb eqn:E; [reflexivity |].
-        exfalso. apply Bool.eqb_false_iff in E.
-        apply E. apply HTeq. apply i. assumption.
+    intros Q T finQ finT u.
+    destruct finQ as (Ql & HQl).
+    destruct (List.find (fun q =>
+        match Bool.bool_dec (Q q) true with
+        | left _ =>
+            match T_equiv_dec T u q finT with
+            | left _ => true
+            | right _ => false
+            end
+        | right _ => false
+        end) Ql) eqn:Hfind.
+    - apply List.find_some in Hfind.
+      destruct Hfind as [HIn Hcheck].
+      left. exists s.
+      destruct (Bool.bool_dec (Q s) true) as [Hq | Hq].
+        now destruct (T_equiv_dec T u s finT) as [Heq | Hneq].
+      discriminate.
+    - right. intros r Hr Contra.
+      apply List.find_none with (x := r) in Hfind.
+      + destruct (Bool.bool_dec (Q r) true) as [Hq | Hq].
+            now destruct (T_equiv_dec T u r finT) as [Heq | Hneq].
+        now rewrite Hr in Hq.
+      + now apply HQl.
+Qed.
+
+Lemma close_step : forall Q T q (a : s.t)
+    (sep : separable Q T)
+    (finQ : finite Q)
+    (finT : finite T),
+    { Q' : string -> bool &
+        separable Q' T *
+        finite Q' *
+        (forall s, Q s = true -> Q' s = true) *
+        { r | Q' r = true /\ T [(q ++ [a]) == r] } }.
+Proof.
+    intros Q T q a sep finQ finT.
+    destruct (find_representative Q T finQ finT (q ++ [a])) as [rep | norep].
+    - now exists Q.
+    - exists (str_upd Q (q ++ [a]) true). repeat split.
+      + intros u v Qu Qv Neq.
+        unfold str_upd in *.
+        destruct (str_eq u (q ++ [a])) eqn:Hu,
+                 (str_eq v (q ++ [a])) eqn:Hv; subst; auto.
+        intro Contra. symmetry in Contra. now apply norep in Contra.
+      + destruct finQ as (Ql & HQl).
+        exists ((q ++ [a]) :: Ql). intro s. split.
+        * intro Hs. unfold str_upd in Hs.
+          destruct (str_eq s (q ++ [a])); subst.
+            now left.
+          right. now apply HQl.
+        * intro HIn. unfold str_upd.
+          destruct (str_eq s (q ++ [a])).
+            reflexivity.
+          apply HQl. destruct HIn; subst.
+            now destruct n.
+            assumption.
+      + intros s Hs. unfold str_upd.
+        now destruct (str_eq s (q ++ [a])).
+      + exists (q ++ [a]). split.
+            apply update_eq.
+        reflexivity.
 Qed.
 
 Lemma union_closed :
     forall Q T
     (sep : separable Q T)
     (finQ : finite Q)
-    (finT : finite T)
-    (nclos : closed Q T -> False),
+    (finT : finite T),
     { Q' : string -> bool &
         closed Q' T *
         separable Q' T *
         finite Q' *
         (forall s, Q s = true -> Q' s = true) }.
 Proof.
-    intros. unfold closed in nclos.
-    (* If Q is not closed, we can find a string q ∈ Q
-       and a letter a ∈ Σ such that q · a is T -distinguishable
-       from every element of Q. *)
-    assert {q : string & {a : s.t |
-        forall q', Q0 q = true -> Q0 q' = true ->
-        ~ T0 [q ++ [a] == q']}}. admit.
-    destruct X as (q & a & H).
-    exists (str_upd Q0 (q ++ [a]) true). repeat split.
+    intros Q T sep finQ finT.
+    destruct finQ as (Ql & HQl).
+    assert (process : forall (ps : list (string * s.t)) Q'
+        (sep' : separable Q' T)
+        (finQ' : finite Q')
+        (sub : forall s, Q s = true -> Q' s = true),
+        { Q'' : string -> bool &
+            (forall q a, In (q, a) ps ->
+                { r | Q'' r = true /\ T [(q ++ [a]) == r] }) *
+            separable Q'' T *
+            finite Q'' *
+            (forall s, Q' s = true -> Q'' s = true) }).
+    { intro ps. induction ps as [| (q, a) ps' IHps]; intros.
+      - exists Q'. repeat split; auto.
+            intros q a H. inversion H.
+      - destruct (close_step Q' T q a sep' finQ' finT) as
+                 (Q'' & ((sep'' & finQ'') & sub'') & rep'').
+        destruct (IHps Q'' sep'' finQ'' (fun s Qs => sub'' s (sub s Qs))) as
+                 (Q''' & ((reps''' & sep''') & finQ''') & sub''').
+        exists Q'''. repeat split; auto.
+        destruct rep'' as [r [Hr HTeq]].
+        intros q' a' HIn. apply In_to_InS in HIn. destruct HIn.
+            inversion e; subst; clear e.
+                exists r; auto.
+            apply (reps''' q' a' (InS_to_In _ _ _ i)).
+        intros. destruct x, y, (str_eq s s0), (eq_dec t0 t1); subst;
+            auto; right; intro Contra; inversion Contra; subst; contradiction.
+    }
+    destruct (process (list_prod Ql enum) Q sep (exist _ Ql HQl) (fun s Hs => Hs))
+        as (Q' & ((reps & sep') & finQ') & sub').
+    exists Q'. repeat split; auto.
+    intros q a Hq.
+    apply reps, in_prod.
+        admit. (* The invariant needs to help us show that after adding everything,
+                  Q' is closed wrt T *)
+    apply t_enumerable.
 Abort.
+
+(* CoFixpoint add_test_word_body (q : string) (i : nat)
+    (D : HypothesisDFA) (w : string)
+        : (state (make_dfa D)) * string :=
+    let delta : state (make_dfa D) -> s.t -> state (make_dfa D)
+        := (make_dfa D).(transition) in
+    if Bool.bool_dec (member (delta q (nth i w)))
+                     (member w) then (
+        (q ++ nth i w, skipn i)
+    ) else
+        add_test_word_body (delta q (nth i w)) (S i) D w. *)
+
 End Lstar.
