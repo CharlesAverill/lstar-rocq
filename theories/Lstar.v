@@ -552,6 +552,33 @@ Proof.
     now exists q, a.
 Qed.
 
+Definition union_closed_loop :
+    forall (n : nat) Q Q' T
+        (sep' : separable Q' T)
+        (finT : finite T)
+        (finQ' : finite Q')
+        (sub' : forall s, Q s = true -> Q' s = true),
+        option { Q'' : string -> bool &
+            closed Q'' T *
+            separable Q'' T *
+            finite Q'' *
+            (forall s, Q' s = true -> Q'' s = true) }.
+    intro n.
+    induction n as [| n' IH]; intros Q Q' T; intros.
+        exact None.
+    pose proof finT as finT_copy. destruct finT as (Tl & HTl).
+    destruct (closed_dec_witness Q' T finQ' (exist _ Tl HTl))
+        as [clos | (q & a & Hq & norep)].
+        apply Some. exists Q'. repeat split; auto.
+    destruct (close_step Q' T q a sep' finQ' (exist _ Tl HTl))
+            as (Q'' & ((sep'' & finQ'') & sub'') & _).
+    destruct (IH Q Q'' T sep'' finT_copy finQ'' (fun s Hs => sub'' s (sub' s Hs)))
+            as [result |].
+        destruct result as (Q''' & ((clos''' & sep''') & finQ''') & sub''').
+        apply Some. exists Q'''. repeat split; auto.
+    apply None.
+Defined.
+
 Lemma union_closed :
     forall Q T
     (sep : separable Q T)
@@ -564,6 +591,21 @@ Lemma union_closed :
         (forall s, Q s = true -> Q' s = true) }.
 Proof.
     intros Q T sep finQ finT.
-Abort.
+    pose proof finT as finT_copy.
+    destruct finT as (Tl & HTl).
+    (* fuel = 2^|Tl| bounds the number of T-equivalence classes *)
+    set (fuel := Nat.pow 2 (length Tl)).
+    (* union_closed_loop always returns Some with enough fuel *)
+    assert (loop_correct : forall n Q'
+        (sep' : separable Q' T)
+        (finQ' : finite Q')
+        (sub' : forall s, Q s = true -> Q' s = true),
+        n >= fuel - length (proj1_sig finQ') ->
+        {x | union_closed_loop n Q Q' T sep' finT_copy finQ' sub' = Some x}).
+        admit.
+    destruct (loop_correct fuel Q sep finQ ltac:(auto) ltac:(lia)).
+    destruct x as (Q' & ((clos' & sep') & finQ') & sub').
+    exists Q'. repeat split; auto.
+Admitted.
 
 End Lstar.
