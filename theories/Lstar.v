@@ -468,6 +468,9 @@ Qed.
     add finitely many strings to Q resulting in a set Q′ which is
     closed and separable with respect to T. *)
 
+(** For any finite sets Q and T and string u, either we can find a
+    'representative' string r in Q such that u and r are
+    T-equivalent, or all elements in Q are T-distinguishable from u *)
 Lemma find_representative : forall Q T
     (finQ : finite Q)
     (finT : finite T)
@@ -500,6 +503,9 @@ Proof.
       + now apply HQl.
 Qed.
 
+(** We can add a representative of q to Q to get a new
+    set Q' that is still separable and finite and is a
+    superset of Q *)
 Lemma close_step : forall Q T q (a : s.t)
     (sep : separable Q T)
     (finQ : finite Q)
@@ -538,6 +544,9 @@ Proof.
         reflexivity.
 Qed.
 
+(** If Q is not closed wrt T, we can find a q in Q such that
+    all q' in Q are T-distinguishable from q ++ [a] for all 
+    symbols in the alphabet *)
 Lemma not_closed_impl_distinguishable :
     forall Q T,
         (closed Q T -> False) ->
@@ -552,6 +561,7 @@ Proof.
     now exists q, a.
 Qed.
 
+(** Adds a finite number of strings to Q to make it closed wrt T *)
 Definition union_closed_loop :
     forall (n : nat) Q Q' T
         (sep' : separable Q' T)
@@ -579,6 +589,7 @@ Definition union_closed_loop :
     apply None.
 Defined.
 
+(** Lemma 3 *)
 Lemma union_closed :
     forall Q T
     (sep : separable Q T)
@@ -607,5 +618,48 @@ Proof.
     destruct x as (Q' & ((clos' & sep') & finQ') & sub').
     exists Q'. repeat split; auto.
 Admitted.
+
+(** The teacher answers equivalence queries *)
+Parameter equiv_query : DFA.t -> option string.
+Parameter equiv_query_correct : forall d,
+    equiv_query d = None <-> encodes d.
+Parameter equiv_query_ce : forall d w,
+    equiv_query d = Some w ->
+    accept_string d w <> member w.
+
+Fixpoint lstar (fuel : nat) (H : HypothesisDFA)
+    : option { d : DFA.t | encodes d }.
+    destruct fuel as [| n].
+    - exact None.
+    - destruct (equiv_query (make_dfa H)) eqn:Heq.
+      + (* counterexample s *)
+        assert (Hce : accept_string (make_dfa H) s <> member s)
+            by now apply equiv_query_ce.
+        destruct (find_separable H s Hce) as
+            (q_new & t & HQnew & (sep' & finQ') & finT').
+        set (Q' := str_upd H.(Q) q_new true).
+        set (T' := str_upd H.(T) t true).
+        destruct (union_closed Q' T' sep' finQ' finT') as
+            (Q'' & ((clos'' & sep'') & finQ'') & sub'').
+        assert (eps_in_Q'' : Q'' nil = true). {
+            apply sub''. unfold Q'. 
+            rewrite update_neq.
+            - apply H.(eps_in_Q).
+            - (* nil <> q_new *)
+              intro Heq'. subst q_new.
+              rewrite H.(eps_in_Q) in HQnew.
+              discriminate. }
+        exact (lstar n {|
+            Q        := Q'';
+            T        := T';
+            sep      := sep'';
+            clos     := clos'';
+            eps_in_Q := eps_in_Q'';
+            fin_Q    := finQ'';
+            fin_T    := finT' |}).
+      + (* no counterexample, make_dfa H encodes L *)
+        apply Some. exists (make_dfa H).
+        now apply equiv_query_correct in Heq.
+Defined.
 
 End Lstar.
