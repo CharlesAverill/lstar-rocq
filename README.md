@@ -12,5 +12,9 @@ opam install rocq-prover dune
 
 # Clone and build
 git clone https://github.com/CharlesAverill/lstar && cd lstar
-dune build
+dune build -p lstar-rocq
+
+# To build generated ML files (this is brittle)
+cp _build/default/bin/*.ml bin
+dune build -p lstar
 ```

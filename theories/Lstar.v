@@ -7,11 +7,22 @@ From Stdlib Require Import List.
 From Stdlib Require Import Lia.
 Import ListNotations.
 
-Module Lstar (s : Symbol) (L : L s).
-Import s L.
+Module Type Teacher (s : Symbol) (L : L s).
+    Import s L.
+    Module DFA := DFA s L.
+    Export DFA.
 
-Module DFA := DFA s L.
-Import DFA.
+    (** The teacher answers equivalence queries *)
+    Parameter equiv_query : DFA.t -> option string.
+    Parameter equiv_query_correct : forall d,
+        equiv_query d = None <-> encodes d.
+    Parameter equiv_query_ce : forall d w,
+        equiv_query d = Some w ->
+        accept_string d w <> member w.
+End Teacher.
+
+Module Lstar (s : Symbol) (L : L s) (T : Teacher s L).
+Import s L T.
 
 (** T-equivalent
 
@@ -589,6 +600,17 @@ Definition union_closed_loop :
     apply None.
 Defined.
 
+(* union_closed_loop always returns Some with enough fuel *)
+Lemma loop_terminates : forall n Q Q' T
+    (sep' : separable Q' T)
+    (finQ' : finite Q')
+    (Tl : list string)
+    (HTl : forall s : string, T s = true <-> In s Tl)
+    (sub' : forall s, Q s = true -> Q' s = true),
+    n >= (Nat.pow 2 (length Tl)) - length (proj1_sig finQ') ->
+    {x | union_closed_loop n Q Q' T sep' (exist _ Tl HTl) finQ' sub' = Some x}.
+Admitted.
+
 (** Lemma 3 *)
 Lemma union_closed :
     forall Q T
@@ -606,26 +628,10 @@ Proof.
     destruct finT as (Tl & HTl).
     (* fuel = 2^|Tl| bounds the number of T-equivalence classes *)
     set (fuel := Nat.pow 2 (length Tl)).
-    (* union_closed_loop always returns Some with enough fuel *)
-    assert (loop_correct : forall n Q'
-        (sep' : separable Q' T)
-        (finQ' : finite Q')
-        (sub' : forall s, Q s = true -> Q' s = true),
-        n >= fuel - length (proj1_sig finQ') ->
-        {x | union_closed_loop n Q Q' T sep' finT_copy finQ' sub' = Some x}).
-        admit.
-    destruct (loop_correct fuel Q sep finQ ltac:(auto) ltac:(lia)).
+    destruct (loop_terminates fuel Q Q T sep finQ Tl HTl ltac:(auto) ltac:(lia)).
     destruct x as (Q' & ((clos' & sep') & finQ') & sub').
     exists Q'. repeat split; auto.
-Admitted.
-
-(** The teacher answers equivalence queries *)
-Parameter equiv_query : DFA.t -> option string.
-Parameter equiv_query_correct : forall d,
-    equiv_query d = None <-> encodes d.
-Parameter equiv_query_ce : forall d w,
-    equiv_query d = Some w ->
-    accept_string d w <> member w.
+Qed.
 
 Fixpoint lstar (fuel : nat) (H : HypothesisDFA)
     : option { d : DFA.t | encodes d }.
