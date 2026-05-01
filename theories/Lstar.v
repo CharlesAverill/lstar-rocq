@@ -167,6 +167,77 @@ Definition closed (Q T : string -> bool) :=
         Q q = true ->
         {q' : string | Q q' = true /\ T [(q ++ [a]) == q']}.
 
+Definition existsb_exists_set :
+    forall (A : Type) (f : A -> bool) (l : list A),
+    existsb f l = true -> {x : A | In x l /\ f x = true}.
+Proof.
+    induction l; intros.
+        discriminate.
+    simpl in *. destruct (f a) eqn:E; simpl in *.
+    - exists a. split. now left. assumption.
+    - specialize (IHl H). destruct IHl as (x & InX & Fx).
+      exists x. split. now right. assumption.
+Qed.   
+
+(** Closedness is decidable for finite sets *)
+Definition closed_dec_witness : forall Q T,
+  finite Q ->
+  finite T ->
+  closed Q T + 
+  { q : string & { a : s.t &
+      Q q = true /\
+      forall q', Q q' = true -> ~ T [q ++ [a] == q'] }}.
+Proof.
+  intros Q T finQ finT.
+  destruct finQ as (Ql & Qfin).
+  destruct (List.find (fun '(q, a) =>
+      negb (existsb (fun q' =>
+          if T_equiv_dec T (q ++ [a]) q' finT then true else false
+      ) Ql)) (list_prod Ql enum)) eqn:Hfind.
+  - destruct p as (q, a).
+    apply List.find_some in Hfind.
+    destruct Hfind as [HIn Hcheck].
+    apply in_prod_iff in HIn. destruct HIn as [HIn_q HIn_a].
+    right. exists q, a. split.
+    + now apply Qfin.
+    + intros q' Hq' Contra.
+      apply Bool.negb_true_iff in Hcheck.
+      apply Bool.not_true_iff_false in Hcheck.
+      apply Hcheck. rewrite existsb_exists.
+      exists q'. split.
+      * now apply Qfin.
+      * destruct (T_equiv_dec T (q ++ [a]) q' finT).
+        { reflexivity. }
+        { exfalso. now apply n. }
+  - left. intros q a Hq.
+    apply List.find_none with (x := (q, a)) in Hfind.
+    + apply Bool.negb_false_iff in Hfind.
+      apply existsb_exists_set in Hfind.
+      destruct Hfind as (q' & Hq' & Hcheck).
+      exists q'. split.
+      * now apply Qfin.
+      * destruct (T_equiv_dec T (q ++ [a]) q' finT).
+        { assumption. }
+        { discriminate. }
+    + apply in_prod.
+      * now apply Qfin.
+      * apply t_enumerable.
+Qed.
+
+Definition closed_dec : forall Q T,
+    finite Q ->
+    finite T ->
+    closed Q T + (closed Q T -> False).
+Proof.
+    intros. destruct (closed_dec_witness Q T X X0).
+        now left.
+    right. intros Contra.
+    destruct s as (q & a & Qq & Tdistinguishable).
+    specialize (Contra q a Qq).
+    destruct Contra as (q' & Qq' & Teq).
+    destruct (Tdistinguishable q' Qq' Teq).
+Qed.
+
 (** Lemma 1. If Q is closed and separable with respect to T,
     the transition function δ : (q, a) → q′ ∈ Q such that
     q′ ≡T q · a, is well defined. *)
@@ -467,6 +538,20 @@ Proof.
         reflexivity.
 Qed.
 
+Lemma not_closed_impl_distinguishable :
+    forall Q T,
+        (closed Q T -> False) ->
+        finite Q -> finite T ->
+        {q : string & {a : s.t | Q q = true /\
+            forall q', Q q' = true -> ~ T [q ++ [a] == q'] }}.
+Proof.
+    intros Q T QNC Qfin Tfin.
+    destruct (closed_dec_witness Q T Qfin Tfin).
+        contradiction.
+    destruct s as (q & a & Qq & Tdist).
+    now exists q, a.
+Qed.
+
 Lemma union_closed :
     forall Q T
     (sep : separable Q T)
@@ -479,52 +564,6 @@ Lemma union_closed :
         (forall s, Q s = true -> Q' s = true) }.
 Proof.
     intros Q T sep finQ finT.
-    destruct finQ as (Ql & HQl).
-    assert (process : forall (ps : list (string * s.t)) Q'
-        (sep' : separable Q' T)
-        (finQ' : finite Q')
-        (sub : forall s, Q s = true -> Q' s = true),
-        { Q'' : string -> bool &
-            (forall q a, In (q, a) ps ->
-                { r | Q'' r = true /\ T [(q ++ [a]) == r] }) *
-            separable Q'' T *
-            finite Q'' *
-            (forall s, Q' s = true -> Q'' s = true) }).
-    { intro ps. induction ps as [| (q, a) ps' IHps]; intros.
-      - exists Q'. repeat split; auto.
-            intros q a H. inversion H.
-      - destruct (close_step Q' T q a sep' finQ' finT) as
-                 (Q'' & ((sep'' & finQ'') & sub'') & rep'').
-        destruct (IHps Q'' sep'' finQ'' (fun s Qs => sub'' s (sub s Qs))) as
-                 (Q''' & ((reps''' & sep''') & finQ''') & sub''').
-        exists Q'''. repeat split; auto.
-        destruct rep'' as [r [Hr HTeq]].
-        intros q' a' HIn. apply In_to_InS in HIn. destruct HIn.
-            inversion e; subst; clear e.
-                exists r; auto.
-            apply (reps''' q' a' (InS_to_In _ _ _ i)).
-        intros. destruct x, y, (str_eq s s0), (eq_dec t0 t1); subst;
-            auto; right; intro Contra; inversion Contra; subst; contradiction.
-    }
-    destruct (process (list_prod Ql enum) Q sep (exist _ Ql HQl) (fun s Hs => Hs))
-        as (Q' & ((reps & sep') & finQ') & sub').
-    exists Q'. repeat split; auto.
-    intros q a Hq.
-    apply reps, in_prod.
-        admit. (* The invariant needs to help us show that after adding everything,
-                  Q' is closed wrt T *)
-    apply t_enumerable.
 Abort.
-
-(* CoFixpoint add_test_word_body (q : string) (i : nat)
-    (D : HypothesisDFA) (w : string)
-        : (state (make_dfa D)) * string :=
-    let delta : state (make_dfa D) -> s.t -> state (make_dfa D)
-        := (make_dfa D).(transition) in
-    if Bool.bool_dec (member (delta q (nth i w)))
-                     (member w) then (
-        (q ++ nth i w, skipn i)
-    ) else
-        add_test_word_body (delta q (nth i w)) (S i) D w. *)
 
 End Lstar.
