@@ -607,7 +607,7 @@ Lemma loop_terminates : forall n Q Q' T
     (Tl : list string)
     (HTl : forall s : string, T s = true <-> In s Tl)
     (sub' : forall s, Q s = true -> Q' s = true),
-    n >= (Nat.pow 2 (length Tl)) - length (proj1_sig finQ') ->
+    Nat.pow 2 (length Tl) - length (proj1_sig finQ') <= n ->
     {x | union_closed_loop n Q Q' T sep' (exist _ Tl HTl) finQ' sub' = Some x}.
 Admitted.
 
