@@ -135,7 +135,7 @@ Proof.
 Qed.
 
 Definition finite (f : string -> bool) :=
-    {l : list string |
+    {l : list string | NoDup l /\
         forall (s : string), f s = true <-> In s l}.
 
 (** T-equivalence is decidable for finite sets *)
@@ -143,7 +143,7 @@ Definition T_equiv_dec : forall T (u v : string),
     finite T ->
     {T [u == v]} + {~ T [u == v]}.
 Proof.
-    intros. destruct X.
+    intros. destruct X as (x & _ & i).
     destruct (forallb (fun t =>
         if Bool.eqb (member (u ++ t)) (member (v ++ t))
         then true else false) x) eqn:Hfb.
@@ -452,9 +452,16 @@ Lemma find_separable :
         eapply refined_distinguish. 2: exact Contra.
         intros t Ht. unfold str_upd.
         now destruct (str_eq t (skipn (S k) w)).
-    - unfold finite. destruct H.(fin_Q) as (l & X).
-      exists ((proj1_sig (p k) ++ [wk]) :: l). intros.
-      split; intro.
+    - unfold finite. destruct H.(fin_Q) as (l & ND & X).
+      exists ((proj1_sig (p k) ++ [wk]) :: l). split.
+        apply NoDup_cons; auto. intro Contra.
+        rewrite <- X in Contra.
+        destruct (str_eq (proj1_sig (p k) ++ [wk]) (proj1_sig (p (S k))))
+            as [Heq | Hneq].
+            apply Dist. rewrite <- Heq, <- app_assoc.
+            unfold app at 3. now rewrite <- skipn_S_wk.
+        now apply (H.(sep) _ _ Contra (proj2_sig (p (S k)))).
+      split; intros.
       -- destruct (str_eq s (proj1_sig (p k) ++ [wk])).
             subst. now constructor.
             apply in_cons, X. now rewrite update_neq in H0.
@@ -463,9 +470,20 @@ Lemma find_separable :
          destruct (str_eq s (proj1_sig (p k) ++ [wk])). subst.
             apply update_eq.
          rewrite update_neq. now apply X. now symmetry.
-    - unfold finite. destruct H.(fin_T) as (l & X).
-      exists ((skipn (S k) w) :: l). intros.
-      split; intro.
+    - unfold finite. destruct H.(fin_T) as (l & ND & X).
+      exists ((skipn (S k) w) :: l). split.
+        apply NoDup_cons; auto. intro Contra.
+        rewrite <- X in Contra.
+        destruct (str_eq (proj1_sig (p k) ++ [wk]) (proj1_sig (p (S k))))
+            as [Heq | Hneq].
+            apply Dist. rewrite <- Heq, <- app_assoc.
+            unfold app at 3. now rewrite <- skipn_S_wk.
+        apply Dist.
+        specialize (HTeq (skipn (S k) w) Contra).
+        rewrite <- app_assoc in HTeq.
+        rewrite <- HTeq. unfold app at 3.
+        now rewrite <- skipn_S_wk.
+      split; intros.
       -- destruct (str_eq s (skipn (S k) w)).
             subst. now constructor.
             apply in_cons, X. now rewrite update_neq in H0.
@@ -523,6 +541,7 @@ Lemma close_step : forall Q T q (a : s.t)
     (finQ : finite Q)
     (finT : finite T),
     { Q' : string -> bool &
+        ((Q' = str_upd Q (q ++ [a]) true) + (Q' = Q)) *
         separable Q' T *
         finite Q' *
         (forall s, Q s = true -> Q' s = true) *
@@ -530,15 +549,21 @@ Lemma close_step : forall Q T q (a : s.t)
 Proof.
     intros Q T q a sep finQ finT.
     destruct (find_representative Q T finQ finT (q ++ [a])) as [rep | norep].
-    - now exists Q.
+    - exists Q. repeat split; auto.
     - exists (str_upd Q (q ++ [a]) true). repeat split.
+      + now left.
       + intros u v Qu Qv Neq.
         unfold str_upd in *.
         destruct (str_eq u (q ++ [a])) eqn:Hu,
                  (str_eq v (q ++ [a])) eqn:Hv; subst; auto.
         intro Contra. symmetry in Contra. now apply norep in Contra.
-      + destruct finQ as (Ql & HQl).
-        exists ((q ++ [a]) :: Ql). intro s. split.
+      + destruct finQ as (Ql & NDQ & HQl).
+        exists ((q ++ [a]) :: Ql).
+        split.
+            apply NoDup_cons; auto. intro Contra.
+            apply HQl in Contra.
+            apply (norep (q ++ [a]) Contra (Teq_refl T (q ++ [a]))).
+        intro s. split.
         * intro Hs. unfold str_upd in Hs.
           destruct (str_eq s (q ++ [a])); subst.
             now left.
@@ -593,7 +618,7 @@ Definition union_closed_loop :
         as [clos | (q & a & Hq & norep)].
         apply Some. exists Q'. repeat split; auto.
     destruct (close_step Q' T q a sep' finQ' (exist _ Tl HTl))
-            as (Q'' & ((sep'' & finQ'') & sub'') & _).
+            as (Q'' & (((Eq & sep'') & finQ'') & sub'') & _).
     destruct (IH Q Q'' T sep'' finT_copy finQ'' (fun s Hs => sub'' s (sub' s Hs)))
             as [result |].
         destruct result as (Q''' & ((clos''' & sep''') & finQ''') & sub''').
@@ -606,30 +631,65 @@ Lemma loop_terminates : forall n Q Q' T
     (sep' : separable Q' T)
     (finQ' : finite Q')
     (Tl : list string)
+    (NDT : NoDup Tl)
     (HTl : forall s : string, T s = true <-> In s Tl)
     (sub' : forall s, Q s = true -> Q' s = true),
     Nat.pow 2 (length Tl) - length (proj1_sig finQ') < n ->
-    {x | union_closed_loop n Q Q' T sep' (exist _ Tl HTl) finQ' sub' = Some x}.
+    {x | union_closed_loop n Q Q' T sep' (exist _ Tl (conj NDT HTl)) finQ' sub' = Some x}.
 Proof.
     intros n Q Q' T. intros.
-    destruct finQ' as (Q'l & finQ'). simpl in *.
-    revert Q Q' sep' Q'l finQ' sub' H.
+    destruct finQ' as (Q'l & NDQ'l & finQ'). simpl in *.
+    revert Q Q' sep' Q'l NDQ'l finQ' sub' H.
     induction n as [| n' IH]; intros. lia.
     rewrite PeanoNat.Nat.lt_succ_r in H.
     simpl.
     destruct (closed_dec_witness Q' T
-        (exist _ Q'l finQ') (exist _ Tl HTl)) as [clos | noclos].
-        eexists. reflexivity.
-    destruct noclos as (q & a & Hq & norep).
-    destruct (close_step Q' T q a sep'
-        (exist _ Q'l finQ') (exist _ Tl HTl))
-        as (Q'' & ((sep'' & finQ'') & sub'') & _).
-    destruct finQ'' as (Q''l & HQ''l).
-    destruct (IH Q0 Q'' sep'' Q''l HQ''l (fun s Hs => sub'' s (sub' s Hs))) as
-        ((Q''' & (((clos''' & sep''') & fin''') & sub''')) & Eq). {
+            (exist _ Q'l (conj NDQ'l finQ'))
+            (exist _ Tl (conj NDT HTl))) as [clos | noclos].
+    - eexists. reflexivity.
+    - destruct noclos as (q & a & Hq & norep).
+      destruct (close_step Q' T q a sep'
+              (exist _ Q'l (conj NDQ'l finQ'))
+              (exist _ Tl (conj NDT HTl)))
+          as (Q'' & (((Eq & sep'') & finQ'') & sub'') & _).
+      destruct finQ'' as (Q''l & NDQ'' & HQ''l).
+      assert (Hnotin : ~ In (q ++ [a]) Q'l). {
+          intro HIn.
+          apply (norep (q ++ [a])).
+          - now apply finQ'.
+          - apply Teq_refl. }
+      assert (HinQ'' : In (q ++ [a]) Q''l). {
+          apply HQ''l. admit.
+      }
+      assert (Hsubset : forall s, In s Q'l -> In s Q''l). {
+          intros s HIn.
+          apply HQ''l. apply sub''. now apply finQ'. }
+      assert (Hlt : length Q'l < length Q''l). {
+          induction Q''l as [| x Q''l' IHQ''l].
+          - simpl in HinQ''. contradiction.
+          - destruct (str_eq x (q ++ [a])) as [-> | Hneq].
+            + simpl. 
+              enough (length Q'l <= length Q''l') by lia.
+              apply NoDup_cons_iff in NDQ''.
+              destruct NDQ'' as [Hxnotin NDQ'''].
+              apply NoDup_incl_length; auto.
+              intros s HIn. admit.
+            + simpl.
+              apply NoDup_cons_iff in NDQ''.
+              destruct NDQ'' as [Hxnotin NDQ'''].
+              assert (In (q ++ [a]) Q''l'). {
+                  destruct HinQ'' as [-> | HIn].
+                  - contradiction.
+                  - exact HIn. }
+              assert (Hsubset' : forall s, In s Q'l -> In s (x :: Q''l')). {
+                  intros s HIn. exact (Hsubset s HIn). }
+              admit.
+      }
+      destruct (IH _ Q'' sep'' Q''l NDQ'' HQ''l
+              (fun s Hs => sub'' s (sub' s Hs))) as
+              ((Q''' & (((clos''' & sep''') & fin''') & sub''')) & Eq').
         admit.
-    }
-    simpl in *. eexists. rewrite Eq. reflexivity.
+      eexists. rewrite Eq'. reflexivity.
 Admitted.
 
 (** Lemma 3 *)
@@ -646,10 +706,10 @@ Lemma union_closed :
 Proof.
     intros Q T sep finQ finT.
     pose proof finT as finT_copy.
-    destruct finT as (Tl & HTl).
+    destruct finT as (Tl & NDT & HTl).
     (* fuel = 2^|Tl| bounds the number of T-equivalence classes *)
     set (fuel := S (Nat.pow 2 (length Tl))).
-    destruct (loop_terminates fuel Q Q T sep finQ Tl HTl ltac:(auto) ltac:(lia)).
+    destruct (loop_terminates fuel Q Q T sep finQ Tl NDT HTl ltac:(auto) ltac:(lia)).
     destruct x as (Q' & ((clos' & sep') & finQ') & sub').
     exists Q'. repeat split; auto.
 Qed.
