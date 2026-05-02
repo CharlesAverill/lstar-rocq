@@ -5,6 +5,7 @@ From Stdlib Require Import Classes.RelationClasses.
 From Stdlib Require Import Setoids.Setoid.
 From Stdlib Require Import List.
 From Stdlib Require Import Lia.
+From Stdlib Require Import Recdef.
 Import ListNotations.
 
 Module Type Teacher (s : Symbol) (L : L s).
@@ -607,8 +608,28 @@ Lemma loop_terminates : forall n Q Q' T
     (Tl : list string)
     (HTl : forall s : string, T s = true <-> In s Tl)
     (sub' : forall s, Q s = true -> Q' s = true),
-    Nat.pow 2 (length Tl) - length (proj1_sig finQ') <= n ->
+    Nat.pow 2 (length Tl) - length (proj1_sig finQ') < n ->
     {x | union_closed_loop n Q Q' T sep' (exist _ Tl HTl) finQ' sub' = Some x}.
+Proof.
+    intros n Q Q' T. intros.
+    destruct finQ' as (Q'l & finQ'). simpl in *.
+    revert Q Q' sep' Q'l finQ' sub' H.
+    induction n as [| n' IH]; intros. lia.
+    rewrite PeanoNat.Nat.lt_succ_r in H.
+    simpl.
+    destruct (closed_dec_witness Q' T
+        (exist _ Q'l finQ') (exist _ Tl HTl)) as [clos | noclos].
+        eexists. reflexivity.
+    destruct noclos as (q & a & Hq & norep).
+    destruct (close_step Q' T q a sep'
+        (exist _ Q'l finQ') (exist _ Tl HTl))
+        as (Q'' & ((sep'' & finQ'') & sub'') & _).
+    destruct finQ'' as (Q''l & HQ''l).
+    destruct (IH Q0 Q'' sep'' Q''l HQ''l (fun s Hs => sub'' s (sub' s Hs))) as
+        ((Q''' & (((clos''' & sep''') & fin''') & sub''')) & Eq). {
+        admit.
+    }
+    simpl in *. eexists. rewrite Eq. reflexivity.
 Admitted.
 
 (** Lemma 3 *)
@@ -627,7 +648,7 @@ Proof.
     pose proof finT as finT_copy.
     destruct finT as (Tl & HTl).
     (* fuel = 2^|Tl| bounds the number of T-equivalence classes *)
-    set (fuel := Nat.pow 2 (length Tl)).
+    set (fuel := S (Nat.pow 2 (length Tl))).
     destruct (loop_terminates fuel Q Q T sep finQ Tl HTl ltac:(auto) ltac:(lia)).
     destruct x as (Q' & ((clos' & sep') & finQ') & sub').
     exists Q'. repeat split; auto.
