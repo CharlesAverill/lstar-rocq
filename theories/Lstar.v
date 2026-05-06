@@ -262,7 +262,7 @@ Defined.
     and t such that Q′ = Q ∪ {qn+1} is separable with respect to
     T′ = T ∪ {t}. *)
 
-(** A hypothesis DFA is one whose states are exactly the
+(** A hypothesis DFA is one whose states are applyly the
     string representatives in Q, with the transition function
     given by delta. *)
 Record HypothesisDFA : Type := {
@@ -291,7 +291,7 @@ Definition make_dfa (H : HypothesisDFA) : DFA.t.
         exists q'. apply Qq'.
     }
     set (accept := fun (q : state) => member (proj1_sig q)).
-    exact {|state      := state;
+    apply {|state      := state;
             initial    := initial;
             transition := transition;
             accept     := accept|}.
@@ -445,7 +445,7 @@ Lemma find_separable :
         eapply refined_distinguish; [| symmetry; apply Contra].
         intros. unfold str_upd. now destruct str_eq.
       + apply (H.(sep) u v Qu Qv Neq).
-        eapply refined_distinguish. 2: exact Contra.
+        eapply refined_distinguish. 2: apply Contra.
         intros t Ht. unfold str_upd.
         now destruct (str_eq t (skipn (S k) w)).
     - unfold finite. destruct H.(fin_Q) as (l & ND & X).
@@ -608,7 +608,7 @@ Definition union_closed_loop :
             (forall s, Q' s = true -> Q'' s = true) }.
     intro n.
     induction n as [| n' IH]; intros Q Q' T; intros.
-        exact None.
+        apply None.
     pose proof finT as finT_copy. destruct finT as (Tl & HTl).
     destruct (closed_dec_witness Q' T finQ' (exist _ Tl HTl))
         as [clos | (q & a & Hq & norep)].
@@ -647,7 +647,7 @@ Proof.
       destruct (close_step Q' T q a sep'
               (exist _ Q'l (conj NDQ'l finQ'))
               (exist _ Tl (conj NDT HTl)))
-          as (Q'' & (((Eq & sep'') & finQ'') & sub'') & _).
+          as (Q'' & (((Eq & sep'') & finQ'') & sub'') & (r & Q''r & Teqr)).
       destruct finQ'' as (Q''l & NDQ'' & HQ''l).
       assert (Hnotin : ~ In (q ++ [a]) Q'l). {
           intro HIn.
@@ -655,12 +655,10 @@ Proof.
           - now apply finQ'.
           - apply Teq_refl. }
       assert (HinQ'' : In (q ++ [a]) Q''l). {
-        apply HQ''l. destruct Eq; subst.
-          now rewrite update_eq.
-        enough (closed Q' T).
-        destruct (X q a Hq) as (q' & Q'q' & Teq).
-        specialize (norep _ Q'q'). contradiction.
-        admit. (* I think close_step needs to return this alongside Q = Q' *)
+        apply HQ''l.
+        destruct Eq; subst.
+            apply update_eq.
+        exfalso. apply (norep r); auto.
       }
       assert (Hsubset : forall s, In s Q'l -> In s Q''l). {
           intros s HIn.
@@ -684,10 +682,14 @@ Proof.
               assert (In (q ++ [a]) Q''l'). {
                   destruct HinQ'' as [-> | HIn].
                   - contradiction.
-                  - exact HIn. }
-              assert (Hsubset' : forall s, In s Q'l -> In s (x :: Q''l')). {
-                  intros s HIn. exact (Hsubset s HIn). }
-              admit.
+                  - apply HIn. }
+              enough (length Q'l <= length Q''l') by lia.
+              apply NoDup_incl_length; [apply NDQ'l |].
+              intros s Hs. destruct (Hsubset _ Hs); subst; auto.
+              destruct HinQ''; subst; auto.
+              destruct Eq; subst.
+                admit.
+              exfalso. eapply norep; eauto.
       }
       destruct (IH _ Q'' sep'' Q''l NDQ'' HQ''l
               (fun s Hs => sub'' s (sub' s Hs))) as
@@ -721,7 +723,7 @@ Qed.
 Fixpoint lstar (fuel : nat) (H : HypothesisDFA)
     : option { d : DFA.t | encodes d }.
     destruct fuel as [| n].
-    - exact None.
+    - apply None.
     - destruct (equiv_query (make_dfa H)) eqn:Heq.
       + (* counterexample s *)
         assert (Hce : accept_string (make_dfa H) s <> member s)
@@ -740,7 +742,7 @@ Fixpoint lstar (fuel : nat) (H : HypothesisDFA)
               intro Heq'. subst q_new.
               rewrite H.(eps_in_Q) in HQnew.
               discriminate. }
-        exact (lstar n {|
+        apply (lstar n {|
             Q        := Q'';
             T        := T';
             sep      := sep'';
