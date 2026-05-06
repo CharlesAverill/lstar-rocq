@@ -217,20 +217,16 @@ Proof.
       apply Bool.not_true_iff_false in Hcheck.
       apply Hcheck. rewrite existsb_exists.
       exists q'. split.
-      * now apply Qfin.
-      * destruct (T_equiv_dec T (q ++ [a]) q' finT).
-        { reflexivity. }
-        { exfalso. now apply n. }
+        now apply Qfin.
+        destruct (T_equiv_dec T (q ++ [a]) q' finT); auto.
   - left. intros q a Hq.
     apply List.find_none with (x := (q, a)) in Hfind.
     + apply Bool.negb_false_iff in Hfind.
       apply existsb_exists_set in Hfind.
       destruct Hfind as (q' & Hq' & Hcheck).
       exists q'. split.
-      * now apply Qfin.
-      * destruct (T_equiv_dec T (q ++ [a]) q' finT).
-        { assumption. }
-        { discriminate. }
+        now apply Qfin.
+        now destruct (T_equiv_dec T (q ++ [a]) q' finT).
     + apply in_prod.
       * now apply Qfin.
       * apply t_enumerable.
