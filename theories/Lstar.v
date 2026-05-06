@@ -659,7 +659,12 @@ Proof.
           - now apply finQ'.
           - apply Teq_refl. }
       assert (HinQ'' : In (q ++ [a]) Q''l). {
-          apply HQ''l. admit.
+        apply HQ''l. destruct Eq; subst.
+          now rewrite update_eq.
+        enough (closed Q' T).
+        destruct (X q a Hq) as (q' & Q'q' & Teq).
+        specialize (norep _ Q'q'). contradiction.
+        admit. (* I think close_step needs to return this alongside Q = Q' *)
       }
       assert (Hsubset : forall s, In s Q'l -> In s Q''l). {
           intros s HIn.
@@ -673,7 +678,10 @@ Proof.
               apply NoDup_cons_iff in NDQ''.
               destruct NDQ'' as [Hxnotin NDQ'''].
               apply NoDup_incl_length; auto.
-              intros s HIn. admit.
+              intros s HIn.
+              destruct (Hsubset s HIn); subst.
+                contradiction.
+                assumption.
             + simpl.
               apply NoDup_cons_iff in NDQ''.
               destruct NDQ'' as [Hxnotin NDQ'''].
