@@ -233,8 +233,8 @@ module Lstar =
 
   (** val close_step :
       (Coq_s.string -> bool) -> (Coq_s.string -> bool) -> Coq_s.t list ->
-      Coq_s.t -> finite -> finite -> (Coq_s.string -> bool, (((separable,
-      finite) prod, __) prod, Coq_s.string) prod) sigT **)
+      Coq_s.t -> finite -> finite -> (Coq_s.string -> bool, (((((__, __) sum,
+      separable) prod, finite) prod, __) prod, Coq_s.string) prod) sigT **)
 
   let close_step q t0 q0 a finQ finT =
     let s =
@@ -242,11 +242,12 @@ module Lstar =
     in
     (match s with
      | Coq_inleft s0 ->
-       Coq_existT (q, (Coq_pair ((Coq_pair ((Coq_pair (__, finQ)), __)), s0)))
+       Coq_existT (q, (Coq_pair ((Coq_pair ((Coq_pair ((Coq_pair ((Coq_inr
+         __), __)), finQ)), __)), s0)))
      | Coq_inright ->
        Coq_existT ((str_upd q (app q0 (Coq_cons (a, Coq_nil))) Coq_true),
-         (Coq_pair ((Coq_pair ((Coq_pair (__, (Coq_cons
-         ((app q0 (Coq_cons (a, Coq_nil))), finQ)))), __)),
+         (Coq_pair ((Coq_pair ((Coq_pair ((Coq_pair ((Coq_inl __), __)),
+         (Coq_cons ((app q0 (Coq_cons (a, Coq_nil))), finQ)))), __)),
          (app q0 (Coq_cons (a, Coq_nil)))))))
 
   (** val not_closed_impl_distinguishable :
@@ -299,8 +300,29 @@ module Lstar =
       (Coq_s.string -> bool) -> finite -> Coq_s.string list -> (Coq_s.string
       -> bool, (((closed, separable) prod, finite) prod, __) prod) sigT **)
 
-  let loop_terminates =
-    failwith "AXIOM TO BE REALIZED (lstar.Lstar.Lstar.loop_terminates)"
+  let rec loop_terminates n q q' t0 finQ' tl =
+    match n with
+    | O -> assert false (* absurd case *)
+    | S n0 ->
+      let s = closed_dec_witness q' t0 finQ' tl in
+      (match s with
+       | Coq_inl c ->
+         Coq_existT (q', (Coq_pair ((Coq_pair ((Coq_pair (c, __)), finQ')),
+           __)))
+       | Coq_inr s0 ->
+         let Coq_existT (x, s1) = s0 in
+         let Coq_existT (x0, _) = s1 in
+         let s2 = close_step q' t0 x x0 finQ' tl in
+         let Coq_existT (x1, p) = s2 in
+         let Coq_pair (p0, _) = p in
+         let Coq_pair (p1, _) = p0 in
+         let Coq_pair (_, f) = p1 in
+         let s3 = loop_terminates n0 q x1 t0 f tl in
+         let Coq_existT (x2, p2) = s3 in
+         let Coq_pair (p3, _) = p2 in
+         let Coq_pair (p4, f0) = p3 in
+         let Coq_pair (c, _) = p4 in
+         Coq_existT (x2, (Coq_pair ((Coq_pair ((Coq_pair (c, __)), f0)), __))))
 
   (** val union_closed :
       (Coq_s.string -> bool) -> (Coq_s.string -> bool) -> finite -> finite ->
@@ -308,7 +330,7 @@ module Lstar =
       prod) sigT **)
 
   let union_closed q t0 finQ finT =
-    let fuel = pow (S (S O)) (length finT) in
+    let fuel = S (pow (S (S O)) (length finT)) in
     let s = loop_terminates fuel q q t0 finQ finT in
     let Coq_existT (x, p) = s in
     let Coq_pair (p0, _) = p in

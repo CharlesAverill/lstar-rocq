@@ -6,6 +6,7 @@ From Stdlib Require Import Setoids.Setoid.
 From Stdlib Require Import List.
 From Stdlib Require Import Lia.
 From Stdlib Require Import Recdef.
+From Stdlib Require Import PeanoNat. Require Import Nat.
 Import ListNotations.
 
 Module Type Teacher (s : Symbol) (L : L s).
@@ -367,7 +368,7 @@ Lemma find_separable :
     (* Since p_(k−1)w_k ≡T p_k and p_k ∈ Q, by separability of Q,
        p_(k−1)w_k is T-distinguishable from every element of Q\p_k. *)
     assert (Hlt : k < length w). {
-        destruct (PeanoNat.Nat.le_gt_cases (length w) k) as [Hle | Hlt].
+        destruct (Nat.le_gt_cases (length w) k) as [Hle | Hlt].
         - exfalso. apply SKIncorrect.
           unfold correct, p in *.
           rewrite firstn_all2 in * by lia.
@@ -387,10 +388,10 @@ Lemma find_separable :
     destruct (nth_error_split_sig _ _ _ e) as (l1 & l2 & Hw & Hlen).
     assert (Hfirstn : firstn (S k) w = firstn k w ++ [wk]). {
         subst w.
-        rewrite firstn_app, Hlen, PeanoNat.Nat.sub_succ_l by lia.
+        rewrite firstn_app, Hlen, Nat.sub_succ_l by lia.
         subst.
         rewrite firstn_all2 by lia.
-        rewrite firstn_cons. rewrite PeanoNat.Nat.sub_diag.
+        rewrite firstn_cons. rewrite Nat.sub_diag.
         rewrite firstn_0. now rewrite firstn_len_app.
     }
     (* Perform a single step of the current DFA *)
@@ -622,6 +623,93 @@ Definition union_closed_loop :
     apply None.
 Defined.
 
+Lemma NoDup_boollist_length : forall (vecs : list (list bool)) (n : nat),
+    NoDup vecs ->
+    (forall v, In v vecs -> length v = n) ->
+    length vecs <= Nat.pow 2 n.
+Proof.
+  intros vecs n. revert vecs.
+  induction n as [| n' IHn]; intros vecs HND Hlen.
+  - destruct vecs as [| v [| v' ?]]; simpl; try lia.
+    exfalso.
+      replace v with (@nil bool) in * by
+        (symmetry; apply length_zero_iff_nil; apply Hlen; now left).
+      replace v' with (@nil bool) in * by
+        (symmetry; apply length_zero_iff_nil; apply Hlen; right; now left).
+      subst. apply NoDup_cons_iff in HND. destruct HND. apply H. now left.
+  - simpl. rewrite Nat.add_0_r.
+    set (vt := filter (fun v => match v with true  :: _ => true | _ => false end) vecs).
+    set (vf := filter (fun v => match v with false :: _ => true | _ => false end) vecs).
+    assert (Hpart : length vecs = length vt + length vf). {
+      unfold vt, vf. clear HND IHn.
+      induction vecs as [| v vs IHvs].
+        reflexivity.
+      assert (Hvl : length v = S n') by (apply Hlen; now left).
+        destruct v; simpl in Hvl; try discriminate; destruct b;
+        simpl; rewrite IHvs; try lia;
+        intros u Hu; apply Hlen; now right. }
+    assert (HltT : length (map (@tl bool) vt) <= Nat.pow 2 n'). {
+        apply IHn.
+        - (* tl is injective on vt since all heads are true *)
+            unfold vt. clear - HND Hlen.
+            induction vecs.
+                constructor.
+            simpl. destruct a eqn:Hv.
+            (* v = [] : length 0 = S n', contradiction *)
+                exfalso. specialize (Hlen nil ltac:(now left)). simpl in Hlen. lia.
+            destruct b.
+            + (* v = true :: _ : goes into vt *)
+                apply NoDup_cons_iff in HND. destruct HND as [Hni NDvs].
+                simpl. constructor.
+                * intro HIn. apply in_map_iff in HIn.
+                  destruct HIn as (w & Htl & HwIn).
+                  apply filter_In in HwIn. destruct HwIn as [HwVs Hwh].
+                  destruct w. discriminate. destruct b;
+                    simpl in Htl; subst.
+                  now apply Hni. discriminate.
+                * apply IHvecs; auto.
+                  intros. apply Hlen. now right.
+            + (* v = false :: _ : filtered out *)
+                apply NoDup_cons_iff in HND. destruct HND as [Hni NDvs].
+                apply IHvecs; auto.
+                intros. apply Hlen. now right.
+        - intros v Hv. apply in_map_iff in Hv.
+            destruct Hv as (u & <- & HuIn).
+            apply filter_In in HuIn. destruct HuIn as [HuV Huh].
+            assert (length u = S n') by (apply Hlen; exact HuV).
+            destruct u; simpl in *; lia. }
+    assert (HltF : length (map (@tl bool) vf) <= Nat.pow 2 n'). {
+        apply IHn.
+        - (* tl is injective on vf since all heads are true *)
+            unfold vf. clear - HND Hlen.
+            induction vecs.
+                constructor.
+            simpl. destruct a eqn:Hv.
+            (* v = [] : length 0 = S n', contradiction *)
+                exfalso. specialize (Hlen nil ltac:(now left)). simpl in Hlen. lia.
+            destruct b.
+            + (* v = true :: _ : filtered out *)
+                apply NoDup_cons_iff in HND. destruct HND as [Hni NDvs].
+                    apply IHvecs; auto. intros. apply Hlen.
+                    now right.
+            + (* v = false :: _ : goes into vf *)
+                apply NoDup_cons_iff in HND. destruct HND as [Hni NDvs].
+                simpl. constructor.
+                    intro HIn. apply in_map_iff in HIn.
+                    destruct HIn as (w & Htl & HwIn).
+                    apply filter_In in HwIn. destruct HwIn as [HwVs Hwh].
+                    destruct w; try discriminate. destruct b. discriminate.
+                    simpl in Htl. subst. now apply Hni. 
+                apply IHvecs; auto.
+                  intros. apply Hlen. now right.
+        - intros v Hv. apply in_map_iff in Hv.
+            destruct Hv as (u & <- & HuIn).
+            apply filter_In in HuIn. destruct HuIn as [HuV Huh].
+            assert (length u = S n') by auto.
+            destruct u; simpl in *; lia. }
+        rewrite length_map in HltT, HltF. lia.
+Qed.
+
 (* union_closed_loop always returns Some with enough fuel *)
 Lemma loop_terminates : forall n Q Q' T
     (sep' : separable Q' T)
@@ -637,13 +725,12 @@ Proof.
     destruct finQ' as (Q'l & NDQ'l & finQ'). simpl in *.
     revert Q Q' sep' Q'l NDQ'l finQ' sub' H.
     induction n as [| n' IH]; intros. lia.
-    rewrite PeanoNat.Nat.lt_succ_r in H.
-    simpl.
+    rewrite Nat.lt_succ_r in H. simpl.
     destruct (closed_dec_witness Q' T
             (exist _ Q'l (conj NDQ'l finQ'))
             (exist _ Tl (conj NDT HTl))) as [clos | noclos].
-    - eexists. reflexivity.
-    - destruct noclos as (q & a & Hq & norep).
+        eexists. reflexivity.
+    destruct noclos as (q & a & Hq & norep).
       destruct (close_step Q' T q a sep'
               (exist _ Q'l (conj NDQ'l finQ'))
               (exist _ Tl (conj NDT HTl)))
@@ -652,8 +739,8 @@ Proof.
       assert (Hnotin : ~ In (q ++ [a]) Q'l). {
           intro HIn.
           apply (norep (q ++ [a])).
-          - now apply finQ'.
-          - apply Teq_refl. }
+            now apply finQ'.
+          reflexivity. }
       assert (HinQ'' : In (q ++ [a]) Q''l). {
         apply HQ''l.
         destruct Eq; subst.
@@ -661,42 +748,70 @@ Proof.
         exfalso. apply (norep r); auto.
       }
       assert (Hsubset : forall s, In s Q'l -> In s Q''l). {
-          intros s HIn.
-          apply HQ''l. apply sub''. now apply finQ'. }
-      assert (Hlt : length Q'l < length Q''l). {
-          induction Q''l as [| x Q''l' IHQ''l].
-          - simpl in HinQ''. contradiction.
-          - destruct (str_eq x (q ++ [a])) as [-> | Hneq].
-            + simpl. 
-              enough (length Q'l <= length Q''l') by lia.
-              apply NoDup_cons_iff in NDQ''.
-              destruct NDQ'' as [Hxnotin NDQ'''].
-              apply NoDup_incl_length; auto.
-              intros s HIn.
-              destruct (Hsubset s HIn); subst.
-                contradiction.
-                assumption.
-            + simpl.
-              apply NoDup_cons_iff in NDQ''.
-              destruct NDQ'' as [Hxnotin NDQ'''].
-              assert (In (q ++ [a]) Q''l'). {
-                  destruct HinQ'' as [-> | HIn].
-                  - contradiction.
-                  - apply HIn. }
-              enough (length Q'l <= length Q''l') by lia.
-              apply NoDup_incl_length; [apply NDQ'l |].
-              intros s Hs. destruct (Hsubset _ Hs); subst; auto.
-              destruct HinQ''; subst; auto.
-              destruct Eq; subst.
-                admit.
-              exfalso. eapply norep; eauto.
-      }
+          intros s HIn. now apply HQ''l, sub'', finQ'. }
       destruct (IH _ Q'' sep'' Q''l NDQ'' HQ''l
               (fun s Hs => sub'' s (sub' s Hs))) as
               ((Q''' & (((clos''' & sep''') & fin''') & sub''')) & Eq').
-        admit.
+      enough (Hlt : length Q'l < length Q''l <= Nat.pow 2 (length Tl)) by lia. {
+        assert (Hlt : length Q'l < length Q''l). {
+            enough (H1 : length Q'l <= length Q''l). {
+            enough (H2 : length Q'l <> length Q''l) by lia.
+            intro Heq.
+            apply Hnotin.
+            assert (forall s, In s Q''l -> In s Q'l). {
+                intros s Hs.
+                destruct (in_dec str_eq s Q'l) as [? | Hout]; [assumption |].
+                exfalso.
+                assert (Hle : length Q'l <= length (remove str_eq s Q''l)). {
+                  apply NoDup_incl_length. assumption.
+                  intros x Hx.
+                  apply in_in_remove.
+                    intro Hxs. subst. contradiction.
+                  now apply Hsubset. }
+                assert (Hrm : length (remove str_eq s Q''l) < length Q''l) by
+                    (apply remove_length_lt; auto).
+                lia. } now apply H0.
+            }
+            now apply NoDup_incl_length.
+        } split. assumption.
+        set (vec := fun u => map (fun t => member (u ++ t)) Tl).
+        (* vec is injective on Q''l *)
+        assert (Hvec_inj : forall u v,
+            In u Q''l -> In v Q''l -> vec u = vec v -> u = v). {
+            intros u v Hu Hv Heqvec.
+            destruct (str_eq u v) as [-> | Huv]; [reflexivity |].
+            exfalso. apply (sep'' u v); auto;
+                try now apply HQ''l.
+            intros t Ht.
+            apply HTl, In_nth with (d := t) in Ht.
+            destruct Ht as (i & Hi & Hnth).
+            assert (Hmu : nth_error (vec u) i = Some (member (u ++ t))). {
+                unfold vec. rewrite nth_error_map, nth_error_nth' with (d := t); [|lia].
+                now rewrite Hnth. }
+            assert (Hmv : nth_error (vec v) i = Some (member (v ++ t))). {
+                unfold vec. rewrite nth_error_map, nth_error_nth' with (d := t); [|lia].
+                now rewrite Hnth. }
+            rewrite Heqvec in Hmu. congruence. }
+        assert (HND : NoDup (map vec Q''l)). {
+            clear - NDQ'' Hvec_inj.
+            induction Q''l as [| x xs IHxs].
+            - constructor.
+            - apply NoDup_cons_iff in NDQ''. destruct NDQ'' as [Hni NDxs].
+                constructor.
+                + intro HIn. apply in_map_iff in HIn.
+                  destruct HIn as (y & Heq & Hyin).
+                  assert (x = y) by (apply Hvec_inj; [left; auto | right; auto | auto]).
+                  subst. contradiction.
+                + apply IHxs; auto.
+                  intros u v Hu Hv. apply Hvec_inj; right; auto. }
+        rewrite <- length_map with (f := vec).
+        apply NoDup_boollist_length. assumption.
+        intros v Hv.
+        apply in_map_iff in Hv.
+        destruct Hv as (u & <- & _).
+        unfold vec. apply length_map. }
       eexists. rewrite Eq'. reflexivity.
-Admitted.
+Qed.
 
 (** Lemma 3 *)
 Lemma union_closed :
@@ -720,7 +835,7 @@ Proof.
     exists Q'. repeat split; auto.
 Qed.
 
-Fixpoint lstar (fuel : nat) (H : HypothesisDFA)
+Fixpoint lstar_opt (fuel : nat) (H : HypothesisDFA)
     : option { d : DFA.t | encodes d }.
     destruct fuel as [| n].
     - apply None.
