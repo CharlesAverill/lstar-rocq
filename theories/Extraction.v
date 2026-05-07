@@ -6,7 +6,7 @@ Extraction Language OCaml.
 
 Set Extraction Output Directory "lib".
 
-(* Uncomment to use some standard OCaml types for a small speedup *)
+(* Comment this line to turn off standard OCaml types *)
 From lstar Require Import ExtrOptimizations.
 
 Separate Extraction Lstar.

@@ -12,11 +12,11 @@ fmt:
 	$(OPAM_EXEC) $(DUNE) promote
 
 lstar-rocq: clean
-	$(OPAM_EXEC) $(DUNE) build -p lstar-rocq
+	-$(OPAM_EXEC) $(DUNE) build -p lstar-rocq
 	@cp _build/default/lib/*.ml lib
 	@rm -f lib/Bin*.ml lib/PosDef.ml
-	@grep "^From lstar Require Import ExtrOptimizations" theories/Extraction.v > /dev/null
-	@if [ $? ]; then \
+	-@grep "^From lstar Require Import ExtrOptimizations" theories/Extraction.v > /dev/null; \
+	if [ $$? -eq 0 ]; then \
 		rm -f lib/Bool.ml lib/ListDef.ml lib/PeanoNat.ml; \
 	fi
 

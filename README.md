@@ -25,6 +25,8 @@ default, but can be disabled by commenting out this line in [Extraction.v](theor
 From lstar Require Import ExtrOptimizations.
 ```
 
+The following example file will break without optimizations turned on.
+
 ## Example
 
 An example execution is provided in [alternating.ml](examples/alternating.ml).
