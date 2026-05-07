@@ -3,6 +3,7 @@ open Language
 open Specif
 open Stdlib
 
+(** Alphabet *)
 module S = struct
   type t = Zero | One
 
@@ -30,6 +31,7 @@ module S = struct
       Coq_right
 end
 
+(** Language *)
 module L = struct
   let member (s : S.string) : bool =
     match s with
@@ -42,6 +44,7 @@ module L = struct
              (h, true) t )
 end
 
+(** Teacher for L *)
 module AlternatingTeacher = struct
   module DFA = struct
     type 'state t =
@@ -90,35 +93,48 @@ module AlternatingTeacher = struct
     find_counter_example 0 [[]]
 end
 
+(** L* implementation *)
 module Lstar = Lstar (S) (L) (AlternatingTeacher)
 
 (** Generate all bit strings of length [n] *)
 let rec enumerate (n : int) : S.string list =
-  if n <= 0 then [[]]
+  if n <= 0 then
+    [[]]
   else
     let prev = enumerate (n - 1) in
     let prepend c l = List.map (fun s -> [c] @ s) l in
-    (prepend S.Zero prev) @ (prepend S.One prev)
+    prepend S.Zero prev @ prepend S.One prev
 
 (** Run the DFA on test cases and pretty-print the results *)
 let print_results dfa n =
   let strings = enumerate n in
   let col_w = max 10 (n + 2) in
-  let header = Printf.sprintf "%-*s  %-8s  %-8s  %-8s"
-    col_w "Input" "Expected" "Got" "Correct" in
-  print_endline header;
-  List.iter (fun c ->
-    let exp  = L.member c in
-    let comp = AlternatingTeacher.DFA.accept_string dfa c in
-    let mark = if exp = comp then "Y" else "N" in
-    Printf.printf "%-*s  %-8b  %-8b  %s\n"
-      col_w (Printf.sprintf "[%s]" (S.string_of_string c))
-      exp comp mark
-  ) strings;
-  let correct = List.length (List.filter (fun c ->
-    L.member c = AlternatingTeacher.DFA.accept_string dfa c) strings) in
+  let header =
+    Printf.sprintf "%-*s  %-8s  %-8s  %-8s" col_w "Input" "Expected" "Got"
+      "Correct"
+  in
+  print_endline header ;
+  List.iter
+    (fun c ->
+      let exp = L.member c in
+      let comp = AlternatingTeacher.DFA.accept_string dfa c in
+      Printf.printf "%-*s  %-8b  %-8b  %s\n" col_w
+        (Printf.sprintf "[%s]" (S.string_of_string c))
+        exp comp
+        ( if exp = comp then
+            "Y"
+          else
+            "N" ) )
+    strings ;
+  let correct =
+    List.length
+      (List.filter
+         (fun c -> L.member c = AlternatingTeacher.DFA.accept_string dfa c)
+         strings )
+  in
   Printf.printf "Accuracy: %d/%d\n" correct (List.length strings)
 
+(** Main *)
 let () =
   match
     Lstar.lstar_opt Int.max_int
@@ -142,5 +158,4 @@ let () =
       print_endline "No DFA found"
   | Some (Coq_existT (_, d)) ->
       let open S in
-      print_endline "DFA found" ;
-      print_results d 3
+      print_endline "DFA found" ; print_results d 3
