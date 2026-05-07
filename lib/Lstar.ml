@@ -1,6 +1,7 @@
 open Datatypes
 open Language
 open List
+open ListLemmas
 open Specif
 
 type __ = Obj.t
@@ -74,18 +75,6 @@ functor
 
     type closed = Coq_s.string -> Coq_s.t -> __ -> Coq_s.string
 
-    (** val existsb_exists_set : ('a1 -> bool) -> 'a1 list -> 'a1 **)
-
-    let rec existsb_exists_set f = function
-      | [] ->
-          assert false (* absurd case *)
-      | y :: l0 ->
-          let b = f y in
-          if b then
-            y
-          else
-            existsb_exists_set f l0
-
     (** val closed_dec_witness :
       (Coq_s.string -> bool) -> (Coq_s.string -> bool) -> finite -> finite ->
       (closed, (Coq_s.string, (Coq_s.t, __) sigT) sigT) sum **)
@@ -124,11 +113,15 @@ functor
 
     (** val closed_dec :
       (Coq_s.string -> bool) -> (Coq_s.string -> bool) -> finite -> finite ->
-      (closed, __) sum **)
+      (closed, closed -> coq_Empty_set) sum **)
 
     let closed_dec q t0 x x0 =
       let s = closed_dec_witness q t0 x x0 in
-      match s with Coq_inl c -> Coq_inl c | Coq_inr _ -> Coq_inr __
+      match s with
+      | Coq_inl c ->
+          Coq_inl c
+      | Coq_inr _ ->
+          Coq_inr (fun _ -> assert false (* absurd case *))
 
     (** val delta :
       (Coq_s.string -> bool) -> (Coq_s.string -> bool) -> closed ->

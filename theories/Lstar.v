@@ -9,17 +9,27 @@ From Stdlib Require Import Recdef.
 From Stdlib Require Import PeanoNat. Require Import Nat.
 Import ListNotations.
 
+(** The #L<sup>*</sup># algorithm can be thought of as a game between two players -
+    a Teacher and a Learner.
+    
+    We play the role of the Learner, who wants to learn a regular language
+    L from the Teacher. *)
 Module Type Teacher (s : Symbol) (L : L s).
     Import s L.
     Module DFA := DFA s L.
     Import DFA.
 
-    (** The teacher answers equivalence queries *)
+    (** The teacher answers equivalence queries: whether the given
+        DFA encodes L or not *)
     Parameter equiv_query : 
         forall (state : Type),
         DFA.t state -> option string.
+    (** If the equivalence query returns [None], the DFA encodes L *)
     Parameter equiv_query_correct : forall (state : Type) d,
         equiv_query state d = None <-> encodes d.
+    (** If the equivalence query returns [Some x], the DFA does not
+        encode L, and [x] is a counter-example on which the DFA
+        mis-predicts *)
     Parameter equiv_query_ce : forall (state : Type) d w,
         equiv_query state d = Some w ->
         accept_string d w <> member w.
@@ -81,6 +91,7 @@ Add Parametric Relation T : string (T_equiv T)
   as Teq_setoid.
 
 (** Also, for every T1 ⊆ T2 ⊆ Σ∗, ≡T2 is a refinement of ≡T1.
+
     As T2 has more strings in it, it has a better chance of
     distinguishing any given pair of strings *)
 
@@ -166,35 +177,24 @@ Proof.
         apply E. apply HTeq. apply i. assumption.
 Defined.
 
-(** Separable: A set Q ⊆ Σ∗ is said to be separable with respect to T,
+(** A set Q ⊆ Σ∗ is said to be separable with respect to T,
     if the elements of Q are pairwise T-distinguishable. *)
-
 Definition separable (Q T : string -> bool) : Type :=
     forall (u v : string), Q u = true -> Q v = true ->
         u <> v ->
         ~ T [u == v].
 
-(** Closed: A set Q is said to be closed with respect to T, if
+(** A set Q is said to be closed with respect to T, if
     ∀q ∈ Q ∀a ∈ Σ, ∃q′ ∈ Q such that q · a ≡T q'. *)
-
 Definition closed (Q T : string -> bool) :=
     forall q a,
         Q q = true ->
         {q' : string | Q q' = true /\ T [(q ++ [a]) == q']}.
 
-Definition existsb_exists_set :
-    forall (A : Type) (f : A -> bool) (l : list A),
-    existsb f l = true -> {x : A | In x l /\ f x = true}.
-Proof.
-    induction l; intros.
-        discriminate.
-    simpl in *. destruct (f a) eqn:E; simpl in *.
-    - exists a. split. now left. assumption.
-    - specialize (IHl H). destruct IHl as (x & InX & Fx).
-      exists x. split. now right. assumption.
-Defined.   
-
-(** Closedness is decidable for finite sets *)
+(** Closedness is decidable for finite sets:
+    - Q is not closed wrt T if one can traverse the list of elements
+      in Q without finding a q' such that q · a ≡T q' for all a
+    - Q is closed wrt T otherwise *)
 Definition closed_dec_witness : forall Q T,
   finite Q ->
   finite T ->
@@ -238,7 +238,7 @@ Qed.
 Definition closed_dec : forall Q T,
     finite Q ->
     finite T ->
-    closed Q T + (closed Q T -> False).
+    closed Q T + (closed Q T -> Empty_set).
 Proof.
     intros. destruct (closed_dec_witness Q T X X0).
         now left.
@@ -259,13 +259,13 @@ Definition delta Q T (c : closed Q T) (q : string) (a : s.t) (Qq : Q q = true) :
     now exists q'.
 Defined.
 
-(** Lemma 2. Given a hypothesis DFA H = (Q, Σ, δ, ε, F ) where
+(** Lemma 2. Given a hypothesis DFA H = (Q, Σ, δ, ε, F) where
     Q is closed and separable with respect to T, and a
-    counterexample w = w1, w2 · · · wm, we can find strings qn+1
+    counterexample w = w1, w2 ... wm, we can find strings qn+1
     and t such that Q′ = Q ∪ {qn+1} is separable with respect to
     T′ = T ∪ {t}. *)
 
-(** A hypothesis DFA is one whose states are applyly the
+(** A hypothesis DFA is one whose states are the
     string representatives in Q, with the transition function
     given by delta. *)
 Record HypothesisDFA : Type := {
@@ -318,13 +318,14 @@ Proof.
     destruct str_eq; now subst.
 Qed.
 
+(** Given a counter-example, we can always find q_new and t
+    to add to Q, T such that Q' and T' are finite and Q' is
+    separable wrt T' *)
 Lemma find_separable :
   forall (H : HypothesisDFA) (* Q is closed and separable wrt T *)
          (w : string)
          (* w is a counterexample *)
          (Hce : accept_string (make_dfa H) w <> member w),
-  (* We can find q_new and t to add to Q, T s.t. Q' and T' are finite and
-     Q' is separable wrt T' *)
   { q_new : string &
   { t     : string &
       (H.(Q) q_new = false) *
@@ -334,9 +335,9 @@ Lemma find_separable :
       finite Q' *
       finite T' }}.
     intros.
-    (* Define p_i = delta∗(ε, w1w2 · · · wi) *)
+    (* Define p_i = delta∗(ε, w1w2 ... wi) *)
     set (p := fun i => run (make_dfa H) (firstn i w)).
-    (* We say a state p_i is correct if p_i w_(i+1) · · · w_m ∈ L ⇐⇒ w ∈ L. *)
+    (* We say a state p_i is correct if p_i w_(i+1) ... w_m ∈ L ⇐⇒ w ∈ L. *)
     set (correct (i : nat) :=
             L.member (proj1_sig (p i) ++ skipn i w) =
             L.member w).
@@ -360,7 +361,7 @@ Lemma find_separable :
             now exists n.
             destruct (IH Hn) as [k [Hk HSk]]. now exists k.
     } destruct ExK as (k & KCorrect & SKIncorrect).
-    (* Then t = w_(k+1) · · · w_m distinguishes p_k and p_(k−1)w_k. *)
+    (* Then t = w_(k+1) ... w_m distinguishes p_k and p_(k−1)w_k. *)
     assert (Dist: member (proj1_sig (p k) ++ skipn k w) <>
                   member (proj1_sig (p (S k)) ++ skipn (S k) w)). {
         unfold correct in KCorrect, SKIncorrect.
@@ -621,6 +622,9 @@ Definition union_closed_loop :
     apply None.
 Defined.
 
+(** Given a list of bool lists that contains no duplicates, where
+    all of the lists have length [n], the length of the outer list
+    is bounded by #2<sup>n</sup>#. *)
 Lemma NoDup_boollist_length : forall (vecs : list (list bool)) (n : nat),
     NoDup vecs ->
     (forall v, In v vecs -> length v = n) ->
@@ -708,7 +712,7 @@ Proof.
         rewrite length_map in HltT, HltF. lia.
 Qed.
 
-(* union_closed_loop always returns Some with enough fuel *)
+(** union_closed_loop always returns Some with enough fuel *)
 Lemma loop_terminates : forall n Q Q' T
     (sep' : separable Q' T)
     (finQ' : finite Q')
@@ -833,6 +837,8 @@ Proof.
     exists Q'. repeat split; auto.
 Defined.
 
+(** The main #L<sup>*</sup># implementation that uses Lemmas 2 and 3 to iteratively
+    expand Q and T until the DFA they form encodes L (or fuel runs out) *)
 Fixpoint lstar_opt (fuel : nat) (H : HypothesisDFA)
     : option { T : Type & {d : DFA.t T | encodes d} }.
     destruct fuel as [| n].

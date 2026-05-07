@@ -46,3 +46,15 @@ Proof.
   - destruct (IH _ H) as (l1 & l2 & H1 & H2).
     exists (x::l1); exists l2; simpl; split; now f_equal.
 Qed.
+
+Definition existsb_exists_set :
+    forall (A : Type) (f : A -> bool) (l : list A),
+    existsb f l = true -> {x : A | In x l /\ f x = true}.
+Proof.
+    induction l; intros.
+        discriminate.
+    simpl in *. destruct (f a) eqn:E; simpl in *.
+    - exists a. split. now left. assumption.
+    - specialize (IHl H). destruct IHl as (x & InX & Fx).
+      exists x. split. now right. assumption.
+Defined.

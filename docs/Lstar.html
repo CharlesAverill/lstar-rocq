@@ -37,6 +37,18 @@ https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.
 <span class="id" title="keyword">Import</span> <span class="id" title="var">ListNotations</span>.<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+The L<sup>*</sup> algorithm can be thought of as a game between two players -
+    a Teacher and a Learner.
+
+<div class="paragraph"> </div>
+
+    We play the role of the Learner, who wants to learn a regular language
+    L from the Teacher. 
+</div>
+<div class="code">
 <span class="id" title="keyword">Module</span> <span class="id" title="keyword">Type</span> <span class="id" title="var">Teacher</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>) (<span class="id" title="var">L</span> : <span class="id" title="var">L</span> <span class="id" title="var">s</span>).<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Module</span> <span class="id" title="var">DFA</span> := <span class="id" title="var">DFA</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span>.<br/>
@@ -46,14 +58,29 @@ https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.
 </div>
 
 <div class="doc">
-The teacher answers equivalence queries 
+The teacher answers equivalence queries: whether the given
+        DFA encodes L or not 
 </div>
 <div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">equiv_query</span> : <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">DFA.t</span> <span class="id" title="var">state</span> → <span class="id" title="var">option</span> <span class="id" title="var">string</span>.<br/>
+</div>
+
+<div class="doc">
+If the equivalence query returns <span class="inlinecode"><span class="id" title="var">None</span></span>, the DFA encodes L 
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">equiv_query_correct</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>) <span class="id" title="var">d</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">equiv_query</span> <span class="id" title="var">state</span> <span class="id" title="var">d</span> = <span class="id" title="var">None</span> ↔ <span class="id" title="var">encodes</span> <span class="id" title="var">d</span>.<br/>
+</div>
+
+<div class="doc">
+If the equivalence query returns <span class="inlinecode"><span class="id" title="var">Some</span></span> <span class="inlinecode"><span class="id" title="var">x</span></span>, the DFA does not
+        encode L, and <span class="inlinecode"><span class="id" title="var">x</span></span> is a counter-example on which the DFA
+        mis-predicts 
+</div>
+<div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">equiv_query_ce</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>) <span class="id" title="var">d</span> <span class="id" title="var">w</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">equiv_query</span> <span class="id" title="var">state</span> <span class="id" title="var">d</span> = <span class="id" title="var">Some</span> <span class="id" title="var">w</span> →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">accept_string</span> <span class="id" title="var">d</span> <span class="id" title="var">w</span> ≠ <span class="id" title="var">member</span> <span class="id" title="var">w</span>.<br/>
@@ -121,6 +148,9 @@ Note that ≡T is an equivalence relation
 
 <div class="doc">
 Also, for every T1 ⊆ T2 ⊆ Σ∗, ≡T2 is a refinement of ≡T1.
+
+<div class="paragraph"> </div>
+
     As T2 has more strings in it, it has a better chance of
     distinguishing any given pair of strings 
 </div>
@@ -189,12 +219,10 @@ T-equivalence is decidable for finite sets
 </div>
 
 <div class="doc">
-Separable: A set Q ⊆ Σ∗ is said to be separable with respect to T,
+A set Q ⊆ Σ∗ is said to be separable with respect to T,
     if the elements of Q are pairwise T-distinguishable. 
 </div>
 <div class="code">
-
-<br/>
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">separable</span> (<span class="id" title="var">Q</span> <span class="id" title="var">T</span> : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span>) : <span class="id" title="keyword">Type</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">u</span> <span class="id" title="var">v</span> : <span class="id" title="var">string</span>), <span class="id" title="var">Q</span> <span class="id" title="var">u</span> = <span class="id" title="var">true</span> → <span class="id" title="var">Q</span> <span class="id" title="var">v</span> = <span class="id" title="var">true</span> →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">u</span> ≠ <span class="id" title="var">v</span> →<br/>
@@ -204,27 +232,29 @@ Separable: A set Q ⊆ Σ∗ is said to be separable with respect to T,
 </div>
 
 <div class="doc">
-Closed: A set Q is said to be closed with respect to T, if
+A set Q is said to be closed with respect to T, if
     ∀q ∈ Q ∀a ∈ Σ, ∃q′ ∈ Q such that q · a ≡T q'. 
 </div>
 <div class="code">
-
-<br/>
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">closed</span> (<span class="id" title="var">Q</span> <span class="id" title="var">T</span> : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> <span class="id" title="var">q</span> <span class="id" title="var">a</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Q</span> <span class="id" title="var">q</span> = <span class="id" title="var">true</span> →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">q'</span> : <span class="id" title="var">string</span> | <span class="id" title="var">Q</span> <span class="id" title="var">q'</span> = <span class="id" title="var">true</span> ∧ <span class="id" title="var">T</span> [(<span class="id" title="var">q</span> ++ [<span class="id" title="var">a</span>]) == <span class="id" title="var">q'</span>]}.<br/>
 
 <br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">existsb_exists_set</span> :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">A</span> : <span class="id" title="keyword">Type</span>) (<span class="id" title="var">f</span> : <span class="id" title="var">A</span> → <span class="id" title="var">bool</span>) (<span class="id" title="var">l</span> : <span class="id" title="var">list</span> <span class="id" title="var">A</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">existsb</span> <span class="id" title="var">f</span> <span class="id" title="var">l</span> = <span class="id" title="var">true</span> → {<span class="id" title="var">x</span> : <span class="id" title="var">A</span> | <span class="id" title="var">In</span> <span class="id" title="var">x</span> <span class="id" title="var">l</span> ∧ <span class="id" title="var">f</span> <span class="id" title="var">x</span> = <span class="id" title="var">true</span>}.<br/>
-
-<br/>
 </div>
 
 <div class="doc">
-Closedness is decidable for finite sets 
+Closedness is decidable for finite sets:
+<ul class="doclist">
+<li> Q is not closed wrt T if one can traverse the list of elements
+      in Q without finding a q' such that q · a ≡T q' for all a
+
+</li>
+<li> Q is closed wrt T otherwise 
+
+</li>
+</ul>
 </div>
 <div class="code">
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">closed_dec_witness</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span>,<br/>
@@ -239,7 +269,7 @@ Closedness is decidable for finite sets
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">closed_dec</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">finite</span> <span class="id" title="var">Q</span> →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">finite</span> <span class="id" title="var">T</span> →<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">closed</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span> + (<span class="id" title="var">closed</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span> → <span class="id" title="var">False</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">closed</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span> + (<span class="id" title="var">closed</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span> → <span class="id" title="var">Empty_set</span>).<br/>
 
 <br/>
 </div>
@@ -260,14 +290,14 @@ Lemma 1. If Q is closed and separable with respect to T,
 </div>
 
 <div class="doc">
-Lemma 2. Given a hypothesis DFA H = (Q, Σ, δ, ε, F ) where
+Lemma 2. Given a hypothesis DFA H = (Q, Σ, δ, ε, F) where
     Q is closed and separable with respect to T, and a
-    counterexample w = w1, w2 · · · wm, we can find strings qn+1
+    counterexample w = w1, w2 ... wm, we can find strings qn+1
     and t such that Q′ = Q ∪ {qn+1} is separable with respect to
     T′ = T ∪ {t}. 
 <div class="paragraph"> </div>
 
- A hypothesis DFA is one whose states are applyly the
+ A hypothesis DFA is one whose states are the
     string representatives in Q, with the transition function
     given by delta. 
 </div>
@@ -324,12 +354,19 @@ Updating sets of strings
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">str_upd</span> <span class="id" title="var">S</span> <span class="id" title="var">x</span> <span class="id" title="var">k</span> <span class="id" title="var">x</span> = <span class="id" title="var">k</span>.<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+Given a counter-example, we can always find q_new and t
+    to add to Q, T such that Q' and T' are finite and Q' is
+    separable wrt T' 
+</div>
+<div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">find_separable</span> :<br/>
 &nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>) <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">w</span> : <span class="id" title="var">string</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Hce</span> : <span class="id" title="var">accept_string</span> (<span class="id" title="var">make_dfa</span> <span class="id" title="var">H</span>) <span class="id" title="var">w</span> ≠ <span class="id" title="var">member</span> <span class="id" title="var">w</span>),<br/>
-&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;{ <span class="id" title="var">q_new</span> : <span class="id" title="var">string</span> &amp;<br/>
 &nbsp;&nbsp;{ <span class="id" title="var">t</span>     : <span class="id" title="var">string</span> &amp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">H</span>.(<span class="id" title="var">Q</span>) <span class="id" title="var">q_new</span> = <span class="id" title="var">false</span>) ×<br/>
@@ -417,12 +454,26 @@ Adds a finite number of strings to Q to make it closed wrt T
 <span class="id" title="keyword">Defined</span>.<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+Given a list of bool lists that contains no duplicates, where
+    all of the lists have length <span class="inlinecode"><span class="id" title="var">n</span></span>, the length of the outer list
+    is bounded by 2<sup>n</sup>. 
+</div>
+<div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">NoDup_boollist_length</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">vecs</span> : <span class="id" title="var">list</span> (<span class="id" title="var">list</span> <span class="id" title="var">bool</span>)) (<span class="id" title="var">n</span> : <span class="id" title="var">nat</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">NoDup</span> <span class="id" title="var">vecs</span> →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="keyword">∀</span> <span class="id" title="var">v</span>, <span class="id" title="var">In</span> <span class="id" title="var">v</span> <span class="id" title="var">vecs</span> → <span class="id" title="var">length</span> <span class="id" title="var">v</span> = <span class="id" title="var">n</span>) →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">length</span> <span class="id" title="var">vecs</span> ≤ <span class="id" title="var">Nat.pow</span> 2 <span class="id" title="var">n</span>.<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+union_closed_loop always returns Some with enough fuel 
+</div>
+<div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">loop_terminates</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">n</span> <span class="id" title="var">Q</span> <span class="id" title="var">Q'</span> <span class="id" title="var">T</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">sep'</span> : <span class="id" title="var">separable</span> <span class="id" title="var">Q'</span> <span class="id" title="var">T</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">finQ'</span> : <span class="id" title="var">finite</span> <span class="id" title="var">Q'</span>)<br/>
@@ -452,6 +503,13 @@ Lemma 3
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="keyword">∀</span> <span class="id" title="var">s</span>, <span class="id" title="var">Q</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span> → <span class="id" title="var">Q'</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span>) }.<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+The main L<sup>*</sup> implementation that uses Lemmas 2 and 3 to iteratively
+    expand Q and T until the DFA they form encodes L (or fuel runs out) 
+</div>
+<div class="code">
 <span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">lstar_opt</span> (<span class="id" title="var">fuel</span> : <span class="id" title="var">nat</span>) (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> { <span class="id" title="var">T</span> : <span class="id" title="keyword">Type</span> &amp; {<span class="id" title="var">d</span> : <span class="id" title="var">DFA.t</span> <span class="id" title="var">T</span> | <span class="id" title="var">encodes</span> <span class="id" title="var">d</span>} }.<br/>
 <span class="id" title="keyword">Defined</span>.<br/>
