@@ -154,8 +154,8 @@ let () =
       ; fin_Q= [[]]
       ; fin_T= [[]] }
   with
-  | None ->
+  | Error _ ->
       print_endline "No DFA found"
-  | Some (Coq_existT (_, d)) ->
+  | Ok (Coq_existT (_, d)) ->
       let open S in
       print_endline "DFA found" ; print_results d 3

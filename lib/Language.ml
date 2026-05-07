@@ -1,6 +1,7 @@
 open Specif
 
-module type Symbol = sig
+module type Symbol =
+ sig
   type t
 
   val eq_dec : t -> t -> sumbool
@@ -10,4 +11,4 @@ module type Symbol = sig
   type string = t list
 
   val str_eq : string -> string -> sumbool
-end
+ end

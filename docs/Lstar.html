@@ -507,11 +507,16 @@ Lemma 3
 
 <div class="doc">
 The main L<sup>*</sup> implementation that uses Lemmas 2 and 3 to iteratively
-    expand Q and T until the DFA they form encodes L (or fuel runs out) 
+    expand Q and T until the DFA they form encodes L (or fuel runs out).
+
+<div class="paragraph"> </div>
+
+    If fuel runs out, we return the in-progress DFA 
 </div>
 <div class="code">
 <span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">lstar_opt</span> (<span class="id" title="var">fuel</span> : <span class="id" title="var">nat</span>) (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">option</span> { <span class="id" title="var">T</span> : <span class="id" title="keyword">Type</span> &amp; {<span class="id" title="var">d</span> : <span class="id" title="var">DFA.t</span> <span class="id" title="var">T</span> | <span class="id" title="var">encodes</span> <span class="id" title="var">d</span>} }.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">result</span> { <span class="id" title="var">T</span> : <span class="id" title="keyword">Type</span> &amp; {<span class="id" title="var">d</span> : <span class="id" title="var">DFA.t</span> <span class="id" title="var">T</span> | <span class="id" title="var">encodes</span> <span class="id" title="var">d</span>} }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id" title="var">T</span> : <span class="id" title="keyword">Type</span> &amp; {<span class="id" title="var">d</span> : <span class="id" title="var">DFA.t</span> <span class="id" title="var">T</span> | <span class="id" title="var">True</span>} }.<br/>
 <span class="id" title="keyword">Defined</span>.<br/>
 
 <br/>

@@ -7,6 +7,7 @@ Extract Inductive bool => "bool" [ "true" "false" ].
 Extract Inductive list => "list" [ "[]" "(::)" ].
 Extract Inductive prod => "(*)"  [ "(,)" ].
 Extract Inductive option => "option" ["Some" "None"].
+Extract Inductive result => "result" ["Ok" "Error"].
 
 Extract Inlined Constant Bool.eqb => "(=)".
 Extract Inlined Constant negb => "not".

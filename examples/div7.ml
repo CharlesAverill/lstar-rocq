@@ -211,7 +211,7 @@ let () =
       ; fin_Q= [[]]
       ; fin_T= [[]] }
   with
-  | None ->
+  | Error _ ->
       print_endline "No DFA found"
-  | Some (Coq_existT (_, d)) ->
+  | Ok (Coq_existT (_, d)) ->
       print_endline "DFA found" ; print_results d

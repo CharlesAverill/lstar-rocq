@@ -838,11 +838,14 @@ Proof.
 Defined.
 
 (** The main #L<sup>*</sup># implementation that uses Lemmas 2 and 3 to iteratively
-    expand Q and T until the DFA they form encodes L (or fuel runs out) *)
+    expand Q and T until the DFA they form encodes L (or fuel runs out).
+
+    If fuel runs out, we return the in-progress DFA *)
 Fixpoint lstar_opt (fuel : nat) (H : HypothesisDFA)
-    : option { T : Type & {d : DFA.t T | encodes d} }.
+    : result { T : Type & {d : DFA.t T | encodes d} }
+             { T : Type & {d : DFA.t T | True} }.
     destruct fuel as [| n].
-    - apply None.
+    - apply Error. eexists. now exists (make_dfa H).
     - destruct (equiv_query _ (make_dfa H)) eqn:Heq.
       + (* counterexample s *)
         assert (Hce : accept_string (make_dfa H) s <> member s)
@@ -870,7 +873,7 @@ Fixpoint lstar_opt (fuel : nat) (H : HypothesisDFA)
             fin_Q    := finQ'';
             fin_T    := finT' |}).
       + (* no counterexample, make_dfa H encodes L *)
-        apply Some. eexists. exists (make_dfa H).
+        apply Ok. eexists. exists (make_dfa H).
         now apply equiv_query_correct in Heq.
 Defined.
 
