@@ -3,7 +3,6 @@ open Language
 
 module type Teacher = functor
   (Coq_s : Symbol)
-  -> functor
   (D : sig
      type 'state t =
        { transition: 'state -> Coq_s.t -> 'state

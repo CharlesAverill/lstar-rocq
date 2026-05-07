@@ -24,3 +24,23 @@ default, but can be disabled by commenting out this line in [Extraction.v](theor
 ```
 From lstar Require Import ExtrOptimizations.
 ```
+
+## Example
+
+An example execution is provided in [alternating.ml](examples/alternating.ml).
+The target language is alternating bit strings (e.g., "01", "10", "101", "0101", etc.).
+Running `dune exec lstar.alternating` will start the learning algorithm, report that it has found a DFA that encodes the language, and then runs some test cases for bit strings of length 3:
+
+```
+$ dune exec lstar.alternating
+DFA found                           
+Test case | Expected | Computed | Correct
+[000]     | false       false     true
+[001]     | false       false     true
+[010]     | true       true     true
+[011]     | false       false     true
+[100]     | false       false     true
+[101]     | true       true     true
+[110]     | false       false     true
+[111]     | false       false     true
+```
