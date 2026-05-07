@@ -231,7 +231,7 @@ Proof.
     + apply in_prod.
       * now apply Qfin.
       * apply t_enumerable.
-Defined.
+Qed.
 
 Definition closed_dec : forall Q T,
     finite Q ->
@@ -508,25 +508,22 @@ Proof.
     intros Q T finQ finT u.
     destruct finQ as (Ql & HQl).
     destruct (List.find (fun q =>
-        match Bool.bool_dec (Q q) true with
-        | left _ =>
-            match T_equiv_dec T u q finT with
-            | left _ => true
-            | right _ => false
-            end
-        | right _ => false
-        end) Ql) eqn:Hfind.
+        if Bool.eqb (Q q) true then
+            if T_equiv_dec T u q finT then true else false
+        else false) Ql) eqn:Hfind.
     - apply List.find_some in Hfind.
       destruct Hfind as [HIn Hcheck].
       left. exists s.
-      destruct (Bool.bool_dec (Q s) true) as [Hq | Hq].
-        now destruct (T_equiv_dec T u s finT) as [Heq | Hneq].
-      discriminate.
+      destruct (Bool.eqb (Q s) true) eqn:E.
+        destruct (T_equiv_dec T u s finT) as [Heq | Hneq].
+        split.
+            now apply Bool.eqb_prop in E. assumption.
+        discriminate. discriminate.
     - right. intros r Hr Contra.
       apply List.find_none with (x := r) in Hfind.
-      + destruct (Bool.bool_dec (Q r) true) as [Hq | Hq].
+      + destruct (Bool.eqb (Q r) true) eqn:E.
             now destruct (T_equiv_dec T u r finT) as [Heq | Hneq].
-        now rewrite Hr in Hq.
+        now rewrite Hr in E.
       + now apply HQl.
 Defined.
 

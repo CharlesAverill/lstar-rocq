@@ -1,0 +1,28 @@
+lib: [
+  "_build/install/default/lib/lstar-rocq/META"
+  "_build/install/default/lib/lstar-rocq/dune-package"
+  "_build/install/default/lib/lstar-rocq/opam"
+]
+lib_root: [
+  "_build/install/default/lib/coq/user-contrib/lstar/DFA.glob" {"coq/user-contrib/lstar/DFA.glob"}
+  "_build/install/default/lib/coq/user-contrib/lstar/DFA.v" {"coq/user-contrib/lstar/DFA.v"}
+  "_build/install/default/lib/coq/user-contrib/lstar/DFA.vo" {"coq/user-contrib/lstar/DFA.vo"}
+  "_build/install/default/lib/coq/user-contrib/lstar/ExtrOptimizations.glob" {"coq/user-contrib/lstar/ExtrOptimizations.glob"}
+  "_build/install/default/lib/coq/user-contrib/lstar/ExtrOptimizations.v" {"coq/user-contrib/lstar/ExtrOptimizations.v"}
+  "_build/install/default/lib/coq/user-contrib/lstar/ExtrOptimizations.vo" {"coq/user-contrib/lstar/ExtrOptimizations.vo"}
+  "_build/install/default/lib/coq/user-contrib/lstar/Extraction.glob" {"coq/user-contrib/lstar/Extraction.glob"}
+  "_build/install/default/lib/coq/user-contrib/lstar/Extraction.v" {"coq/user-contrib/lstar/Extraction.v"}
+  "_build/install/default/lib/coq/user-contrib/lstar/Extraction.vo" {"coq/user-contrib/lstar/Extraction.vo"}
+  "_build/install/default/lib/coq/user-contrib/lstar/Language.glob" {"coq/user-contrib/lstar/Language.glob"}
+  "_build/install/default/lib/coq/user-contrib/lstar/Language.v" {"coq/user-contrib/lstar/Language.v"}
+  "_build/install/default/lib/coq/user-contrib/lstar/Language.vo" {"coq/user-contrib/lstar/Language.vo"}
+  "_build/install/default/lib/coq/user-contrib/lstar/ListLemmas.glob" {"coq/user-contrib/lstar/ListLemmas.glob"}
+  "_build/install/default/lib/coq/user-contrib/lstar/ListLemmas.v" {"coq/user-contrib/lstar/ListLemmas.v"}
+  "_build/install/default/lib/coq/user-contrib/lstar/ListLemmas.vo" {"coq/user-contrib/lstar/ListLemmas.vo"}
+  "_build/install/default/lib/coq/user-contrib/lstar/Lstar.glob" {"coq/user-contrib/lstar/Lstar.glob"}
+  "_build/install/default/lib/coq/user-contrib/lstar/Lstar.v" {"coq/user-contrib/lstar/Lstar.v"}
+  "_build/install/default/lib/coq/user-contrib/lstar/Lstar.vo" {"coq/user-contrib/lstar/Lstar.vo"}
+]
+doc: [
+  "_build/install/default/doc/lstar-rocq/README.md"
+]

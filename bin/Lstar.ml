@@ -1,9 +1,6 @@
-open Bool
 open Datatypes
 open Language
 open List
-open ListDef
-open Nat
 open Specif
 
 type __ = Obj.t
@@ -43,8 +40,8 @@ module Lstar =
 
   let rec coq_In_to_InS a l dec =
     match l with
-    | Coq_nil -> assert false (* absurd case *)
-    | Coq_cons (y, l0) ->
+    | [] -> assert false (* absurd case *)
+    | y::l0 ->
       let iHl = fun _ -> coq_In_to_InS a l0 dec in
       let s = dec y a in
       (match s with
@@ -59,11 +56,10 @@ module Lstar =
 
   let coq_T_equiv_dec _ u v x =
     let b =
-      forallb (fun t0 -> eqb (L.member (app u t0)) (L.member (app v t0))) x
+      Stdlib.List.for_all (fun t0 ->
+        (=) (L.member ((@) u t0)) (L.member ((@) v t0))) x
     in
-    (match b with
-     | Coq_true -> Coq_left
-     | Coq_false -> Coq_right)
+    if b then Coq_left else Coq_right
 
   type separable = __
 
@@ -72,12 +68,8 @@ module Lstar =
   (** val existsb_exists_set : ('a1 -> bool) -> 'a1 list -> 'a1 **)
 
   let rec existsb_exists_set f = function
-  | Coq_nil -> assert false (* absurd case *)
-  | Coq_cons (y, l0) ->
-    let b = f y in
-    (match b with
-     | Coq_true -> y
-     | Coq_false -> existsb_exists_set f l0)
+  | [] -> assert false (* absurd case *)
+  | y::l0 -> let b = f y in if b then y else existsb_exists_set f l0
 
   (** val closed_dec_witness :
       (Coq_s.string -> bool) -> (Coq_s.string -> bool) -> finite -> finite ->
@@ -85,25 +77,24 @@ module Lstar =
 
   let closed_dec_witness _ t0 finQ finT =
     let o =
-      find (fun pat ->
-        let Coq_pair (q, a) = pat in
-        negb
-          (existsb (fun q' ->
-            match coq_T_equiv_dec t0 (app q (Coq_cons (a, Coq_nil))) q' finT with
-            | Coq_left -> Coq_true
-            | Coq_right -> Coq_false) finQ))
+      Stdlib.List.find_opt (fun pat ->
+        let q,a = pat in
+        not
+          (Stdlib.List.exists (fun q' ->
+            match coq_T_equiv_dec t0 ((@) q (a::[])) q' finT with
+            | Coq_left -> true
+            | Coq_right -> false) finQ))
         (list_prod finQ Coq_s.enum)
     in
     (match o with
      | Some p ->
-       let Coq_pair (l, t1) = p in
-       Coq_inr (Coq_existT (l, (Coq_existT (t1, __))))
+       let l,t1 = p in Coq_inr (Coq_existT (l, (Coq_existT (t1, __))))
      | None ->
        Coq_inl (fun q a _ ->
          existsb_exists_set (fun q' ->
-           match coq_T_equiv_dec t0 (app q (Coq_cons (a, Coq_nil))) q' finT with
-           | Coq_left -> Coq_true
-           | Coq_right -> Coq_false) finQ))
+           match coq_T_equiv_dec t0 ((@) q (a::[])) q' finT with
+           | Coq_left -> true
+           | Coq_right -> false) finQ))
 
   (** val closed_dec :
       (Coq_s.string -> bool) -> (Coq_s.string -> bool) -> finite -> finite ->
@@ -155,7 +146,7 @@ module Lstar =
   (** val make_dfa : coq_HypothesisDFA -> T.DFA.t **)
 
   let make_dfa h =
-    let initial0 = Coq_nil in
+    let initial0 = [] in
     let transition0 = fun q a ->
       delta h.coq_Q h.coq_T (fun x x0 _ -> clos h x x0) q a
     in
@@ -171,47 +162,42 @@ module Lstar =
     | Coq_right -> s s0
 
   (** val find_separable :
-      coq_HypothesisDFA -> Coq_s.string -> (Coq_s.string, (Coq_s.string, (__,
-      ((separable, finite) prod, finite) prod) prod) sigT) sigT **)
+      coq_HypothesisDFA -> Coq_s.string -> (Coq_s.string, (Coq_s.string,
+      __*((separable*finite)*finite)) sigT) sigT **)
 
   let find_separable h w =
-    let p = fun i -> T.DFA.run (make_dfa h) (firstn i w) in
+    let p = fun i -> T.DFA.run (make_dfa h) (Stdlib.List.take i w) in
     let exK =
       let correct_dec = fun i ->
         let b = L.member w in
-        (match b with
-         | Coq_true ->
-           let b0 = L.member (app (Obj.magic p i) (skipn i w)) in
-           (match b0 with
-            | Coq_true -> Coq_left
-            | Coq_false -> Coq_right)
-         | Coq_false ->
-           let b0 = L.member (app (Obj.magic p i) (skipn i w)) in
-           (match b0 with
-            | Coq_true -> Coq_right
-            | Coq_false -> Coq_left))
+        if b
+        then let b0 = L.member ((@) (Obj.magic p i) (Stdlib.List.drop i w)) in
+             if b0 then Coq_left else Coq_right
+        else let b0 = L.member ((@) (Obj.magic p i) (Stdlib.List.drop i w)) in
+             if b0 then Coq_right else Coq_left
       in
-      let n = length w in
-      let rec f = function
-      | O -> assert false (* absurd case *)
-      | S n1 ->
-        let s = correct_dec n1 in
-        (match s with
-         | Coq_left -> n1
-         | Coq_right -> f n1)
+      let n = Stdlib.List.length w in
+      let rec f n0 =
+        (fun fO fS n -> if n=0 then fO () else fS (n-1))
+          (fun _ -> assert false (* absurd case *))
+          (fun n1 ->
+          let s = correct_dec n1 in
+          (match s with
+           | Coq_left -> n1
+           | Coq_right -> f n1))
+          n0
       in f n
     in
     let x =
-      let o = nth_error w exK in
+      let o = Stdlib.List.nth_opt w exK in
       (match o with
        | Some t0 -> t0
        | None -> assert false (* absurd case *))
     in
-    Coq_existT ((app (Obj.magic p exK) (Coq_cons (x, Coq_nil))), (Coq_existT
-    ((skipn (S exK) w), (Coq_pair (__, (Coq_pair ((Coq_pair (__,
-    (let f = h.fin_Q in
-     Coq_cons ((app (Obj.magic p exK) (Coq_cons (x, Coq_nil))), f)))),
-    (let f = h.fin_T in Coq_cons ((skipn (S exK) w), f)))))))))
+    Coq_existT (((@) (Obj.magic p exK) (x::[])), (Coq_existT
+    ((Stdlib.List.drop (succ exK) w),
+    (__,((__,(let f = h.fin_Q in ((@) (Obj.magic p exK) (x::[]))::f)),
+    (let f = h.fin_T in (Stdlib.List.drop (succ exK) w)::f))))))
 
   (** val find_representative :
       (Coq_s.string -> bool) -> (Coq_s.string -> bool) -> finite -> finite ->
@@ -219,13 +205,12 @@ module Lstar =
 
   let find_representative q t0 finQ finT u =
     let o =
-      find (fun q0 ->
-        match bool_dec (q q0) Coq_true with
-        | Coq_left ->
-          (match coq_T_equiv_dec t0 u q0 finT with
-           | Coq_left -> Coq_true
-           | Coq_right -> Coq_false)
-        | Coq_right -> Coq_false) finQ
+      Stdlib.List.find_opt (fun q0 ->
+        if (=) (q q0) true
+        then (match coq_T_equiv_dec t0 u q0 finT with
+              | Coq_left -> true
+              | Coq_right -> false)
+        else false) finQ
     in
     (match o with
      | Some s -> Coq_inleft s
@@ -233,22 +218,16 @@ module Lstar =
 
   (** val close_step :
       (Coq_s.string -> bool) -> (Coq_s.string -> bool) -> Coq_s.t list ->
-      Coq_s.t -> finite -> finite -> (Coq_s.string -> bool, (((((__, __) sum,
-      separable) prod, finite) prod, __) prod, Coq_s.string) prod) sigT **)
+      Coq_s.t -> finite -> finite -> (Coq_s.string -> bool, ((((__, __)
+      sum*separable)*finite)*__)*Coq_s.string) sigT **)
 
   let close_step q t0 q0 a finQ finT =
-    let s =
-      find_representative q t0 finQ finT (app q0 (Coq_cons (a, Coq_nil)))
-    in
+    let s = find_representative q t0 finQ finT ((@) q0 (a::[])) in
     (match s with
-     | Coq_inleft s0 ->
-       Coq_existT (q, (Coq_pair ((Coq_pair ((Coq_pair ((Coq_pair ((Coq_inr
-         __), __)), finQ)), __)), s0)))
+     | Coq_inleft s0 -> Coq_existT (q, (((((Coq_inr __),__),finQ),__),s0))
      | Coq_inright ->
-       Coq_existT ((str_upd q (app q0 (Coq_cons (a, Coq_nil))) Coq_true),
-         (Coq_pair ((Coq_pair ((Coq_pair ((Coq_pair ((Coq_inl __), __)),
-         (Coq_cons ((app q0 (Coq_cons (a, Coq_nil))), finQ)))), __)),
-         (app q0 (Coq_cons (a, Coq_nil)))))))
+       Coq_existT ((str_upd q ((@) q0 (a::[])) true), (((((Coq_inl
+         __),__),(((@) q0 (a::[]))::finQ)),__),((@) q0 (a::[])))))
 
   (** val not_closed_impl_distinguishable :
       (Coq_s.string -> bool) -> (Coq_s.string -> bool) -> finite -> finite ->
@@ -263,103 +242,102 @@ module Lstar =
        let Coq_existT (x0, _) = s1 in Coq_existT (x, x0))
 
   (** val union_closed_loop :
-      nat -> (Coq_s.string -> bool) -> (Coq_s.string -> bool) ->
+      int -> (Coq_s.string -> bool) -> (Coq_s.string -> bool) ->
       (Coq_s.string -> bool) -> finite -> finite -> (Coq_s.string -> bool,
-      (((closed, separable) prod, finite) prod, __) prod) sigT option **)
+      ((closed*separable)*finite)*__) sigT option **)
 
   let rec union_closed_loop n q q' t0 finT finQ' =
-    match n with
-    | O -> None
-    | S n0 ->
+    (fun fO fS n -> if n=0 then fO () else fS (n-1))
+      (fun _ -> None)
+      (fun n0 ->
       let s = closed_dec_witness q' t0 finQ' finT in
       (match s with
-       | Coq_inl c ->
-         Some (Coq_existT (q', (Coq_pair ((Coq_pair ((Coq_pair (c, __)),
-           finQ')), __))))
+       | Coq_inl c -> Some (Coq_existT (q', (((c,__),finQ'),__)))
        | Coq_inr s0 ->
          let Coq_existT (x, s1) = s0 in
          let Coq_existT (x0, _) = s1 in
          let s2 = close_step q' t0 x x0 finQ' finT in
          let Coq_existT (x1, p) = s2 in
-         let Coq_pair (p0, _) = p in
-         let Coq_pair (p1, _) = p0 in
-         let Coq_pair (_, f) = p1 in
+         let p0,_ = p in
+         let p1,_ = p0 in
+         let _,f = p1 in
          let o = union_closed_loop n0 q x1 t0 finT f in
          (match o with
           | Some s3 ->
             let Coq_existT (x2, p2) = s3 in
-            let Coq_pair (p3, _) = p2 in
-            let Coq_pair (p4, f0) = p3 in
-            let Coq_pair (c, _) = p4 in
-            Some (Coq_existT (x2, (Coq_pair ((Coq_pair ((Coq_pair (c, __)),
-            f0)), __))))
-          | None -> None))
+            let p3,_ = p2 in
+            let p4,f0 = p3 in
+            let c,_ = p4 in Some (Coq_existT (x2, (((c,__),f0),__)))
+          | None -> None)))
+      n
 
   (** val loop_terminates :
-      nat -> (Coq_s.string -> bool) -> (Coq_s.string -> bool) ->
+      int -> (Coq_s.string -> bool) -> (Coq_s.string -> bool) ->
       (Coq_s.string -> bool) -> finite -> Coq_s.string list -> (Coq_s.string
-      -> bool, (((closed, separable) prod, finite) prod, __) prod) sigT **)
+      -> bool, ((closed*separable)*finite)*__) sigT **)
 
   let rec loop_terminates n q q' t0 finQ' tl =
-    match n with
-    | O -> assert false (* absurd case *)
-    | S n0 ->
+    (fun fO fS n -> if n=0 then fO () else fS (n-1))
+      (fun _ -> assert false (* absurd case *))
+      (fun n0 ->
       let s = closed_dec_witness q' t0 finQ' tl in
       (match s with
-       | Coq_inl c ->
-         Coq_existT (q', (Coq_pair ((Coq_pair ((Coq_pair (c, __)), finQ')),
-           __)))
+       | Coq_inl c -> Coq_existT (q', (((c,__),finQ'),__))
        | Coq_inr s0 ->
          let Coq_existT (x, s1) = s0 in
          let Coq_existT (x0, _) = s1 in
          let s2 = close_step q' t0 x x0 finQ' tl in
          let Coq_existT (x1, p) = s2 in
-         let Coq_pair (p0, _) = p in
-         let Coq_pair (p1, _) = p0 in
-         let Coq_pair (_, f) = p1 in
+         let p0,_ = p in
+         let p1,_ = p0 in
+         let _,f = p1 in
          let s3 = loop_terminates n0 q x1 t0 f tl in
          let Coq_existT (x2, p2) = s3 in
-         let Coq_pair (p3, _) = p2 in
-         let Coq_pair (p4, f0) = p3 in
-         let Coq_pair (c, _) = p4 in
-         Coq_existT (x2, (Coq_pair ((Coq_pair ((Coq_pair (c, __)), f0)), __))))
+         let p3,_ = p2 in
+         let p4,f0 = p3 in let c,_ = p4 in Coq_existT (x2, (((c,__),f0),__))))
+      n
 
   (** val union_closed :
       (Coq_s.string -> bool) -> (Coq_s.string -> bool) -> finite -> finite ->
-      (Coq_s.string -> bool, (((closed, separable) prod, finite) prod, __)
-      prod) sigT **)
+      (Coq_s.string -> bool, ((closed*separable)*finite)*__) sigT **)
 
   let union_closed q t0 finQ finT =
-    let fuel = S (pow (S (S O)) (length finT)) in
+    let fuel = succ
+      (let rec pow x n =
+    if n = 0 then 1
+    else x * pow x (n - 1)
+   in pow
+        (succ (succ 0)) (Stdlib.List.length finT))
+    in
     let s = loop_terminates fuel q q t0 finQ finT in
     let Coq_existT (x, p) = s in
-    let Coq_pair (p0, _) = p in
-    let Coq_pair (p1, f) = p0 in
-    let Coq_pair (c, _) = p1 in
-    Coq_existT (x, (Coq_pair ((Coq_pair ((Coq_pair (c, __)), f)), __)))
+    let p0,_ = p in
+    let p1,f = p0 in let c,_ = p1 in Coq_existT (x, (((c,__),f),__))
 
-  (** val lstar : nat -> coq_HypothesisDFA -> T.DFA.t option **)
+  (** val lstar_opt : int -> coq_HypothesisDFA -> T.DFA.t option **)
 
-  let rec lstar fuel h =
-    match fuel with
-    | O -> None
-    | S n ->
+  let rec lstar_opt fuel h =
+    (fun fO fS n -> if n=0 then fO () else fS (n-1))
+      (fun _ -> None)
+      (fun n ->
       let o = T.equiv_query (make_dfa h) in
       (match o with
        | Some s ->
          let s0 = find_separable h s in
          let Coq_existT (x, s1) = s0 in
          let Coq_existT (x0, p) = s1 in
-         let Coq_pair (_, p0) = p in
-         let Coq_pair (p1, f) = p0 in
-         let Coq_pair (_, f0) = p1 in
-         let q' = str_upd h.coq_Q x Coq_true in
-         let t' = str_upd h.coq_T x0 Coq_true in
+         let _,p0 = p in
+         let p1,f = p0 in
+         let _,f0 = p1 in
+         let q' = str_upd h.coq_Q x true in
+         let t' = str_upd h.coq_T x0 true in
          let s2 = union_closed q' t' f0 f in
          let Coq_existT (x1, p2) = s2 in
-         let Coq_pair (p3, _) = p2 in
-         let Coq_pair (p4, f1) = p3 in
-         let Coq_pair (c, _) = p4 in
-         lstar n { coq_Q = x1; coq_T = t'; clos = c; fin_Q = f1; fin_T = f }
-       | None -> Some (make_dfa h))
+         let p3,_ = p2 in
+         let p4,f1 = p3 in
+         let c,_ = p4 in
+         lstar_opt n { coq_Q = x1; coq_T = t'; clos = c; fin_Q = f1; fin_T =
+           f }
+       | None -> Some (make_dfa h)))
+      fuel
  end
