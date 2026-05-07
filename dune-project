@@ -24,7 +24,7 @@
  (description "An implementation of the L* algorithm")
  (depends
    (dune (>= 3.21.0))
-   (rocq (>= 9.0.0))))
+   (rocq-prover (>= 9.1.0))))
 
 (package
  (name lstar)
