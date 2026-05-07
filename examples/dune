@@ -1,0 +1,5 @@
+(executables
+ (names alternating)
+ (public_names lstar.alternating)
+ (libraries lstar)
+ (package lstar))

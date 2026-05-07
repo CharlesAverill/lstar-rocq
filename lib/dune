@@ -2,4 +2,6 @@
  (name lstar)
  (public_name lstar)
  (modules :standard)
- (flags (:standard -w -20)))
+ (wrapped false)
+ (flags
+  (:standard -w -20)))

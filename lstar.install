@@ -1,0 +1,41 @@
+lib: [
+  "_build/install/default/lib/lstar/Datatypes.ml"
+  "_build/install/default/lib/lstar/Language.ml"
+  "_build/install/default/lib/lstar/List.ml"
+  "_build/install/default/lib/lstar/Lstar.ml"
+  "_build/install/default/lib/lstar/META"
+  "_build/install/default/lib/lstar/Specif.ml"
+  "_build/install/default/lib/lstar/Teacher.ml"
+  "_build/install/default/lib/lstar/datatypes.cmi"
+  "_build/install/default/lib/lstar/datatypes.cmt"
+  "_build/install/default/lib/lstar/datatypes.cmx"
+  "_build/install/default/lib/lstar/dune-package"
+  "_build/install/default/lib/lstar/language.cmi"
+  "_build/install/default/lib/lstar/language.cmt"
+  "_build/install/default/lib/lstar/language.cmx"
+  "_build/install/default/lib/lstar/list.cmi"
+  "_build/install/default/lib/lstar/list.cmt"
+  "_build/install/default/lib/lstar/list.cmx"
+  "_build/install/default/lib/lstar/lstar.a"
+  "_build/install/default/lib/lstar/lstar.cma"
+  "_build/install/default/lib/lstar/lstar.cmi"
+  "_build/install/default/lib/lstar/lstar.cmt"
+  "_build/install/default/lib/lstar/lstar.cmx"
+  "_build/install/default/lib/lstar/lstar.cmxa"
+  "_build/install/default/lib/lstar/opam"
+  "_build/install/default/lib/lstar/specif.cmi"
+  "_build/install/default/lib/lstar/specif.cmt"
+  "_build/install/default/lib/lstar/specif.cmx"
+  "_build/install/default/lib/lstar/teacher.cmi"
+  "_build/install/default/lib/lstar/teacher.cmt"
+  "_build/install/default/lib/lstar/teacher.cmx"
+]
+libexec: [
+  "_build/install/default/lib/lstar/lstar.cmxs"
+]
+bin: [
+  "_build/install/default/bin/lstar.alternating"
+]
+doc: [
+  "_build/install/default/doc/lstar/README.md"
+]

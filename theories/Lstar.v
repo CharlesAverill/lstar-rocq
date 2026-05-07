@@ -12,19 +12,21 @@ Import ListNotations.
 Module Type Teacher (s : Symbol) (L : L s).
     Import s L.
     Module DFA := DFA s L.
-    Export DFA.
+    Import DFA.
 
     (** The teacher answers equivalence queries *)
-    Parameter equiv_query : DFA.t -> option string.
-    Parameter equiv_query_correct : forall d,
-        equiv_query d = None <-> encodes d.
-    Parameter equiv_query_ce : forall d w,
-        equiv_query d = Some w ->
+    Parameter equiv_query : 
+        forall (state : Type),
+        DFA.t state -> option string.
+    Parameter equiv_query_correct : forall (state : Type) d,
+        equiv_query state d = None <-> encodes d.
+    Parameter equiv_query_ce : forall (state : Type) d w,
+        equiv_query state d = Some w ->
         accept_string d w <> member w.
 End Teacher.
 
 Module Lstar (s : Symbol) (L : L s) (T : Teacher s L).
-Import s L T.
+Import s L T DFA.
 
 (** T-equivalent
 
@@ -279,7 +281,7 @@ Record HypothesisDFA : Type := {
 }.
 
 (** The concrete DFA extracted from a HypothesisDFA *)
-Definition make_dfa (H : HypothesisDFA) : DFA.t.
+Definition make_dfa (H : HypothesisDFA) : DFA.t {q | H.(Q) q = true}.
     set (state := {q | H.(Q) q = true}).
     assert (initial : state). {
         unfold state. exists nil.
@@ -292,8 +294,7 @@ Definition make_dfa (H : HypothesisDFA) : DFA.t.
         exists q'. apply Qq'.
     }
     set (accept := fun (q : state) => member (proj1_sig q)).
-    apply {|state      := state;
-            initial    := initial;
+    apply {|initial    := initial;
             transition := transition;
             accept     := accept|}.
 Defined.
@@ -397,7 +398,7 @@ Lemma find_separable :
     (* Perform a single step of the current DFA *)
     assert (run_step : forall i a, 
           run (make_dfa H) (firstn i w ++ [a]) = 
-          (make_dfa H).(transition) (run (make_dfa H) (firstn i w)) a). {
+          (make_dfa H).(transition _) (run (make_dfa H) (firstn i w)) a). {
       intros. unfold run.
       rewrite fold_left_app. reflexivity.
     }
@@ -833,10 +834,10 @@ Proof.
 Defined.
 
 Fixpoint lstar_opt (fuel : nat) (H : HypothesisDFA)
-    : option { d : DFA.t | encodes d }.
+    : option { T : Type & {d : DFA.t T | encodes d} }.
     destruct fuel as [| n].
     - apply None.
-    - destruct (equiv_query (make_dfa H)) eqn:Heq.
+    - destruct (equiv_query _ (make_dfa H)) eqn:Heq.
       + (* counterexample s *)
         assert (Hce : accept_string (make_dfa H) s <> member s)
             by now apply equiv_query_ce.
@@ -863,7 +864,7 @@ Fixpoint lstar_opt (fuel : nat) (H : HypothesisDFA)
             fin_Q    := finQ'';
             fin_T    := finT' |}).
       + (* no counterexample, make_dfa H encodes L *)
-        apply Some. exists (make_dfa H).
+        apply Some. eexists. exists (make_dfa H).
         now apply equiv_query_correct in Heq.
 Defined.
 
