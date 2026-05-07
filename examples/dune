@@ -1,5 +1,5 @@
 (executables
- (names alternating)
- (public_names lstar.alternating)
+ (names alternating mod3 div7)
+ (public_names lstar.alternating lstar.mod3 lstar.div7)
  (libraries lstar)
  (package lstar))
