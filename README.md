@@ -29,7 +29,7 @@ From lstar Require Import ExtrOptimizations.
 
 An example execution is provided in [alternating.ml](examples/alternating.ml).
 The target language is alternating bit strings (e.g., "01", "10", "101", "0101", etc.).
-Running `dune exec lstar.alternating` will start the learning algorithm, report that it has found a DFA that encodes the language, and then runs some test cases for bit strings of length 3:
+Running `dune exec lstar.alternating` will start the learning algorithm, report that it has found a DFA that encodes the language, and then run some test cases for bit strings of length 3:
 
 ```
 $ dune exec lstar.alternating
