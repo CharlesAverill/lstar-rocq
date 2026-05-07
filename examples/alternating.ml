@@ -72,7 +72,7 @@ module AlternatingTeacher = struct
 
   let equiv_query (dfa : 'a DFA.t) : S.string option =
     let rec find_counter_example depth current_strings =
-      if depth > 10 then
+      if depth >= int_of_float (2. ** 12.) then
         None
       else
         match current_strings with
@@ -100,6 +100,25 @@ let rec enumerate (n : int) : S.string list =
     let prepend c l = List.map (fun s -> [c] @ s) l in
     (prepend S.Zero prev) @ (prepend S.One prev)
 
+(** Run the DFA on test cases and pretty-print the results *)
+let print_results dfa n =
+  let strings = enumerate n in
+  let col_w = max 10 (n + 2) in
+  let header = Printf.sprintf "%-*s  %-8s  %-8s  %-8s"
+    col_w "Input" "Expected" "Got" "Correct" in
+  print_endline header;
+  List.iter (fun c ->
+    let exp  = L.member c in
+    let comp = AlternatingTeacher.DFA.accept_string dfa c in
+    let mark = if exp = comp then "Y" else "N" in
+    Printf.printf "%-*s  %-8b  %-8b  %s\n"
+      col_w (Printf.sprintf "[%s]" (S.string_of_string c))
+      exp comp mark
+  ) strings;
+  let correct = List.length (List.filter (fun c ->
+    L.member c = AlternatingTeacher.DFA.accept_string dfa c) strings) in
+  Printf.printf "Accuracy: %d/%d\n" correct (List.length strings)
+
 let () =
   match
     Lstar.lstar_opt Int.max_int
@@ -124,10 +143,4 @@ let () =
   | Some (Coq_existT (_, d)) ->
       let open S in
       print_endline "DFA found" ;
-      print_endline "Test case | Expected | Computed | Correct" ;
-      List.iter
-        (fun c ->
-          let exp, comp = (L.member c, AlternatingTeacher.DFA.accept d c) in
-          Printf.printf "[%s]     | %B       %b     %b\n" (S.string_of_string c) exp comp
-            (exp = comp) )
-        (enumerate 3)
+      print_results d 3

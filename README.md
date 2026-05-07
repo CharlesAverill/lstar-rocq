@@ -33,14 +33,15 @@ Running `dune exec lstar.alternating` will start the learning algorithm, report 
 
 ```
 $ dune exec lstar.alternating
-DFA found                           
-Test case | Expected | Computed | Correct
-[000]     | false       false     true
-[001]     | false       false     true
-[010]     | true       true     true
-[011]     | false       false     true
-[100]     | false       false     true
-[101]     | true       true     true
-[110]     | false       false     true
-[111]     | false       false     true
+DFA found                          
+Input       Expected  Got       Correct 
+[000]       false     false     Y
+[001]       false     false     Y
+[010]       true      true      Y
+[011]       false     false     Y
+[100]       false     false     Y
+[101]       true      true      Y
+[110]       false     false     Y
+[111]       false     false     Y
+Accuracy: 8/8
 ```
