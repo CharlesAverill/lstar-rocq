@@ -15,7 +15,7 @@ opam install rocq-prover dune
 
 # Clone and build
 git clone https://github.com/CharlesAverill/lstar-rocq && cd lstar-rocq
-./build.sh # will build lstar-rocq, promote, then build lstar
+make # will build lstar-rocq, extract, then build lstar
 ```
 
 Optimizations during extraction (such as using OCaml integers) are enabled by

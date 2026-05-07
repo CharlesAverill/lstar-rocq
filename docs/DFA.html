@@ -1,0 +1,88 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<title>DFA</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library DFA</h1>
+
+<div class="code">
+<span class="id" title="keyword">From</span> <span class="id" title="var">lstar</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">Language</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Deterministic Finite Automaton 
+</div>
+<div class="code">
+<span class="id" title="keyword">Module</span> <span class="id" title="var">DFA</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>) (<span class="id" title="var">L</span> : <span class="id" title="var">L</span> <span class="id" title="var">s</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+DFA type 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Record</span> <span class="id" title="var">t</span> (<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> := {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">transition</span> : <span class="id" title="var">state</span> → <span class="id" title="var">s.t</span> → <span class="id" title="var">state</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">initial</span> : <span class="id" title="var">state</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">accept</span> : <span class="id" title="var">state</span> → <span class="id" title="var">bool</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Run a DFA on a string and get the resulting state 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">run</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">dfa</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">s</span> : <span class="id" title="var">string</span>) : <span class="id" title="var">state</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">fold_left</span> <span class="id" title="var">dfa</span>.(<span class="id" title="var">transition</span> <span class="id" title="var">state</span>) <span class="id" title="var">s</span> <span class="id" title="var">dfa</span>.(<span class="id" title="var">initial</span> <span class="id" title="var">state</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Check whether a DFA reaches an accepting state after processing a string 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">accept_string</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">dfa</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">s</span> : <span class="id" title="var">string</span>) : <span class="id" title="var">bool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">dfa</span>.(<span class="id" title="var">accept</span> <span class="id" title="var">state</span>) (<span class="id" title="var">run</span> <span class="id" title="var">dfa</span> <span class="id" title="var">s</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Whether a DFA encodes the language L 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">encodes</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">dfa</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">s</span> : <span class="id" title="var">string</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">member</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span> ↔ <span class="id" title="var">accept_string</span> <span class="id" title="var">dfa</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span>.<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">DFA</span>.<br/>
+</div>
+</div>
+
+<div id="footer">
+<hr/><a href="index.html">Index</a><hr/>This page has been generated by <a href="http://rocq-prover.org/">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>
