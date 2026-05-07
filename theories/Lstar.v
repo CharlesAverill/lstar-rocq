@@ -123,7 +123,7 @@ Proof.
         now left.
     assert (In a l) by now destruct H.
     right. now apply IHl.
-Qed.
+Defined.
 
 Lemma InS_to_In : forall A a (l : list A),
     InS a l -> In a l.
@@ -162,7 +162,7 @@ Proof.
         destruct Bool.eqb eqn:E; [reflexivity |].
         exfalso. apply Bool.eqb_false_iff in E.
         apply E. apply HTeq. apply i. assumption.
-Qed.
+Defined.
 
 (** Separable: A set Q ⊆ Σ∗ is said to be separable with respect to T,
     if the elements of Q are pairwise T-distinguishable. *)
@@ -190,7 +190,7 @@ Proof.
     - exists a. split. now left. assumption.
     - specialize (IHl H). destruct IHl as (x & InX & Fx).
       exists x. split. now right. assumption.
-Qed.   
+Defined.   
 
 (** Closedness is decidable for finite sets *)
 Definition closed_dec_witness : forall Q T,
@@ -231,7 +231,7 @@ Proof.
     + apply in_prod.
       * now apply Qfin.
       * apply t_enumerable.
-Qed.
+Defined.
 
 Definition closed_dec : forall Q T,
     finite Q ->
@@ -245,7 +245,7 @@ Proof.
     specialize (Contra q a Qq).
     destruct Contra as (q' & Qq' & Teq).
     destruct (Tdistinguishable q' Qq' Teq).
-Qed.
+Defined.
 
 (** Lemma 1. If Q is closed and separable with respect to T,
     the transition function δ : (q, a) → q′ ∈ Q such that
@@ -333,7 +333,7 @@ Lemma find_separable :
       finite Q' *
       finite T' }}.
     intros.
-    (* Define p_i = δ∗(ε, w1w2 · · · wi) *)
+    (* Define p_i = delta∗(ε, w1w2 · · · wi) *)
     set (p := fun i => run (make_dfa H) (firstn i w)).
     (* We say a state p_i is correct if p_i w_(i+1) · · · w_m ∈ L ⇐⇒ w ∈ L. *)
     set (correct (i : nat) :=
@@ -489,7 +489,7 @@ Lemma find_separable :
          destruct (str_eq s (skipn (S k) w)). subst.
             apply update_eq.
          rewrite update_neq. now apply X. now symmetry.
-Qed.
+Defined.
 
 (** Lemma 3. If Q is separable with respect to T, it is possible to
     add finitely many strings to Q resulting in a set Q′ which is
@@ -528,7 +528,7 @@ Proof.
             now destruct (T_equiv_dec T u r finT) as [Heq | Hneq].
         now rewrite Hr in Hq.
       + now apply HQl.
-Qed.
+Defined.
 
 (** We can add a representative of q to Q to get a new
     set Q' that is still separable and finite and is a
@@ -576,7 +576,7 @@ Proof.
       + exists (q ++ [a]). split.
             apply update_eq.
         reflexivity.
-Qed.
+Defined.
 
 (** If Q is not closed wrt T, we can find a q in Q such that
     all q' in Q are T-distinguishable from q ++ [a] for all 
@@ -593,7 +593,7 @@ Proof.
         contradiction.
     destruct s as (q & a & Qq & Tdist).
     now exists q, a.
-Qed.
+Defined.
 
 (** Adds a finite number of strings to Q to make it closed wrt T *)
 Definition union_closed_loop :
@@ -811,7 +811,7 @@ Proof.
         destruct Hv as (u & <- & _).
         unfold vec. apply length_map. }
       eexists. rewrite Eq'. reflexivity.
-Qed.
+Defined.
 
 (** Lemma 3 *)
 Lemma union_closed :
@@ -833,7 +833,7 @@ Proof.
     destruct (loop_terminates fuel Q Q T sep finQ Tl NDT HTl ltac:(auto) ltac:(lia)).
     destruct x as (Q' & ((clos' & sep') & finQ') & sub').
     exists Q'. repeat split; auto.
-Qed.
+Defined.
 
 Fixpoint lstar_opt (fuel : nat) (H : HypothesisDFA)
     : option { d : DFA.t | encodes d }.
@@ -857,7 +857,7 @@ Fixpoint lstar_opt (fuel : nat) (H : HypothesisDFA)
               intro Heq'. subst q_new.
               rewrite H.(eps_in_Q) in HQnew.
               discriminate. }
-        apply (lstar n {|
+        apply (lstar_opt n {|
             Q        := Q'';
             T        := T';
             sep      := sep'';
