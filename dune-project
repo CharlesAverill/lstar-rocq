@@ -20,8 +20,8 @@
 
 (package
  (name lstar-rocq)
- (synopsis "L* implemented in Rocq")
- (description "An implementation of the L* algorithm")
+ (synopsis "Formally-verified L* implemented in Rocq")
+ (description "A formally-verified implementation of the L* algorithm in Rocq")
  (depends
    (dune (>= 3.21.0))
    (rocq-prover (>= 9.1.0))))
@@ -29,6 +29,6 @@
 (package
  (name lstar)
  (synopsis "L* extracted from lstar-rocq")
- (description "An implementation of the L* algorithm")
+ (description "A formally-verified implementation of the L* algorithm")
  (depends
    (dune (>= 3.21.0))))
