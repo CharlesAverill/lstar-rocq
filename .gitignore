@@ -24,5 +24,4 @@ Makefile.coq.conf
 *.cache
 .vscode
 *.crashrocqide
-.install
 *.install
