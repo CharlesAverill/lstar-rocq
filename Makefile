@@ -1,4 +1,4 @@
-.PHONY: default build install uninstall test clean fmt
+.PHONY: default lstar lstar-rocq install uninstall test clean fmt
 .IGNORE: fmt
 
 OPAM ?= opam
@@ -7,7 +7,7 @@ DUNE ?= dune
 
 default: lstar lstar-rocq
 
-fmt:
+fmt: lstar-rocq
 	$(OPAM_EXEC) $(DUNE) build @fmt
 	$(OPAM_EXEC) $(DUNE) promote
 
@@ -20,13 +20,13 @@ lstar-rocq: clean
 		rm -f lib/Bool.ml lib/ListDef.ml lib/PeanoNat.ml; \
 	fi
 
-lstar: fmt lstar-rocq
+lstar: lstar-rocq
 	$(OPAM_EXEC) $(DUNE) build -p lstar
 
 clean:
 	$(OPAM_EXEC) $(DUNE) clean
 	git clean -dfXq
-	find lib -maxdepth 1 -type f ! -name "Teacher.ml" ! -name "dune" -delete
+	find lib -maxdepth 1 -type f ! -name "Teacher.ml" ! -name "dune" ! -name "Lstar.mli" -delete
 
 test: fmt
 	$(OPAM_EXEC) $(DUNE) exec lstar.alternating
