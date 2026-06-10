@@ -153,18 +153,8 @@ let run_learner name result =
 let () =
   run_learner "L*"
     (Lstar.lstar_opt Int.max_int
-       { coq_Q=
-           (fun x ->
-             if x = [] then
-               true
-             else
-               false )
-       ; coq_T=
-           (fun x ->
-             if x = [] then
-               true
-             else
-               false )
+       { coq_Q= (fun x -> x = [])
+       ; coq_T= (fun x -> x = [])
        ; clos= (fun _ _ _ -> [])
        ; fin_Q= [[]]
        ; fin_T= [[]] } ) ;

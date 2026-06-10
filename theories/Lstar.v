@@ -280,6 +280,42 @@ Record HypothesisDFA : Type := {
   fin_T : finite T;
 }.
 
+Definition F (H : HypothesisDFA) : string -> bool.
+    intros q. destruct H.
+    destruct fin_Q0 as (l & NDl & Inl).
+    eapply (existsb); [| apply l].
+    intros r.
+        destruct (str_eq r q).
+            apply (member r).
+        exact false.
+Defined.
+
+Lemma F_correct :
+  forall H q,
+    H.(Q) q = true ->
+    F H q = member q.
+Proof.
+  intros H q HQ.
+  unfold F. destruct H, fin_Q0, a.
+  simpl in *.
+  destruct (member q) eqn:Hm.
+  - apply existsb_exists.
+    exists q.
+    split.
+    + apply i; exact HQ.
+    + now destruct (str_eq q q).
+  - apply Bool.not_true_iff_false.
+    intro Hex.
+
+    apply existsb_exists in Hex.
+    destruct Hex as [r [Hin Hr]].
+
+    destruct (str_eq r q) as [->|Hneq].
+    + rewrite Hm in Hr.
+        discriminate.
+    + discriminate.
+Qed.
+
 (** The concrete DFA extracted from a HypothesisDFA *)
 Definition make_dfa (H : HypothesisDFA) : DFA.t {q | H.(Q) q = true}.
     set (state := {q | H.(Q) q = true}).
@@ -293,7 +329,7 @@ Definition make_dfa (H : HypothesisDFA) : DFA.t {q | H.(Q) q = true}.
         unfold state. destruct r as (q' & Qq' & Teq).
         exists q'. apply Qq'.
     }
-    set (accept := fun (q : state) => member (proj1_sig q)).
+    set (accept := fun (q : state) => F H (proj1_sig q)).
     destruct H.(fin_Q) as (l & _ & InQ).    
     assert (ls : list state). {
         eapply list_with_proof. intros.
@@ -355,10 +391,17 @@ Example full_not_correct : forall H w
 Proof.
     intros H w Hce Contra.
     unfold correct, p in Contra.
+    remember H as H'.
     rewrite firstn_all, skipn_all, app_nil_r in Contra.
     apply Hce. unfold accept_string, accept.
     unfold make_dfa. unfold fin_Q.
-    destruct H, fin_Q0, a. simpl. assumption.
+    destruct H', fin_Q0, a. simpl in *.
+    destruct run. simpl in *.
+    pose proof (F_correct H x0).
+    destruct H. simpl in *. inversion HeqH'; subst; clear HeqH'.
+    destruct fin_Q0, a.
+    inversion H5; subst; clear H5.
+    rewrite Contra in H0. apply H0. assumption.
 Qed.
 
 (** Correctness is decidable *)
