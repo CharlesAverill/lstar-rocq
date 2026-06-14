@@ -1,5 +1,5 @@
 open Lstar
-open Language
+open DFA
 
 module type Teacher = functor
   (Coq_s : Symbol)

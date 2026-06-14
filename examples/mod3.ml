@@ -1,5 +1,5 @@
 open Lstar
-open Language
+open DFA
 open Specif
 open Stdlib
 

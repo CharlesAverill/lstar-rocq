@@ -1,6 +1,6 @@
  (** https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.pdf *)
 
-From lstar Require Import Language DFA ListLemmas.
+From lstar Require Import DFA ListLemmas.
 From Stdlib Require Import Classes.RelationClasses.
 From Stdlib Require Import Setoids.Setoid.
 From Stdlib Require Import List.
@@ -10,8 +10,8 @@ From Stdlib Require Import PeanoNat. Require Import Nat.
 Import ListNotations.
 From lstar Require Import Teacher.
 
-Module Lstar (s : Symbol) (L : L s) (T : Teacher s L).
-Import s L T DFA.
+Module Lstar (s : Symbol) (L : RegularLanguage s) (T : Teacher s L).
+Import s L T D.
 
 (** T-equivalent
 
@@ -173,7 +173,7 @@ Definition closed (Q T : string -> bool) :=
 Definition closed_dec_witness : forall Q T,
   finite Q ->
   finite T ->
-  closed Q T +
+  closed Q T + 
   { q : string & { a : s.t &
       Q q = true /\
       forall q', Q q' = true -> ~ T [q ++ [a] == q'] }}.
@@ -256,7 +256,7 @@ Record HypothesisDFA : Type := {
 }.
 
 (** The concrete DFA extracted from a HypothesisDFA *)
-Definition make_dfa (H : HypothesisDFA) : DFA.t {q | H.(Q) q = true}.
+Definition make_dfa (H : HypothesisDFA) : D.t {q | H.(Q) q = true}.
     set (state := {q | H.(Q) q = true}).
     assert (initial : state). {
         unfold state. exists nil.
@@ -269,7 +269,7 @@ Definition make_dfa (H : HypothesisDFA) : DFA.t {q | H.(Q) q = true}.
         exists q'. apply Qq'.
     }
     set (accept := fun (q : state) => member (proj1_sig q)).
-    destruct H.(fin_Q) as (l & _ & InQ).
+    destruct H.(fin_Q) as (l & _ & InQ).    
     assert (ls : list state). {
         eapply list_with_proof. intros.
         apply InQ. eassumption.
@@ -364,7 +364,7 @@ Theorem find_separable :
     (* There is some k such that p_(k−1) is correct but p_k is not *)
     assert (ExK: {k : nat | correct k /\ ~ correct (S k)}). {
         pose proof (eps_correct H w).
-        pose proof (full_not_correct H w Hce).
+        pose proof (full_not_correct H w Hce). 
         induction (length w) as [| n IH].
           contradiction.
           destruct (correct_dec H w n) as [Hn | Hn].
@@ -402,8 +402,8 @@ Theorem find_separable :
                     firstn_0, firstn_len_app by lia.
     }
     (* Perform a single step of the current DFA *)
-    assert (run_step : forall i a,
-          run (make_dfa H) (firstn i w ++ [a]) =
+    assert (run_step : forall i a, 
+          run (make_dfa H) (firstn i w ++ [a]) = 
           (make_dfa H).(transition _) (run (make_dfa H) (firstn i w)) a). {
       intros. unfold run.
       now rewrite fold_left_app.
@@ -580,7 +580,7 @@ Proof with try easy.
 Defined.
 
 (** If Q is not closed wrt T, we can find a q in Q such that
-    all q' in Q are T-distinguishable from q ++ [a] for all
+    all q' in Q are T-distinguishable from q ++ [a] for all 
     symbols in the alphabet *)
 Lemma not_closed_impl_distinguishable :
     forall Q T,
@@ -754,8 +754,8 @@ Defined.
 
     If fuel runs out, we return the in-progress DFA *)
 Fixpoint lstar_opt (fuel : nat) (H : HypothesisDFA)
-    : result { T : Type & {d : DFA.t T | encodes d} }
-             { T : Type & {d : DFA.t T | True} }.
+    : result { T : Type & {d : D.t T | encodes d} }
+             { T : Type & {d : D.t T | True} }.
     destruct fuel as [| n].
     - apply Error. eexists. now exists (make_dfa H).
     - destruct (equiv_query _ (make_dfa H)) eqn:Heq.
@@ -769,7 +769,7 @@ Fixpoint lstar_opt (fuel : nat) (H : HypothesisDFA)
         destruct (union_closed Q' T' sep' finQ' finT') as
             (Q'' & ((clos'' & sep'') & finQ'') & sub'').
         assert (eps_in_Q'' : Q'' nil = true). {
-            apply sub''. unfold Q'.
+            apply sub''. unfold Q'. 
             rewrite update_neq.
             - apply H.(eps_in_Q).
             - (* nil <> q_new *)

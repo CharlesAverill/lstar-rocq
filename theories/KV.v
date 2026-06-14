@@ -11,15 +11,15 @@
     descend left when it holds and right otherwise; the leaf reached names the
     state of u. *)
 
-From lstar Require Import Language DFA ListLemmas Teacher.
+From lstar Require Import DFA ListLemmas Teacher.
 From Stdlib Require Import List.
 From Stdlib Require Import Lia.
 From Stdlib Require Import PeanoNat.
 From Stdlib Require Import Setoids.Setoid.
 Import ListNotations.
 
-Module KV (s : Symbol) (L : L s) (Tch : Teacher s L).
-Import s L Tch DFA.
+Module KV (s : Symbol) (L : RegularLanguage s) (Tch : Teacher s L).
+Import s L Tch D.
 
 (** A discrimination tree is a binary tree whose internal nodes hold a
     discriminator suffix and whose leaves hold an access string. *)
@@ -81,7 +81,7 @@ Fixpoint wf (t : dtree) : Prop :=
         wf lt /\ wf rt
     end.
 
-Definition make_dfa (t : dtree) : DFA.t { q | In q (leaves t) }.
+Definition make_dfa (t : dtree) : D.t { q | In q (leaves t) }.
     set (state := { q | In q (leaves t) }).
     assert (initial : state). {
         exists (sift t nil). apply sift_in_leaves.
@@ -520,8 +520,8 @@ Qed.
 (** The main KV implementation. Adds one state per counterexample *)
 Fixpoint kv_learn (fuel : nat) (t : dtree)
                   (Hwf : wf t) (Heps : In nil (leaves t))
-    : result { St : Type & {d : DFA.t St | encodes d} }
-             { St : Type & {d : DFA.t St | True} }.
+    : result { St : Type & {d : D.t St | encodes d} }
+             { St : Type & {d : D.t St | True} }.
     destruct fuel as [| n].
     - (* out of fuel: return the in-progress hypothesis *)
       apply Error. eexists. now exists (make_dfa t).
@@ -539,8 +539,8 @@ Defined.
 
 (** The learner is seeded with a trivially well-formed tree *)
 Definition kv_run (fuel : nat)
-    : result { St : Type & {d : DFA.t St | encodes d} }
-             { St : Type & {d : DFA.t St | True} } :=
+    : result { St : Type & {d : D.t St | encodes d} }
+             { St : Type & {d : D.t St | True} } :=
     kv_learn fuel (Leaf nil) I (or_introl eq_refl).
 
 End KV.
