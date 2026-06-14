@@ -55,16 +55,34 @@ Module DFA (s : Symbol).
     (** Check whether a DFA reaches an accepting state after processing a string *)
     Definition accept_string {state : Type} (dfa : t state) (s : string) : bool :=
         dfa.(accept state) (run dfa s).
+    
+    (** Every reachable state is listed in [states] *)
+    Parameter run_in_states : forall {state : Type} (d : t state) (w : string),
+        In (run d w) (states state d).
 End DFA.
 
 (** Language *)
 Module Type RegularLanguage (s : Symbol).
     Import s.
     Module D := DFA s.
+    
+    (** Language membership *)
     Parameter member : string -> bool.
+
     (** Whether a DFA encodes the language L *)
     Definition encodes {state : Type} (dfa : D.t state) : Prop :=
         forall (s : string),
             member s = true <-> D.accept_string dfa s = true.
-    Parameter exists_dfa : exists state (d: D.t state), encodes d.
+
+    (** DFA state minimality *)
+    Definition minimal {state : Type} (dfa : D.t state) : Prop :=
+        encodes dfa /\
+        forall (state' : Type) (dfa' : D.t state'),
+            encodes dfa' -> 
+            List.length (D.states state dfa) <= List.length (D.states state' dfa').
+
+    (** There exists a minimal DFA with number of states [num_states_in_minimal] *)
+    Parameter num_states_in_minimal : nat.
+    Parameter exists_dfa : exists state (d: D.t state), 
+        minimal d /\ List.length (D.states state d) <= num_states_in_minimal.
 End RegularLanguage.

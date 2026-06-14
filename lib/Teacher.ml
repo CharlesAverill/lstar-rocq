@@ -11,6 +11,8 @@ module type TEACHER = sig
   val member : S.string -> bool
 
   val equiv_query : 'a D.t -> S.string option
+
+  val fuel : int
 end
 
 module DFAPrinter (Teacher : TEACHER) = struct
@@ -92,6 +94,8 @@ module LstarLearner (T : TEACHER) = struct
         module D = T.D
 
         let member = T.member
+
+        let num_states_in_minimal = T.fuel
       end)
       (struct
         let equiv_query = T.equiv_query
@@ -109,6 +113,8 @@ module KVLearner (T : TEACHER) = struct
         module D = T.D
 
         let member = T.member
+
+        let num_states_in_minimal = T.fuel
       end)
       (struct
         let equiv_query = T.equiv_query

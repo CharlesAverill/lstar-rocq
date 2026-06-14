@@ -196,4 +196,4 @@ Proof.
     apply cons.
         exists a. apply pf. now left.
     apply IHl. intros s Hin. apply pf. now right.
-Qed.
+Defined.

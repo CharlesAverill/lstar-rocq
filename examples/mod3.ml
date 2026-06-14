@@ -57,6 +57,8 @@ module Teacher : TEACHER with module S = S = struct
                 (rest @ List.map (fun c -> s @ [c]) [S.Zero; S.One])
     in
     bfs 0 [[]]
+
+  let fuel : int = Int.max_int
 end
 
 module Lstar = LstarLearner (Teacher)
@@ -71,7 +73,10 @@ let rec enumerate n =
     let prev = enumerate (n - 1) in
     List.map (fun s -> S.Zero :: s) prev @ List.map (fun s -> S.One :: s) prev
 
-let print_results dfa n =
+let print_results name dfa n =
+  Printf.printf "\n=== %s ===\n" name ;
+  Lstar.print_dfa dfa ;
+  print_endline "DFA found" ;
   let strings = enumerate n in
   let col_w = max 10 (n + 2) in
   let header =
@@ -99,21 +104,10 @@ let print_results dfa n =
   in
   Printf.printf "Accuracy: %d/%d\n" correct (List.length strings)
 
-(** Run one learner, reporting its result *)
-let run_learner name result =
-  Printf.printf "\n=== %s ===\n" name ;
-  match result with
+let () =
+  (match Lstar.lstar () with Coq_existT (_, d) -> print_results "L*" d 4) ;
+  match KV.kv_run Int.max_int with
   | Error _ ->
       print_endline "No DFA found"
   | Ok (Coq_existT (_, d)) ->
-      Lstar.print_dfa d ; print_endline "DFA found" ; print_results d 4
-
-let () =
-  run_learner "L*"
-    (Lstar.lstar_opt Int.max_int
-       { coq_Q= (fun x -> x = [])
-       ; coq_T= (fun x -> x = [])
-       ; clos= (fun _ _ _ -> [])
-       ; fin_Q= [[]]
-       ; fin_T= [[]] } ) ;
-  run_learner "KV" (KV.kv_run Int.max_int)
+      print_results "KV" d 4

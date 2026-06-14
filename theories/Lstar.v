@@ -753,40 +753,343 @@ Defined.
     expand Q and T until the DFA they form encodes L (or fuel runs out).
 
     If fuel runs out, we return the in-progress DFA *)
-Fixpoint lstar_opt (fuel : nat) (H : HypothesisDFA)
-    : result { T : Type & {d : D.t T | encodes d} }
-             { T : Type & {d : D.t T | True} }.
-    destruct fuel as [| n].
-    - apply Error. eexists. now exists (make_dfa H).
-    - destruct (equiv_query _ (make_dfa H)) eqn:Heq.
-      + (* counterexample s *)
-        assert (Hce : accept_string (make_dfa H) s <> member s)
-            by now apply equiv_query_ce.
-        destruct (find_separable H s Hce) as
-            (q_new & t & HQnew & (sep' & finQ') & finT').
-        set (Q' := H.(Q) [q_new := true]).
-        set (T' := H.(T) [t := true]).
-        destruct (union_closed Q' T' sep' finQ' finT') as
-            (Q'' & ((clos'' & sep'') & finQ'') & sub'').
-        assert (eps_in_Q'' : Q'' nil = true). {
-            apply sub''. unfold Q'. 
-            rewrite update_neq.
-            - apply H.(eps_in_Q).
-            - (* nil <> q_new *)
-              intro Heq'. subst q_new.
-              rewrite H.(eps_in_Q) in HQnew.
-              discriminate. }
-        apply (lstar_opt n {|
-            Q        := Q'';
-            T        := T';
-            sep      := sep'';
-            clos     := clos'';
-            eps_in_Q := eps_in_Q'';
-            fin_Q    := finQ'';
-            fin_T    := finT' |}).
-      + (* no counterexample, make_dfa H encodes L *)
-        apply Ok. eexists. exists (make_dfa H).
-        now apply equiv_query_correct in Heq.
+
+Definition num_states_of_fin {f} (H : finite f) : nat.
+    destruct H. exact (List.length x).
 Defined.
+
+Definition num_states (H : HypothesisDFA) : nat.
+    destruct H. apply (num_states_of_fin fin_Q0).
+Defined.
+
+Lemma finite_subset_is_smaller : forall
+    (f g : string -> bool)
+    (FinF : finite f)
+    (FinG : finite g)
+    (FsubG : forall (x : string), f x = true -> g x = true),
+    num_states_of_fin FinF <= num_states_of_fin FinG.
+Proof.
+    intros. destruct FinF as (fl & NDF & InF).
+    destruct FinG as (gl & NDG & InG).
+    unfold num_states_of_fin.
+    apply NoDup_incl_length. assumption.
+    unfold incl. intros x Hx.
+    apply (proj1 (InG x)).
+    apply FsubG.
+    apply (proj2 (InF x)). 
+    assumption.
+Qed.
+
+Lemma finite_update_impl_finite : forall
+    (f : string -> bool) k v
+    (FinUpdF : finite f[k := v]),
+    finite f.
+Proof.
+    intros. destruct FinUpdF as (fl' & NDfl' & Infl).
+    unfold finite. unfold str_upd in *.
+    destruct v; destruct (f k) eqn:Hfk.
+    - exists fl'. split. assumption.
+        intro s. specialize (Infl s). destruct (str_eq s k) as [e|n].
+            subst. rewrite Hfk. split; auto.
+            intro; apply Infl; reflexivity.
+        assumption.
+    - exists (filter f fl'). split.
+        + clear Infl. induction fl' as [| h t IH].
+            constructor.
+          inversion NDfl'; subst. simpl. destruct (f h) eqn:Hfh.
+            constructor.
+                intro C. apply filter_In in C.
+                now destruct C as [C _].
+            now apply IH.
+          now apply IH.
+        + intro s. specialize (Infl s). rewrite filter_In. 
+            destruct (str_eq s k) as [e|n].
+                subst. rewrite Hfk. split; intro H; try easy.
+            split; intro H.
+                split; [now apply Infl | assumption].
+            destruct H. now rewrite Infl.
+    - exists (k :: fl'). split.
+        + constructor; auto.
+          intro C. specialize (Infl k). destruct (str_eq k k) as [e|n].
+            now rewrite <- Infl in C.
+          contradiction.
+        + intro s. specialize (Infl s). simpl. destruct (str_eq s k) as [e|n].
+            subst. rewrite Hfk. split; auto.
+            split; intro H.
+            -- right. now apply Infl.
+            -- destruct H as [e2 | Hfl].
+                 now symmetry in e2.
+                now apply Infl.
+    - exists fl'. split; auto.
+        intro s. specialize (Infl s). destruct (str_eq s k) as [e|n].
+            subst. rewrite Hfk. split; intro H.
+                discriminate.
+                now apply Infl.
+                assumption.
+Qed.
+
+Lemma list_with_proof_preserves_len : forall {X} (l : list X) P In,
+    List.length (list_with_proof l P In) = List.length l.
+Proof.
+    induction l; intros.
+        reflexivity.
+    simpl. f_equal. apply IHl.
+Qed.
+
+(** A hypothesis DFA must be smaller than the number of states in the
+    minimal DFA. This follows from separability of Q *)
+Lemma num_states_le_min : forall (H : HypothesisDFA),
+    num_states H <= L.num_states_in_minimal.
+Proof.
+  intro H.
+  destruct L.exists_dfa as (state_m & D & [Denc Minimal] & Len).
+  (* num_states H <= |states D| by the same injection as the minimality branch *)
+  enough (Hle : num_states H <= Datatypes.length (D.states state_m D)) by lia.
+  unfold num_states, num_states_of_fin.
+  destruct H as [Q0 T0 sep0 clos0 eps0 finQ0 finT0].
+  destruct finQ0 as (Ql & NDQl & InQl). simpl.
+  set (f := fun q => D.run D q).
+  assert (Hinj : forall u v, In u Ql -> In v Ql -> u <> v -> f u <> f v). {
+    intros u v Hu Hv Huv Hf.
+    apply (sep0 u v); try (now apply InQl); try assumption.
+    intros t Ht.
+    assert (Hsplit : forall x,
+              D.accept_string D (x ++ t)
+              = D.(D.accept _) (fold_left D.(D.transition _) t (f x))). {
+      intro x. unfold D.accept_string, D.run, f. now rewrite fold_left_app. }
+    assert (Hacc : D.accept_string D (u ++ t) = D.accept_string D (v ++ t)). {
+      rewrite !Hsplit. unfold f in *. now rewrite Hf. }
+    destruct (member (u ++ t)) eqn:Mu, (member (v ++ t)) eqn:Mv;
+      try reflexivity; exfalso.
+    - assert (D.accept_string D (u ++ t) = true) by (apply Denc; exact Mu).
+      assert (D.accept_string D (v ++ t) = true) by (rewrite <- Hacc; assumption).
+      assert (member (v ++ t) = true) by (apply Denc; assumption). congruence.
+    - assert (D.accept_string D (v ++ t) = true) by (apply Denc; exact Mv).
+      assert (D.accept_string D (u ++ t) = true) by (rewrite Hacc; assumption).
+      assert (member (u ++ t) = true) by (apply Denc; assumption). congruence.
+  }
+  rewrite <- (length_map f Ql).
+  apply NoDup_incl_length.
+  - clear - NDQl Hinj.
+    induction Ql as [| x xs IH]; [constructor|].
+    apply NoDup_cons_iff in NDQl. destruct NDQl as [Hnin NDxs]. constructor.
+    + intro HIn. apply in_map_iff in HIn. destruct HIn as (y & Hfy & Hyin).
+      assert (x = y). { destruct (str_eq x y) as [e|n]; [exact e|].
+        exfalso. apply (Hinj x y); [now left|now right|exact n|now symmetry]. }
+      subst y; contradiction.
+    + apply IH; auto. intros u v Hu Hv. apply Hinj; now right.
+  - intros st Hst. apply in_map_iff in Hst.
+    destruct Hst as (q & <- & _). unfold f. apply run_in_states.
+Qed.
+
+(** If [make_dfa] has no counterexample then it is minimal. By separability,
+    all q : Q reach distinct states in any encoding DFA, so none can have fewer states *)
+Lemma make_dfa_minimal : forall (H : HypothesisDFA),
+    equiv_query _ (make_dfa H) = None ->
+    minimal (make_dfa H).
+Proof.
+  intros H Heq.
+  unfold minimal. split.
+    now apply equiv_query_correct in Heq.
+  intros state' dfa' H_encodes.
+  assert (H_LHS : Datatypes.length (states _ (make_dfa H)) = num_states H). {
+    unfold num_states, num_states_of_fin, make_dfa.
+    destruct H, fin_Q0, a. simpl. apply list_with_proof_preserves_len. }
+  rewrite H_LHS.
+  unfold num_states, num_states_of_fin.
+  destruct H as [Q0 T0 sep0 clos0 eps0 finQ0 finT0] eqn:HH.
+  destruct finQ0 as (Ql & NDQl & InQl). simpl.
+  set (f := fun q => D.run dfa' q).
+  assert (Hinj : forall u v, In u Ql -> In v Ql -> u <> v -> f u <> f v). {
+    intros u v Hu Hv Huv Hf.
+    apply (sep0 u v); try (now apply InQl); try assumption.
+    intros t Ht.
+    assert (Hsplit : forall x,
+              D.accept_string dfa' (x ++ t)
+              = dfa'.(D.accept _) (fold_left dfa'.(D.transition _) t (f x))). {
+      intro x. unfold D.accept_string, D.run, f. now rewrite fold_left_app. }
+    assert (Hacc : D.accept_string dfa' (u ++ t) = D.accept_string dfa' (v ++ t)). {
+      rewrite !Hsplit. unfold f in *. now rewrite Hf. }
+    destruct (member (u ++ t)) eqn:Mu, (member (v ++ t)) eqn:Mv;
+      try reflexivity; exfalso.
+    - assert (D.accept_string dfa' (u ++ t) = true) by (apply H_encodes; exact Mu).
+      assert (D.accept_string dfa' (v ++ t) = true) by (rewrite <- Hacc; assumption).
+      assert (member (v ++ t) = true) by (apply H_encodes; assumption). congruence.
+    - assert (D.accept_string dfa' (v ++ t) = true) by (apply H_encodes; exact Mv).
+      assert (D.accept_string dfa' (u ++ t) = true) by (rewrite Hacc; assumption).
+      assert (member (u ++ t) = true) by (apply H_encodes; assumption). congruence.
+  }
+  rewrite <- (length_map f Ql).
+  apply NoDup_incl_length.
+    clear - NDQl Hinj.
+    induction Ql as [| x xs IH].
+      constructor.
+    apply NoDup_cons_iff in NDQl. destruct NDQl as [Hnin NDxs]. constructor.
+      intro HIn. apply in_map_iff in HIn. destruct HIn as (y & Hfy & Hyin).
+        replace x with y in *. contradiction. symmetry.
+        destruct (str_eq x y) as [e | n]; [assumption|].
+        exfalso. now apply (Hinj x y); [now left | now right | exact n |].
+      apply IH; auto. intros. apply Hinj. now right. now right. assumption.
+  intros st Hst. apply in_map_iff in Hst.
+    destruct Hst as (q & <- & _). unfold f. apply run_in_states.
+Qed.
+
+(** Once Q has the full minimal state count there is no counterexample left *)
+Lemma full_states_no_ce : forall (H : HypothesisDFA),
+    L.num_states_in_minimal <= num_states H ->
+    equiv_query _ (make_dfa H) = None.
+Proof.
+  intros H Hge.
+  (* Contrapositive: a counterexample would let us build a strictly larger
+     separable hypothesis DFA, which num_states_le_min caps at the minimal
+     state count — contradicting Hge. So no counterexample: result is None. *)
+  destruct (equiv_query _ (make_dfa H)) eqn:Heq; [exfalso | reflexivity].
+  (* equiv_query ... = Some s *)
+  assert (Hce : accept_string (make_dfa H) s <> member s)
+    by now apply equiv_query_ce.
+  destruct (find_separable H s Hce) as
+    (q_new & t & HQnew & (sep' & finQ') & finT').
+  set (Q' := H.(Q) [q_new := true]).
+  set (T' := H.(T) [t := true]).
+  destruct (union_closed Q' T' sep' finQ' finT') as
+    (Q'' & ((clos'' & sep'') & finQ'') & sub'').
+  assert (eps_in_Q'' : Q'' nil = true). {
+    apply sub''. unfold Q'. rewrite update_neq.
+    - apply H.(eps_in_Q).
+    - intro Heq'. subst q_new. rewrite H.(eps_in_Q) in HQnew. discriminate. }
+  (* Package the extension as a HypothesisDFA so num_states_le_min applies *)
+  set (H'' := {|
+      Q        := Q'';
+      T        := T';
+      sep      := sep'';
+      clos     := clos'';
+      eps_in_Q := eps_in_Q'';
+      fin_Q    := finQ'';
+      fin_T    := finT' |}).
+  (* num_states_le_min caps the extended DFA *)
+  pose proof (num_states_le_min H'') as Hcap.
+  (* The extension has strictly more states than H — the H_strict argument *)
+  pose proof (finite_subset_is_smaller _ _ finQ' finQ'' sub'') as Hmono.
+  assert (H_step : S (num_states H) <= num_states_of_fin finQ'). {
+      unfold num_states, num_states_of_fin.
+      destruct (fin_Q H) as (fl & NDF & InF).
+      destruct finQ' as (fl' & NDF' & InF').
+      simpl. destruct H, fin_Q0. simpl in *.
+      destruct a as [NDx Inx].
+      change (S (Datatypes.length x)) with (Datatypes.length (q_new :: x)).
+      apply NoDup_incl_length. constructor; [|assumption].
+          intro C. apply (proj2 (Inx q_new)) in C. now rewrite C in HQnew.
+      unfold incl. intros y Hy.
+      apply (proj1 (InF' y)).
+      unfold str_upd. destruct Hy as [Eq | Iny].
+          subst y. now destruct (str_eq q_new q_new) as [e|n'].
+      apply (proj2 (Inx y)) in Iny.
+      now destruct (str_eq y q_new) as [e|n']. }
+  (* num_states H'' is num_states_of_fin finQ'' by definition of H'' *)
+  assert (HH'' : num_states H'' = num_states_of_fin finQ''). {
+    unfold H'', num_states. reflexivity. }
+  (* Chain: S (num_states H) <= num_states_of_fin finQ' <= num_states_of_fin finQ''
+            = num_states H'' <= num_states_in_minimal.  Contradicts Hge. *)
+  unfold num_states in Hge, Hcap.
+  destruct H''. simpl in *.
+  (* Hmono : num_states_of_fin finQ' <= num_states_of_fin finQ'' *)
+  unfold num_states in H_step, Hge.
+  simpl in H_step, Hge.
+  rewrite HH'' in *.
+  lia.
+Qed.
+
+(** The main L* implementation. Using Lemmas 2 and 3 we expand Q and T on each
+    counterexample, which strictly grows num_states H towards num_states_in_minimal,
+    so the fuel decreases and the recursion terminates. No counterexample means
+    make_dfa H is minimal; a counterexample with no fuel left is impossible by
+    full_states_no_ce *)
+Fixpoint lstar_fuel (H : HypothesisDFA) (fuel : nat)
+    (LE : L.num_states_in_minimal - num_states H <= fuel)
+    : { T : Type & {d : D.t T | minimal d} }.
+  destruct (equiv_query _ (make_dfa H)) eqn:Heq.
+  - (* counterexample s - only reachable with fuel = S n *)
+    destruct fuel as [| n].
+    + (* fuel = 0: impossible.
+         LE : num_states_in_minimal - num_states H <= 0, so min <= num_states H,
+         and full_states_no_ce then says there is NO counterexample. *)
+      exfalso.
+      assert (Hge : L.num_states_in_minimal <= num_states H) by lia.
+      rewrite (full_states_no_ce H Hge) in Heq. discriminate.
+    + (* fuel = S n: build a bigger hypothesis DFA and recurse on n *)
+      assert (Hce : accept_string (make_dfa H) s <> member s)
+        by now apply equiv_query_ce.
+      destruct (find_separable H s Hce) as
+        (q_new & t & HQnew & (sep' & finQ') & finT').
+      set (Q' := H.(Q) [q_new := true]).
+      set (T' := H.(T) [t := true]).
+      destruct (union_closed Q' T' sep' finQ' finT') as
+        (Q'' & ((clos'' & sep'') & finQ'') & sub'').
+      assert (eps_in_Q'' : Q'' nil = true). {
+        apply sub''. unfold Q'. rewrite update_neq.
+        - apply H.(eps_in_Q).
+        - intro Heq'. subst q_new. rewrite H.(eps_in_Q) in HQnew. discriminate. }
+      eapply (lstar_fuel {|
+          Q        := Q'';
+          T        := T';
+          sep      := sep'';
+          clos     := clos'';
+          eps_in_Q := eps_in_Q'';
+          fin_Q    := finQ'';
+          fin_T    := finT' |} n).
+      match goal with
+      | [|- context[_ - num_states ?Dh]] =>
+          enough (H_strict : S (num_states H) <= num_states Dh)
+      end. lia.
+      pose proof (finite_subset_is_smaller _ _ finQ' finQ'' sub'').
+      assert (H_step : S (num_states H) <= num_states_of_fin finQ'). {
+          unfold num_states, num_states_of_fin.
+          destruct (fin_Q H) as (fl & NDF & InF).
+          destruct finQ' as (fl' & NDF' & InF').
+          simpl. destruct H, fin_Q0. simpl in *.
+          destruct a as [NDx Inx].
+          change (S (Datatypes.length x)) with (Datatypes.length (q_new :: x)).
+          apply NoDup_incl_length. constructor; [|assumption].
+              intro C. apply (proj2 (Inx q_new)) in C. now rewrite C in HQnew.
+          unfold incl. intros y Hy.
+          apply (proj1 (InF' y)).
+          unfold str_upd. destruct Hy as [Eq | Iny].
+              subst y. now destruct (str_eq q_new q_new) as [e|n'].
+          apply (proj2 (Inx y)) in Iny.
+          now destruct (str_eq y q_new) as [e|n']. }
+      unfold num_states at 2.
+      etransitivity; eassumption.
+  - (* no counterexample: make_dfa H is minimal *)
+    exists {q : string | H.(Q) q = true}.
+    exists (make_dfa H).
+    exact (make_dfa_minimal H Heq).
+Defined.
+
+(** The total L* implementation *)
+Definition lstar (_ : unit) : { T : Type & {d : D.t T | minimal d} }.
+    eapply lstar_fuel with (fuel := num_states_in_minimal).
+        lia.
+    Unshelve.
+    set (Q := fun s => if str_eq s nil then true else false).
+    set (T := fun (_ : string) => false).
+    eapply (Build_HypothesisDFA Q T); auto;
+        unfold T, Q in *.
+    - unfold separable. intros. intro Contra.
+      unfold T_equiv in Contra.
+      destruct (str_eq u nil), (str_eq v nil); try discriminate; subst.
+      contradiction.
+    - unfold closed. intros. destruct (str_eq q nil); try discriminate.
+      subst. exists nil. split. reflexivity. unfold T_equiv. intros. discriminate.
+    - unfold finite. exists (nil :: nil). split. constructor.
+        intro. inversion H0. constructor.
+      intros. destruct (str_eq s nil). subst.
+        split; auto. intros. now constructor.
+      split; intro. discriminate. inversion H0; subst.
+      contradiction. inversion H1.
+    - unfold finite. exists nil. split. constructor.
+      intros. destruct (str_eq s nil). subst.
+        split; auto. intros. discriminate.
+      split; intro. discriminate. inversion H0.
+Qed. 
 
 End Lstar.

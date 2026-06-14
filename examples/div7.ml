@@ -100,6 +100,8 @@ module Teacher : TEACHER with module S = S = struct
               bfs (depth + 1) (rest @ children)
     in
     bfs 0 [[]]
+
+  let fuel = Int.max_int
 end
 
 module Lstar = LstarLearner (Teacher)
@@ -147,7 +149,10 @@ let interesting_cases =
       |> List.of_seq )
     nums
 
-let print_results dfa =
+let print_results name dfa =
+  Printf.printf "\n=== %s ===\n" name ;
+  Lstar.print_dfa dfa ;
+  print_endline "DFA found" ;
   let multiples = interesting_cases @ [[S.D0; S.D7]] in
   let non_multiples =
     List.filteri
@@ -180,21 +185,10 @@ let print_results dfa =
   in
   Printf.printf "Accuracy: %d/%d\n" correct (List.length cases)
 
-(** Run one learner, reporting its result *)
-let run_learner name result =
-  Printf.printf "\n=== %s ===\n" name ;
-  match result with
+let () =
+  (match Lstar.lstar () with Coq_existT (_, d) -> print_results "L*" d) ;
+  match KV.kv_run Int.max_int with
   | Error _ ->
       print_endline "No DFA found"
   | Ok (Coq_existT (_, d)) ->
-      Lstar.print_dfa d ; print_endline "DFA found" ; print_results d
-
-let () =
-  run_learner "L*"
-    (Lstar.lstar_opt Int.max_int
-       { coq_Q= (fun x -> x = [])
-       ; coq_T= (fun x -> x = [])
-       ; clos= (fun _ _ _ -> [])
-       ; fin_Q= [[]]
-       ; fin_T= [[]] } ) ;
-  run_learner "KV" (KV.kv_run Int.max_int)
+      print_results "KV" d

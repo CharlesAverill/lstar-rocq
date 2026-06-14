@@ -58,6 +58,8 @@ module Teacher : TEACHER with module S = S = struct
               find_counter_example (depth + 1) (rest @ next_gen)
     in
     find_counter_example 0 [[]]
+
+  let fuel : int = Int.max_int
 end
 
 (** L* implementation *)
@@ -76,7 +78,10 @@ let rec enumerate (n : int) : S.string list =
     prepend S.Zero prev @ prepend S.One prev
 
 (** Run the DFA on test cases and pretty-print the results *)
-let print_results dfa n =
+let print_results name dfa n =
+  Printf.printf "\n=== %s ===\n" name ;
+  Lstar.print_dfa dfa ;
+  print_endline "DFA found" ;
   let strings = enumerate n in
   let col_w = max 10 (n + 2) in
   let header =
@@ -104,22 +109,12 @@ let print_results dfa n =
   in
   Printf.printf "Accuracy: %d/%d\n" correct (List.length strings)
 
-(** Run one learner, reporting its result *)
-let run_learner name result =
-  Printf.printf "\n=== %s ===\n" name ;
-  match result with
-  | Error _ ->
-      print_endline "No DFA found"
-  | Ok (Coq_existT (_, d)) ->
-      Lstar.print_dfa d ; print_endline "DFA found" ; print_results d 3
-
-(** Main: learn the language with both L* and KV, then test each *)
 let () =
-  run_learner "L*"
-    (Lstar.lstar_opt Int.max_int
-       { coq_Q= (fun x -> x = [])
-       ; coq_T= (fun x -> x = [])
-       ; clos= (fun _ _ _ -> [])
-       ; fin_Q= [[]]
-       ; fin_T= [[]] } ) ;
-  run_learner "KV" (KV.kv_run Int.max_int)
+  match Lstar.lstar () with
+  | Coq_existT (_, d) -> (
+      print_results "L*" d 3 ;
+      match KV.kv_run Int.max_int with
+      | Error _ ->
+          prerr_endline "No DFA found"
+      | Ok (Coq_existT (_, d)) ->
+          print_results "KV" d 3 )
