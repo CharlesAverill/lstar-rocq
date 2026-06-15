@@ -999,11 +999,7 @@ Proof.
   lia.
 Qed.
 
-(** The main L* implementation. Using Lemmas 2 and 3 we expand Q and T on each
-    counterexample, which strictly grows num_states H towards num_states_in_minimal,
-    so the fuel decreases and the recursion terminates. No counterexample means
-    make_dfa H is minimal; a counterexample with no fuel left is impossible by
-    full_states_no_ce *)
+(** The main L* implementation *)
 Fixpoint lstar_fuel (H : HypothesisDFA) (fuel : nat)
     (LE : L.num_states_in_minimal - num_states H <= fuel)
     : { T : Type & {d : D.t T | minimal d} }.
