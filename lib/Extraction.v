@@ -10,4 +10,6 @@ From lstar Require Import ExtrOptimizations.
 (* Linear let + beta reduction *)
 Set Extraction Flag 1536.
 
+#[local] Set Warnings "-extraction-opaque-accessed,-extraction-default-directory".
+
 Separate Extraction Lstar KV DFA.
