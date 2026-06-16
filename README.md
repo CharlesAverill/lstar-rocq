@@ -7,6 +7,8 @@ A collection of formally-verified implementations of [automata learning](https:/
 | L* | [Angluin, 1987](https://doi.org/10.1016/0890-5401(87)90052-6), [Lecture Notes](https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.pdf) | [Lstar.v](theories/Lstar.v) |
 | Kearns-Vazirani | [Kearns-Vazirani, 1994](https://doi.org/10.7551/mitpress/3897.003.0009), [Balle, 2010](https://borjaballe.github.io/papers/zulu10.pdf) | [KV.v](theories/KV.v) |
 
+[These notes](https://www.overleaf.com/read/jbftmjdhmyjd#a32216) summarize each of the main proof arguments and algorithm designs.
+
 Functions return sigma types, so each sub-component of each algorithm provides a proof of correctness alongside its computational outputs.
 
 ## Installation
