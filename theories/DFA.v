@@ -17,21 +17,6 @@ Module Type Symbol.
     (** List of symbols *)
     Definition str := list t.
 
-    (** String equality is decidable*)
-    Fixpoint str_eq (x y : str) {struct x} : {x = y} + {x <> y}.
-        destruct x.
-        - destruct y. now left.
-          now right.
-        - destruct y. now right.
-          destruct (eq_dec t0 t1).
-            + destruct (str_eq x y).
-                left. rewrite e, e0. reflexivity.
-                right. intro. injection H. intros.
-                contradiction.
-            + right. intro. injection H. intros.
-                contradiction.
-    Defined.
-
     (** For debugging *)
     Parameter string_of_t : t -> String.string.
 End Symbol.
@@ -63,6 +48,17 @@ Module DFA (s : Symbol).
     Proof.
         intros state d w. unfold run. apply (states_complete state d).
     Qed.
+
+    (** String equality is decidable*)
+    Fixpoint str_eq (x y : str) {struct x} : {x = y} + {x <> y}.
+        destruct x, y.
+            now left.
+            now right.
+            now right.
+        destruct (eq_dec t0 t1), (str_eq x y); subst; clear str_eq.
+            now left.
+        all: right; intro H; inversion H; subst; intuition.
+    Defined.
 End DFA.
 
 (** Language *)

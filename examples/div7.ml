@@ -61,10 +61,6 @@ module S = struct
   type str = t list
 
   let string_of_str s = String.concat "" (List.map string_of_t s)
-
-  let str_eq (l1 : str) (l2 : str) =
-    List.length l1 = List.length l2
-    && List.for_all (fun (x, y) -> x = y) (List.combine l1 l2)
 end
 
 (** Language: decimal strings (with leading zeros) whose numeric value is
