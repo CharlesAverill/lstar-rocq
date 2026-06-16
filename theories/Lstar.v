@@ -7,6 +7,7 @@ From Stdlib Require Import List.
 From Stdlib Require Import Lia.
 From Stdlib Require Import Recdef.
 From Stdlib Require Import PeanoNat. Require Import Nat.
+From Stdlib Require Import Eqdep_dec.
 Import ListNotations.
 From lstar Require Import Teacher.
 
@@ -109,18 +110,16 @@ Proof.
         then true else false) x) eqn:Hfb.
     - left. intros t Ht.
         rewrite forallb_forall in Hfb.
-        assert (In t x) by now apply i.
-        specialize (Hfb t H).
-        destruct Bool.eqb eqn:E.
-            now rewrite Bool.eqb_true_iff in E.
-            discriminate.
+        specialize (Hfb t ltac:(now apply i)).
+        destruct Bool.eqb eqn:E; [|discriminate].
+        now rewrite Bool.eqb_true_iff in E.
     - right. intro HTeq.
         apply Bool.not_true_iff_false in Hfb.
         apply Hfb. rewrite forallb_forall.
         intros t' HIn'.
-        destruct Bool.eqb eqn:E; [reflexivity |].
+        destruct Bool.eqb eqn:E; [reflexivity|].
         exfalso. apply Bool.eqb_false_iff in E.
-        apply E. apply HTeq. apply i. assumption.
+        now apply E, HTeq, i.
 Defined.
 
 (** A set Q ⊆ Σ∗ is said to be separable with respect to T,
@@ -157,28 +156,26 @@ Proof.
       ) Ql)) (list_prod Ql enum)) eqn:Hfind.
   - destruct p as (q, a).
     apply List.find_some in Hfind.
-    destruct Hfind as [HIn Hcheck].
-    apply in_prod_iff in HIn. destruct HIn as [HIn_q HIn_a].
+    destruct Hfind as (HIn & Hcheck).
+    apply in_prod_iff in HIn. destruct HIn as (HIn_q & HIn_a).
     right. exists q, a. split.
-    + now apply Qfin.
-    + intros q' Hq' Contra.
-      apply Bool.negb_true_iff in Hcheck.
-      apply Bool.not_true_iff_false in Hcheck.
-      apply Hcheck. rewrite existsb_exists.
-      exists q'. split.
         now apply Qfin.
-        destruct (T_equiv_dec T (q ++ [a]) q' finT); auto.
+    intros q' Hq' Contra.
+    apply Bool.negb_true_iff, Bool.not_true_iff_false in Hcheck.
+    apply Hcheck. rewrite existsb_exists.
+    exists q'. split.
+        now apply Qfin.
+    destruct (T_equiv_dec T (q ++ [a]) q' finT); auto.
   - left. intros q a Hq.
     apply List.find_none with (x := (q, a)) in Hfind.
-    + apply Bool.negb_false_iff in Hfind.
-      apply existsb_exists_set in Hfind.
+    + apply Bool.negb_false_iff, existsb_exists_set in Hfind.
       destruct Hfind as (q' & Hq' & Hcheck).
       exists q'. split.
         now apply Qfin.
         now destruct (T_equiv_dec T (q ++ [a]) q' finT).
     + apply in_prod.
-      * now apply Qfin.
-      * apply t_enumerable.
+        now apply Qfin.
+        apply t_enumerable.
 Qed.
 
 Definition closed_dec : forall Q T,
@@ -189,10 +186,10 @@ Proof.
     intros. destruct (closed_dec_witness Q T X X0).
         now left.
     right. intros Contra.
-    destruct s as (q & a & Qq & Tdistinguishable).
+    destruct s as (q & a & Qq & Tdist).
     specialize (Contra q a Qq).
     destruct Contra as (q' & Qq' & Teq).
-    destruct (Tdistinguishable q' Qq' Teq).
+    destruct (Tdist q' Qq' Teq).
 Defined.
 
 (** Lemma 1. If Q is closed and separable with respect to T,
@@ -230,46 +227,51 @@ Record HypothesisDFA : Type := {
 Definition make_dfa (H : HypothesisDFA) : D.t {q | H.(Q) q = true}.
     set (state := {q | H.(Q) q = true}).
     assert (initial : state). {
-        unfold state. exists nil.
-        apply H.(eps_in_Q).
-    }
+        exists nil. apply H.(eps_in_Q). }
     assert (transition : state -> s.t -> state). {
         intros q a.
         set (r := delta H.(Q) H.(T) H.(clos) (proj1_sig q) a (proj2_sig q)).
-        unfold state. destruct r as (q' & Qq' & Teq).
-        exists q'. apply Qq'.
-    }
+        destruct r as (q' & Qq' & Teq). exists q'. apply Qq'. }
     set (accept := fun (q : state) => member (proj1_sig q)).
-    destruct H.(fin_Q) as (l & _ & InQ).    
-    assert (ls : list state). {
-        eapply list_with_proof. intros.
-        apply InQ. eassumption.
-    }
-
-    apply {|initial    := initial;
-            transition := transition;
-            accept     := accept;
-            states     := ls|}.
+    destruct H.(fin_Q) as (l & ND & InQ).
+    assert (InQpf : forall x, In x l -> H.(Q) x = true). {
+        intros x Hin. now apply (proj2 (InQ x)). }
+    set (ls := list_with_proof l (fun q => H.(Q) q = true) InQpf).
+    refine {| initial    := initial;
+              transition := transition;
+              accept     := accept;
+              states     := ls;
+              states_complete := _ |}.
+    intro w.
+    set (qst := fold_left transition w initial).
+    assert (Hin : In (proj1_sig qst) l) by
+        apply (proj1 (InQ _)), (proj2_sig qst).
+    assert (Heq : qst = exist _ (proj1_sig qst) (InQpf (proj1_sig qst) Hin)). {
+        destruct qst as (q & Hq); simpl.
+        f_equal. apply (UIP_dec Bool.bool_dec). }
+    rewrite Heq.
+    eapply (list_with_proof_complete l (fun q => H.(Q) q = true)).
+    intros. apply UIP_dec, Bool.bool_dec.
 Defined.
 
 (** Updating sets of strings *)
-Definition str_upd (S : string -> bool) k b :=
+Definition update (S : string -> bool) k b :=
     fun s => if str_eq s k then b else S s.
 
-Notation "s [ k := v ]" := (str_upd s k v).
+Notation "s [ k := v ]" := (update s k v).
 
 Lemma update_neq : forall S x y k,
     x <> y ->
     S[x := k] y = S y.
 Proof.
-    intros. unfold str_upd.
+    intros. unfold update.
     destruct str_eq; now subst.
 Qed.
 
 Lemma update_eq : forall S x k,
     S[x := k] x = k.
 Proof.
-    intros. unfold str_upd.
+    intros. unfold update.
     destruct str_eq; now subst.
 Qed.
 
@@ -287,11 +289,11 @@ Definition correct (H : HypothesisDFA) (w : string) (i : nat) : Prop :=
 
 (** Now, ε is correct trivially, and p_m is not correct since w is a counterexample. *)
 Example eps_correct : forall H w, correct H w 0.
-Proof. intros.
-    unfold correct, p, run. simpl.
-    unfold proj1_sig, make_dfa, initial.
-    unfold fin_Q. destruct H, fin_Q0, a.
-    simpl. reflexivity.
+Proof.
+    intros.
+    unfold correct, p, run, make_dfa, initial,
+           fin_Q. simpl.
+    now destruct H, fin_Q0, a.
 Qed.
 
 Example full_not_correct : forall H w
@@ -302,9 +304,8 @@ Proof.
     intros H w Hce Contra.
     unfold correct, p in Contra.
     rewrite firstn_all, skipn_all, app_nil_r in Contra.
-    apply Hce. unfold accept_string, accept.
-    unfold make_dfa in *. destruct H, fin_Q, a.
-    simpl in *. destruct run. simpl in *. contradiction.
+    apply Hce. unfold accept_string, accept, make_dfa in *.
+    destruct H, fin_Q, a, run. simpl in *. contradiction.
 Qed.
 
 (** Correctness is decidable *)
@@ -312,7 +313,7 @@ Lemma correct_dec : forall H w i, {correct H w i} + {~ correct H w i}.
 Proof.
     intros. unfold correct. destruct member, member;
     decide equality.
-Qed.
+Defined.
 
 Theorem find_separable :
   forall (H : HypothesisDFA) (* Q is closed and separable wrt T *)
@@ -403,7 +404,7 @@ Theorem find_separable :
       rewrite skipn_len_app, skipn_Slen_cons_app.
       now rewrite <- app_assoc.
     - intros u v Qu Qv Neq Contra.
-      unfold str_upd in Qu, Qv.
+      unfold update in Qu, Qv.
       destruct (str_eq u (proj1_sig (p k) ++ [wk])),
                (str_eq v (proj1_sig (p k) ++ [wk])); try subst u; try subst v; auto.
       + apply (H.(sep) (proj1_sig (p (S k))) v (proj2_sig (p (S k))) Qv).
@@ -414,7 +415,7 @@ Theorem find_separable :
         transitivity (proj1_sig (p k) ++ [wk]).
           now symmetry.
         eapply refined_distinguish; [| apply Contra].
-        intros. unfold str_upd. now destruct str_eq.
+        intros. unfold update. now destruct str_eq.
       + apply (H.(sep) (proj1_sig (p (S k))) u (proj2_sig (p (S k))) Qu).
           intro Contra'. subst u. unfold T_equiv in Contra.
           apply Dist.
@@ -423,10 +424,10 @@ Theorem find_separable :
         transitivity (proj1_sig (p k) ++ [wk]).
           now symmetry.
         eapply refined_distinguish; [| symmetry; apply Contra].
-        intros. unfold str_upd. now destruct str_eq.
+        intros. unfold update. now destruct str_eq.
       + apply (H.(sep) u v Qu Qv Neq).
         eapply refined_distinguish; [|apply Contra].
-        intros t Ht. unfold str_upd.
+        intros t Ht. unfold update.
         now destruct (str_eq t (skipn (S k) w)).
     - unfold finite. destruct H.(fin_Q) as (l & ND & X).
       exists ((proj1_sig (p k) ++ [wk]) :: l). split.
@@ -523,10 +524,10 @@ Proof with try easy.
     intros Q T q a sep finQ finT.
     destruct (find_representative Q T finQ finT (q ++ [a])) as [rep | norep].
     - exists Q. repeat split; auto.
-    - exists (str_upd Q (q ++ [a]) true). repeat split.
+    - exists (update Q (q ++ [a]) true). repeat split.
       + now left.
       + intros u v Qu Qv Neq.
-        unfold str_upd in *.
+        unfold update in *.
         destruct (str_eq u (q ++ [a])) eqn:Hu,
                  (str_eq v (q ++ [a])) eqn:Hv; subst; auto.
         intro Contra. symmetry in Contra. now apply norep in Contra.
@@ -537,14 +538,14 @@ Proof with try easy.
             apply HQl in Contra.
             apply (norep (q ++ [a]) Contra (Teq_refl T (q ++ [a]))).
         intro s. split.
-        * intro Hs. unfold str_upd in Hs.
+        * intro Hs. unfold update in Hs.
           destruct (str_eq s (q ++ [a])); subst.
             now left.
           right. now apply HQl.
-        * intro HIn. unfold str_upd.
+        * intro HIn. unfold update.
           destruct (str_eq s (q ++ [a]))...
           apply HQl. destruct HIn; subst...
-      + intros s Hs. unfold str_upd.
+      + intros s Hs. unfold update.
         now destruct (str_eq s (q ++ [a])).
       + exists (q ++ [a]). split...
         apply update_eq.
@@ -757,7 +758,7 @@ Lemma finite_update_impl_finite : forall
     finite f.
 Proof.
     intros. destruct FinUpdF as (fl' & NDfl' & Infl).
-    unfold finite. unfold str_upd in *.
+    unfold finite. unfold update in *.
     destruct v; destruct (f k) eqn:Hfk.
     - exists fl'. split. assumption.
         intro s. specialize (Infl s). destruct (str_eq s k) as [e|n].
@@ -797,7 +798,7 @@ Proof.
                 discriminate.
                 now apply Infl.
                 assumption.
-Qed.
+Defined.
 
 (** A hypothesis DFA must be smaller than the number of states in the
     minimal DFA. This follows from separability of Q *)
@@ -944,7 +945,7 @@ Proof.
           intro C. apply (proj2 (Inx q_new)) in C. now rewrite C in HQnew.
       unfold incl. intros y Hy.
       apply (proj1 (InF' y)).
-      unfold str_upd. destruct Hy as [Eq | Iny].
+      unfold update. destruct Hy as [Eq | Iny].
           subst y. now destruct (str_eq q_new q_new) as [e|n'].
       apply (proj2 (Inx y)) in Iny.
       now destruct (str_eq y q_new) as [e|n']. }
@@ -1012,7 +1013,7 @@ Fixpoint lstar_fuel (H : HypothesisDFA) (fuel : nat)
               intro C. apply (proj2 (Inx q_new)) in C. now rewrite C in HQnew.
           unfold incl. intros y Hy.
           apply (proj1 (InF' y)).
-          unfold str_upd. destruct Hy as [Eq | Iny].
+          unfold update. destruct Hy as [Eq | Iny].
               subst y. now destruct (str_eq q_new q_new) as [e|n'].
           apply (proj2 (Inx y)) in Iny.
           now destruct (str_eq y q_new) as [e|n']. }
@@ -1049,6 +1050,6 @@ Definition lstar (_ : unit) : { T : Type & {d : D.t T | minimal d} }.
       intros. destruct (str_eq s nil). subst.
         split; auto. intros. discriminate.
       split; intro. discriminate. inversion H0.
-Qed. 
+Defined. 
 
 End Lstar.

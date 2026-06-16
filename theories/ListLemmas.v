@@ -47,7 +47,7 @@ Proof.
   - exists nil; exists l. now injection H as [= ->].
   - destruct (IH _ H) as (l1 & l2 & H1 & H2).
     exists (x::l1); exists l2; simpl; split; now f_equal.
-Qed.
+Defined.
 
 Definition existsb_exists_set :
     forall (A : Type) (f : A -> bool) (l : list A),
@@ -204,6 +204,23 @@ Proof.
     induction l; intros.
         reflexivity.
     simpl. f_equal. apply IHl.
+Qed.
+
+Lemma list_with_proof_complete :
+    forall {X} (l : list X) (P : X -> Prop)
+           (Pirr : forall x (p q : P x), p = q)
+           (In_proof : forall x, In x l -> P x)
+           (x : X) (Hx : In x l),
+    In (exist P x (In_proof x Hx)) (list_with_proof l P In_proof).
+Proof.
+    induction l as [| a l IH]; intros P Pirr In_proof x Hx.
+    - inversion Hx.
+    - simpl. destruct Hx as [Heq | Hin].
+      + subst a. now left.
+      + right.
+        specialize (IH P Pirr (fun s H => In_proof s (or_intror H)) x Hin).
+        now rewrite (Pirr x (In_proof x (or_intror Hin))
+                       ((fun s H => In_proof s (or_intror H)) x Hin)).
 Qed.
 
 Fixpoint InS {A : Type} (a : A) (l : list A) : Type :=

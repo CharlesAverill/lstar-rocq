@@ -16,6 +16,7 @@ From Stdlib Require Import List.
 From Stdlib Require Import Lia.
 From Stdlib Require Import PeanoNat.
 From Stdlib Require Import Setoids.Setoid.
+From Stdlib Require Import Eqdep_dec.
 Import ListNotations.
 
 Module KV (s : Symbol) (L : RegularLanguage s) (Tch : Teacher s L).
@@ -81,22 +82,46 @@ Fixpoint wf (t : dtree) : Prop :=
         wf lt /\ wf rt
     end.
 
-Definition make_dfa (t : dtree) : D.t { q | In q (leaves t) }.
-    set (state := { q | In q (leaves t) }).
+Definition mem (q : string) (l : list string) : bool :=
+    existsb (fun y => if str_eq y q then true else false) l.
+
+Lemma mem_In : forall q l, mem q l = true <-> In q l.
+Proof.
+    intros q l. unfold mem. rewrite existsb_exists. split.
+    - intros (y & Hy & Heq). destruct (str_eq y q); [now subst | discriminate].
+    - intro Hin. exists q. split; [assumption|].
+      destruct (str_eq q q); [reflexivity | now elim n].
+Qed.
+
+Lemma sift_mem : forall t u, mem (sift t u) (leaves t) = true.
+Proof. intros. apply mem_In, sift_in_leaves. Qed.
+
+Definition make_dfa (t : dtree) : D.t { q | mem q (leaves t) = true }.
+    set (state := { q | mem q (leaves t) = true }).
     assert (initial : state). {
-        exists (sift t nil). apply sift_in_leaves.
-    }
+        exists (sift t nil). apply sift_mem. }
     assert (transition : state -> s.t -> state). {
-        intros q a. exists (sift t (proj1_sig q ++ [a])). apply sift_in_leaves.
-    }
+        intros q a. exists (sift t (proj1_sig q ++ [a])). apply sift_mem. }
     set (accept := fun (q : state) => member (proj1_sig q)).
-    assert (ls : list state). {
-        eapply list_with_proof. intros x Hin. apply Hin.
-    }
-    apply {| initial    := initial;
-             transition := transition;
-             accept     := accept;
-             states     := ls |}.
+    (* enumerate the leaves as the carrier list, via mem-proofs *)
+    assert (mempf : forall x, In x (leaves t) -> mem x (leaves t) = true)
+        by (intros x Hx; now apply mem_In).
+    set (ls := list_with_proof (leaves t) (fun q => mem q (leaves t) = true) mempf).
+    refine {| initial    := initial;
+              transition := transition;
+              accept     := accept;
+              states     := ls;
+              states_complete := _ |}.
+    intro w.
+    set (qst := fold_left transition w initial).
+    assert (Hin : In (proj1_sig qst) (leaves t))
+        by apply mem_In, (proj2_sig qst).
+    assert (Heq : qst = exist _ (proj1_sig qst) (mempf (proj1_sig qst) Hin)). {
+        destruct qst as (q & Hq); simpl.
+        f_equal. apply (UIP_dec Bool.bool_dec). }
+    rewrite Heq.
+    apply (list_with_proof_complete (leaves t) (fun q => mem q (leaves t) = true)).
+    intros. apply UIP_dec, Bool.bool_dec.
 Defined.
 
 (** [kv_p t w i] is the access string of the state that the hypothesis induced
@@ -112,7 +137,7 @@ Definition kv_correct (t : dtree) (w : string) (i : nat) : Prop :=
 Lemma kv_correct_dec : forall t w i, {kv_correct t w i} + {~ kv_correct t w i}.
 Proof.
     intros. unfold kv_correct. destruct member, member; decide equality.
-Qed.
+Defined.
 
 Lemma kv_eps_correct : forall t w,
     In nil (leaves t) -> consistent t -> kv_correct t w 0.
@@ -492,7 +517,7 @@ Proof.
     assert (Hwf' : wf (split_leaf t (sift t qk1) (skipn (S k) w) qk1))
         by (apply split_preserves_wf; trivial).
     repeat split; auto using split_leaves_pres.
-Qed.
+Defined.
 
 (** Each counterexample adds exactly one state *)
 Lemma split_leaf_count : forall t target e q_new,

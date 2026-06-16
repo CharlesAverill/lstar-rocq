@@ -45,7 +45,8 @@ Module DFA (s : Symbol).
         transition : state -> s.t -> state;
         initial : state;
         accept : state -> bool;
-        states : list state
+        states : list state;
+        states_complete : forall w, In (fold_left transition w initial) (states)
     }.
 
     (** Run a DFA on a string and get the resulting state *)
@@ -57,8 +58,11 @@ Module DFA (s : Symbol).
         dfa.(accept state) (run dfa s).
     
     (** Every reachable state is listed in [states] *)
-    Parameter run_in_states : forall {state : Type} (d : t state) (w : string),
+    Lemma run_in_states : forall {state : Type} (d : t state) (w : string),
         In (run d w) (states state d).
+    Proof.
+        intros state d w. unfold run. apply (states_complete state d).
+    Qed.
 End DFA.
 
 (** Language *)
