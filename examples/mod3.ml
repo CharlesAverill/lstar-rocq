@@ -13,11 +13,11 @@ module S = struct
 
   let enum = [Zero; One]
 
-  type string = t list
+  type str = t list
 
-  let string_of_string s = String.concat "" (List.map string_of_t s)
+  let string_of_str s = String.concat "" (List.map string_of_t s)
 
-  let str_eq (l1 : string) (l2 : string) =
+  let str_eq (l1 : str) (l2 : str) =
     List.length l1 = List.length l2
     && List.for_all (fun (x, y) -> x = y) (List.combine l1 l2)
 end
@@ -29,7 +29,7 @@ module Teacher : TEACHER with module S = S = struct
   module S = S
   module D = DFA (S)
 
-  let member (s : S.string) : bool =
+  let member (s : S.str) : bool =
     let count =
       List.fold_left
         (fun acc c ->
@@ -41,7 +41,7 @@ module Teacher : TEACHER with module S = S = struct
     in
     count mod 3 = 0
 
-  let equiv_query (dfa : 'a D.t) : S.string option =
+  let equiv_query (dfa : 'a D.t) : S.str option =
     let rec bfs depth queue =
       if depth >= 4096 then
         None
@@ -85,11 +85,11 @@ let print_results name dfa n =
   in
   print_endline header ;
   List.iter
-    (fun (c : S.string) ->
+    (fun (c : S.str) ->
       let exp = Teacher.member c in
       let comp = Teacher.D.accept_string dfa c in
       Printf.printf "%-*s  %-8b  %-8b  %s\n" col_w
-        (Printf.sprintf "[%s]" (S.string_of_string c))
+        (Printf.sprintf "[%s]" (S.string_of_str c))
         exp comp
         ( if exp = comp then
             "Y"
@@ -99,7 +99,7 @@ let print_results name dfa n =
   let correct =
     List.length
       (List.filter
-         (fun (c : S.string) -> Teacher.member c = Teacher.D.accept_string dfa c)
+         (fun (c : S.str) -> Teacher.member c = Teacher.D.accept_string dfa c)
          strings )
   in
   Printf.printf "Accuracy: %d/%d\n" correct (List.length strings)

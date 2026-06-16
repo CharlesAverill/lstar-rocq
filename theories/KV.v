@@ -25,25 +25,25 @@ Import s L Tch D.
 (** A discrimination tree is a binary tree whose internal nodes hold a
     discriminator suffix and whose leaves hold an access string *)
 Inductive dtree : Type :=
-| Leaf (access : string)
-| Node (discrim : string) (lt rt : dtree).
+| Leaf (access : str)
+| Node (discrim : str) (lt rt : dtree).
 
 (** Sifting classifies a string u by descending the tree until it reaches
     the appropriate access node *)
-Fixpoint sift (t : dtree) (u : string) : string :=
+Fixpoint sift (t : dtree) (u : str) : str :=
     match t with
     | Leaf q => q
     | Node e lt rt =>
         if member (u ++ e) then sift lt u else sift rt u
     end.
 
-Fixpoint leaves (t : dtree) : list string :=
+Fixpoint leaves (t : dtree) : list str :=
     match t with
     | Leaf q => [q]
     | Node _ lt rt => leaves lt ++ leaves rt
     end.
 
-Fixpoint discriminators (t : dtree) : list string :=
+Fixpoint discriminators (t : dtree) : list str :=
     match t with
     | Leaf _ => []
     | Node e lt rt => e :: discriminators lt ++ discriminators rt
@@ -82,7 +82,7 @@ Fixpoint wf (t : dtree) : Prop :=
         wf lt /\ wf rt
     end.
 
-Definition mem (q : string) (l : list string) : bool :=
+Definition mem (q : str) (l : list str) : bool :=
     existsb (fun y => if str_eq y q then true else false) l.
 
 Lemma mem_In : forall q l, mem q l = true <-> In q l.
@@ -126,12 +126,12 @@ Defined.
 
 (** [kv_p t w i] is the access string of the state that the hypothesis induced
     by t reaches after reading the length-i prefix of w *)
-Definition kv_p (t : dtree) (w : string) (i : nat) : string :=
+Definition kv_p (t : dtree) (w : str) (i : nat) : str :=
     proj1_sig (run (make_dfa t) (firstn i w)).
 
 (** A prefix of length i is _correct_ when its continuation classifies as in
     the language exactly when w does *)
-Definition kv_correct (t : dtree) (w : string) (i : nat) : Prop :=
+Definition kv_correct (t : dtree) (w : str) (i : nat) : Prop :=
     member (kv_p t w i ++ skipn i w) = member w.
 
 Lemma kv_correct_dec : forall t w i, {kv_correct t w i} + {~ kv_correct t w i}.
@@ -160,7 +160,7 @@ Qed.
 
 (** Replace the leaf whose access string is [target] by an internal node discriminating
     on e *)
-Fixpoint split_leaf (t : dtree) (target e q_new : string) : dtree :=
+Fixpoint split_leaf (t : dtree) (target e q_new : str) : dtree :=
     match t with
     | Leaf q =>
         if str_eq q target
@@ -441,14 +441,14 @@ Qed.
     a leaf [target] and a fresh discriminator e such that splitting [target] on
     e yields a still well-formed tree *)
 Theorem find_split :
-    forall (t : dtree) (w : string)
+    forall (t : dtree) (w : str)
            (Heps : In nil (leaves t))
            (Hcons : consistent t)
            (HND : NoDup (leaves t))
            (Hce : accept_string (make_dfa t) w <> member w),
-    { target : string &
-    { e : string &
-    { q_new : string |
+    { target : str &
+    { e : str &
+    { q_new : str |
         In target (leaves t) /\
         ~ In q_new (leaves t) /\
         member (target ++ e) <> member (q_new ++ e) /\

@@ -8,9 +8,9 @@ module type TEACHER = sig
 
   module D : module type of DFA (S)
 
-  val member : S.string -> bool
+  val member : S.str -> bool
 
-  val equiv_query : 'a D.t -> S.string option
+  val equiv_query : 'a D.t -> S.str option
 
   val fuel : int
 end

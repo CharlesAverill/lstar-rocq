@@ -7,7 +7,7 @@ Module Type Teacher (s : Symbol) (L : RegularLanguage s).
         DFA encodes L or not *)
     Parameter equiv_query : 
         forall (state : Type),
-        D.t state -> option string.
+        D.t state -> option str.
     (** If the equivalence query returns [None], the DFA encodes L *)
     Parameter equiv_query_correct : forall (state : Type) d,
         equiv_query state d = None <-> encodes d.

@@ -22,15 +22,6 @@ git clone https://github.com/CharlesAverill/lstar-rocq && cd lstar-rocq
 make # will build lstar-rocq, extract, then build lstar
 ```
 
-Optimizations during extraction (such as using OCaml integers) are enabled by
-default, but can be disabled by commenting out this line in [Extraction.v](lib/Extraction.v):
-
-```
-From lstar Require Import ExtrOptimizations.
-```
-
-The following example file will break without optimizations turned on.
-
 ## Example
 
 An example execution is provided in [alternating.ml](examples/alternating.ml).

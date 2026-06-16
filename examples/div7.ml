@@ -58,11 +58,11 @@ module S = struct
 
   let enum = all
 
-  type string = t list
+  type str = t list
 
-  let string_of_string s = String.concat "" (List.map string_of_t s)
+  let string_of_str s = String.concat "" (List.map string_of_t s)
 
-  let str_eq (l1 : string) (l2 : string) =
+  let str_eq (l1 : str) (l2 : str) =
     List.length l1 = List.length l2
     && List.for_all (fun (x, y) -> x = y) (List.combine l1 l2)
 end
@@ -76,7 +76,7 @@ module Teacher : TEACHER with module S = S = struct
   module S = S
   module D = DFA (S)
 
-  let member (s : S.string) : bool =
+  let member (s : S.str) : bool =
     match s with
     | [] ->
         false
@@ -84,7 +84,7 @@ module Teacher : TEACHER with module S = S = struct
         let value = List.fold_left (fun acc d -> (acc * 10) + S.to_int d) 0 s in
         value mod 7 = 0
 
-  let equiv_query (dfa : 'a D.t) : S.string option =
+  let equiv_query (dfa : 'a D.t) : S.str option =
     let rec bfs depth queue =
       if depth >= 4096 then
         None
@@ -167,11 +167,10 @@ let print_results name dfa =
   in
   print_endline header ;
   List.iter
-    (fun (c : S.string) ->
+    (fun (c : S.str) ->
       let exp = Teacher.member c in
       let comp = Teacher.D.accept_string dfa c in
-      Printf.printf "%-*s  %-8b  %-8b  %s\n" col_w (S.string_of_string c) exp
-        comp
+      Printf.printf "%-*s  %-8b  %-8b  %s\n" col_w (S.string_of_str c) exp comp
         ( if exp = comp then
             "Y"
           else
@@ -180,7 +179,7 @@ let print_results name dfa =
   let correct =
     List.length
       (List.filter
-         (fun (c : S.string) -> Teacher.member c = Teacher.D.accept_string dfa c)
+         (fun (c : S.str) -> Teacher.member c = Teacher.D.accept_string dfa c)
          cases )
   in
   Printf.printf "Accuracy: %d/%d\n" correct (List.length cases)

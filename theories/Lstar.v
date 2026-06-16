@@ -19,8 +19,8 @@ Import s L T D.
     Given any two strings u, v ∈ Σ∗ and a set T ⊆ Σ∗, we say that u, v are
     T-equivalent, and write u ≡T v, if ∀t ∈ T, u · t ∈ L ⇐⇒ v · t ∈ L.
     Otherwise, we say that they are T-distinguishable*)
-Definition T_equiv (T : string -> bool) (u v : string) : Prop :=
-    forall (t : string),
+Definition T_equiv (T : str -> bool) (u v : str) : Prop :=
+    forall (t : str),
         T t = true ->
         member (u ++ t) = member (v ++ t).
 
@@ -60,7 +60,7 @@ Proof.
     unfold Transitive. apply Teq_trans.
 Qed.
 
-Add Parametric Relation T : string (T_equiv T)
+Add Parametric Relation T : str (T_equiv T)
   reflexivity proved by (Teq_refl T)
   symmetry proved by (Teq_sym T)
   transitivity proved by (Teq_trans T)
@@ -72,7 +72,7 @@ Add Parametric Relation T : string (T_equiv T)
     distinguishing any given pair of strings *)
 
 Theorem refined_distinguish : forall T1 T2
-    (Subset: forall s : string,
+    (Subset: forall s : str,
         T1 s = true -> T2 s = true),
     forall u v,
         T2 [u == v] -> T1 [u == v].
@@ -95,12 +95,12 @@ Qed.
 
 (** The states Q and T that we maintain will be finite *)
 
-Definition finite (f : string -> bool) :=
-    {l : list string | NoDup l /\
-        forall (s : string), f s = true <-> In s l}.
+Definition finite (f : str -> bool) :=
+    {l : list str | NoDup l /\
+        forall (s : str), f s = true <-> In s l}.
 
 (** T-equivalence is decidable for finite sets *)
-Definition T_equiv_dec : forall T (u v : string),
+Definition T_equiv_dec : forall T (u v : str),
     finite T ->
     {T [u == v]} + {~ T [u == v]}.
 Proof.
@@ -124,17 +124,17 @@ Defined.
 
 (** A set Q ⊆ Σ∗ is said to be separable with respect to T,
     if the elements of Q are pairwise T-distinguishable. *)
-Definition separable (Q T : string -> bool) : Type :=
-    forall (u v : string), Q u = true -> Q v = true ->
+Definition separable (Q T : str -> bool) : Type :=
+    forall (u v : str), Q u = true -> Q v = true ->
         u <> v ->
         ~ T [u == v].
 
 (** A set Q is said to be closed with respect to T, if
     ∀q ∈ Q ∀a ∈ Σ, ∃q′ ∈ Q such that q · a ≡T q'. *)
-Definition closed (Q T : string -> bool) :=
+Definition closed (Q T : str -> bool) :=
     forall q a,
         Q q = true ->
-        {q' : string | Q q' = true /\ T [(q ++ [a]) == q']}.
+        {q' : str | Q q' = true /\ T [(q ++ [a]) == q']}.
 
 (** Closedness is decidable for finite sets:
     - Q is not closed wrt T if one can traverse the list of elements
@@ -144,7 +144,7 @@ Definition closed_dec_witness : forall Q T,
   finite Q ->
   finite T ->
   closed Q T + 
-  { q : string & { a : s.t &
+  { q : str & { a : s.t &
       Q q = true /\
       forall q', Q q' = true -> ~ T [q ++ [a] == q'] }}.
 Proof.
@@ -196,8 +196,8 @@ Defined.
     the transition function δ : (q, a) → q′ ∈ Q such that
     q′ ≡T q · a, is well defined. *)
 
-Definition delta Q T (c : closed Q T) (q : string) (a : s.t) (Qq : Q q = true) :
-        {q' : string | Q q' = true /\ T [q' == (q ++ [a])]}.
+Definition delta Q T (c : closed Q T) (q : str) (a : s.t) (Qq : Q q = true) :
+        {q' : str | Q q' = true /\ T [q' == (q ++ [a])]}.
     destruct (c q a Qq) as [q' [Hq' Heq]].
     now exists q'.
 Defined.
@@ -212,8 +212,8 @@ Defined.
     string representatives in Q, with the transition function
     given by delta. *)
 Record HypothesisDFA : Type := {
-  Q    : string -> bool;
-  T    : string -> bool;
+  Q    : str -> bool;
+  T    : str -> bool;
   sep  : separable Q T;
   clos : closed Q T;
   (** ε must be in Q as the initial state *)
@@ -255,7 +255,7 @@ Definition make_dfa (H : HypothesisDFA) : D.t {q | H.(Q) q = true}.
 Defined.
 
 (** Updating sets of strings *)
-Definition update (S : string -> bool) k b :=
+Definition update (S : str -> bool) k b :=
     fun s => if str_eq s k then b else S s.
 
 Notation "s [ k := v ]" := (update s k v).
@@ -280,11 +280,11 @@ Qed.
     separable wrt T' *)
 
 (** Define p_i = delta∗(ε, w1w2 ... wi) *)
-Definition p (H : HypothesisDFA) (w : string) (i : nat) :=
+Definition p (H : HypothesisDFA) (w : str) (i : nat) :=
     run (make_dfa H) (firstn i w).
 
 (** We say a state p_i is correct if p_i w_(i+1) ... w_m ∈ L ⇐⇒ w ∈ L. *)
-Definition correct (H : HypothesisDFA) (w : string) (i : nat) : Prop :=
+Definition correct (H : HypothesisDFA) (w : str) (i : nat) : Prop :=
     L.member (proj1_sig (p H w i) ++ skipn i w) = L.member w.
 
 (** Now, ε is correct trivially, and p_m is not correct since w is a counterexample. *)
@@ -316,11 +316,11 @@ Defined.
 
 Theorem find_separable :
   forall (H : HypothesisDFA) (* Q is closed and separable wrt T *)
-         (w : string)
+         (w : str)
          (* w is a counterexample *)
          (Hce : accept_string (make_dfa H) w <> member w),
-  { q_new : string &
-  { t     : string &
+  { q_new : str &
+  { t     : str &
       (H.(Q) q_new = false) *
       let Q' := H.(Q) [q_new := true] in
       let T' := H.(T) [t := true] in
@@ -473,7 +473,7 @@ Defined.
 Lemma find_representative : forall Q T
     (finQ : finite Q)
     (finT : finite T)
-    (u : string),
+    (u : str),
     { r | Q r = true /\ T [u == r] } +
     { forall r, Q r = true -> ~ T [u == r] }.
 Proof with try easy.
@@ -505,7 +505,7 @@ Lemma close_step : forall Q T q (a : s.t)
     (sep : separable Q T)
     (finQ : finite Q)
     (finT : finite T),
-    { Q' : string -> bool &
+    { Q' : str -> bool &
         ((Q' = Q [q ++ [a] := true]) + (Q' = Q)) *
         separable Q' T *
         finite Q' *
@@ -547,7 +547,7 @@ Lemma not_closed_impl_distinguishable :
     forall Q T,
         (closed Q T -> False) ->
         finite Q -> finite T ->
-        {q : string & {a : s.t | Q q = true /\
+        {q : str & {a : s.t | Q q = true /\
             forall q', Q q' = true -> ~ T [q ++ [a] == q'] }}.
 Proof.
     intros Q T QNC Qfin Tfin.
@@ -563,7 +563,7 @@ Definition union_closed_loop :
         (finT : finite T)
         (finQ' : finite Q')
         (sub' : forall s, Q s = true -> Q' s = true),
-        option { Q'' : string -> bool &
+        option { Q'' : str -> bool &
             closed Q'' T *
             separable Q'' T *
             finite Q'' *
@@ -588,9 +588,9 @@ Defined.
 Lemma loop_terminates : forall n Q Q' T
     (sep' : separable Q' T)
     (finQ' : finite Q')
-    (Tl : list string)
+    (Tl : list str)
     (NDT : NoDup Tl)
-    (HTl : forall s : string, T s = true <-> In s Tl)
+    (HTl : forall s : str, T s = true <-> In s Tl)
     (sub' : forall s, Q s = true -> Q' s = true),
     Nat.pow 2 (length Tl) - length (proj1_sig finQ') < n ->
     {x | union_closed_loop n Q Q' T sep' (exist _ Tl (conj NDT HTl)) finQ' sub' = Some x}.
@@ -693,7 +693,7 @@ Lemma union_closed :
     (sep : separable Q T)
     (finQ : finite Q)
     (finT : finite T),
-    { Q' : string -> bool &
+    { Q' : str -> bool &
         closed Q' T *
         separable Q' T *
         finite Q' *
@@ -723,10 +723,10 @@ Definition num_states (H : HypothesisDFA) : nat :=
     num_states_of_fin H.(fin_Q).
 
 Lemma finite_subset_is_smaller : forall
-    (f g : string -> bool)
+    (f g : str -> bool)
     (FinF : finite f)
     (FinG : finite g)
-    (FsubG : forall (x : string), f x = true -> g x = true),
+    (FsubG : forall (x : str), f x = true -> g x = true),
     num_states_of_fin FinF <= num_states_of_fin FinG.
 Proof.
     intros. destruct FinF as (fl & NDF & InF),
@@ -739,7 +739,7 @@ Proof.
 Qed.
 
 Lemma finite_update_impl_finite : forall
-    (f : string -> bool) k v
+    (f : str -> bool) k v
     (FinUpdF : finite f[k := v]),
     finite f.
 Proof.
@@ -988,7 +988,7 @@ Fixpoint lstar_fuel (H : HypothesisDFA) (fuel : nat)
       unfold num_states at 2.
       etransitivity; eassumption.
   - (* no counterexample: make_dfa H is minimal *)
-    exists {q : string | H.(Q) q = true}.
+    exists {q : str | H.(Q) q = true}.
     exists (make_dfa H).
     exact (make_dfa_minimal H Heq).
 Defined.
@@ -999,7 +999,7 @@ Definition lstar (_ : unit) : { T : Type & {d : D.t T | minimal d} }.
         lia.
     Unshelve.
     set (Q := fun s => if str_eq s nil then true else false).
-    set (T := fun (_ : string) => false).
+    set (T := fun (_ : str) => false).
     eapply (Build_HypothesisDFA Q T); auto;
         unfold T, Q in *.
     - unfold separable, T_equiv. intros. intro Contra.
