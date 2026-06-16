@@ -19,8 +19,8 @@
 <h1 class="libtitle">Library ExtrOptimizations</h1>
 
 <div class="code">
-<span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="keyword">Extraction</span>.<br/>
-<span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Bool</span> <span class="id" title="var">List</span> <span class="id" title="var">PeanoNat</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="keyword">Extraction</span> <span class="id" title="var">ExtrOcamlNativeString</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Bool</span> <span class="id" title="var">List</span> <span class="id" title="var">PeanoNat</span> <span class="id" title="var">String</span>.<br/>
 
 <br/>
 <span class="id" title="keyword">Extract</span> <span class="id" title="keyword">Inductive</span> <span class="id" title="var">nat</span> ⇒ <span class="id" title="var">int</span> [ "0" "succ" ]<br/>
@@ -30,6 +30,14 @@
 <span class="id" title="keyword">Extract</span> <span class="id" title="keyword">Inductive</span> <span class="id" title="var">prod</span> ⇒ "(*)"  [ "(,)" ].<br/>
 <span class="id" title="keyword">Extract</span> <span class="id" title="keyword">Inductive</span> <span class="id" title="var">option</span> ⇒ "option" ["Some" "None"].<br/>
 <span class="id" title="keyword">Extract</span> <span class="id" title="keyword">Inductive</span> <span class="id" title="var">result</span> ⇒ "result" ["Ok" "Error"].<br/>
+<span class="id" title="keyword">Extract</span> <span class="id" title="keyword">Inductive</span> <span class="id" title="var">string</span> ⇒ "Stdlib.String.t"<br/>
+[<br/>
+<br/>
+"(* If this appears, you're using String internals. Please don't *) """" "<br/>
+<br/>
+"(* If this appears, you're using String internals. Please don't *) (fun (c, s) -&gt; String.make 1 c ^ s) "<br/>
+]<br/>
+"(* If this appears, you're using String internals. Please don't *) (fun f0 f1 s -&gt; let l = String.length s in if l = 0 then f0 else f1 (String.get s 0) (String.sub s 1 (l-1))) ".<br/>
 
 <br/>
 <span class="id" title="keyword">Extract</span> <span class="id" title="var">Inlined</span> <span class="id" title="var">Constant</span> <span class="id" title="var">Bool.eqb</span> ⇒ "(=)".<br/>
@@ -40,10 +48,8 @@
 <span class="id" title="keyword">Extract</span> <span class="id" title="var">Inlined</span> <span class="id" title="var">Constant</span> <span class="id" title="var">List.forallb</span> ⇒ "Stdlib.List.for_all".<br/>
 <span class="id" title="keyword">Extract</span> <span class="id" title="var">Inlined</span> <span class="id" title="var">Constant</span> <span class="id" title="var">List.find</span> ⇒ "Stdlib.List.find_opt".<br/>
 <span class="id" title="keyword">Extract</span> <span class="id" title="var">Inlined</span> <span class="id" title="var">Constant</span> <span class="id" title="var">List.map</span> ⇒ "Stdlib.List.map".<br/>
-<span class="id" title="keyword">Extract</span> <span class="id" title="var">Inlined</span> <span class="id" title="var">Constant</span> <span class="id" title="var">List.firstn</span> ⇒ "Stdlib.List.take".<br/>
-<span class="id" title="keyword">Extract</span> <span class="id" title="var">Inlined</span> <span class="id" title="var">Constant</span> <span class="id" title="var">List.skipn</span> ⇒ "Stdlib.List.drop".<br/>
 <span class="id" title="keyword">Extract</span> <span class="id" title="var">Inlined</span> <span class="id" title="var">Constant</span> <span class="id" title="var">List.nth_error</span> ⇒ "Stdlib.List.nth_opt".<br/>
-<span class="id" title="keyword">Extract</span> <span class="id" title="var">Inlined</span> <span class="id" title="var">Constant</span> <span class="id" title="var">Nat.pow</span> ⇒<br/>
+<span class="id" title="keyword">Extract</span> <span class="id" title="var">Constant</span> <span class="id" title="var">Nat.pow</span> ⇒<br/>
 "let rec pow x n =
     if n = 0 then 1
     else x * pow x (n - 1)

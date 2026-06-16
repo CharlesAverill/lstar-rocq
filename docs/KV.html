@@ -22,13 +22,12 @@
 </div>
 
 <div class="doc">
-<a id="lab1"></a><h1 class="section">The Kearns--Vazirani active learner (discrimination-tree variant)</h1>
-
+The Kearns-Vazirani active learner (discrimination-tree variant)
 
 <div class="paragraph"> </div>
 
     Where L<sup>*</sup> maintains a flat set of representatives Q and a flat
-    set of distinguishing suffixes T, the Kearns--Vazirani learner stores its
+    set of distinguishing suffixes T, the Kearns-Vazirani learner stores its
     knowledge in a binary <i>discrimination tree</i>: internal nodes carry a
     <i>discriminator</i> (a distinguishing suffix), and leaves carry an <i>access
     string</i> (a state representative).
@@ -38,19 +37,12 @@
     A string is classified by <i>sifting</i> it down the tree: at each internal node
     with discriminator e, we ask the membership query <span class="inlinecode"><span class="id" title="var">member</span></span> <span class="inlinecode">(<span class="id" title="var">u</span></span> <span class="inlinecode">++</span> <span class="inlinecode"><span class="id" title="var">e</span>)</span> and
     descend left when it holds and right otherwise; the leaf reached names the
-    state of u.
-
-<div class="paragraph"> </div>
-
-    The two developments share their underlying theory.  We import <span class="inlinecode"><span class="id" title="var">Lstar.v</span></span>
-    for the <span class="inlinecode"><span class="id" title="var">Teacher</span></span> interface, <span class="inlinecode"><span class="id" title="var">finite</span></span>, and <span class="inlinecode"><span class="id" title="var">list_with_proof</span></span>, and we reuse
-    the membership-profile counting argument (<span class="inlinecode"><span class="id" title="var">NoDup_boollist_length</span></span> from
-    <span class="inlinecode"><span class="id" title="var">ListLemmas.v</span></span>) to bound the number of states by 2<sup>|disc|</sup>. 
+    state of u 
 </div>
 <div class="code">
 
 <br/>
-<span class="id" title="keyword">From</span> <span class="id" title="var">lstar</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Language</span> <span class="id" title="var">DFA</span> <span class="id" title="var">ListLemmas</span> <span class="id" title="var">Lstar</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">lstar</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">DFA</span> <span class="id" title="var">ListLemmas</span> <span class="id" title="var">Teacher</span>.<br/>
 <span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">List</span>.<br/>
 <span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Lia</span>.<br/>
 <span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">PeanoNat</span>.<br/>
@@ -58,35 +50,15 @@
 <span class="id" title="keyword">Import</span> <span class="id" title="var">ListNotations</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">Module</span> <span class="id" title="var">KV</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>) (<span class="id" title="var">L</span> : <span class="id" title="var">L</span> <span class="id" title="var">s</span>) (<span class="id" title="var">Tch</span> : <span class="id" title="var">Teacher</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span>).<br/>
-<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span> <span class="id" title="var">Tch</span> <span class="id" title="var">DFA</span>.<br/>
-
-<br/>
-</div>
-
-<div class="doc">
-We reuse the theory built in <span class="inlinecode"><span class="id" title="var">Lstar.v</span></span> over the same symbol, language, and
-    teacher modules: <span class="inlinecode"><span class="id" title="var">finite</span></span>, <span class="inlinecode"><span class="id" title="var">list_with_proof</span></span>, and the <span class="inlinecode"><span class="id" title="var">Teacher</span></span> axioms. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Module</span> <span class="id" title="var">LS</span> := <span class="id" title="var">Lstar</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span> <span class="id" title="var">Tch</span>.<br/>
-<span class="id" title="keyword">Import</span> <span class="id" title="var">LS</span>.<br/>
-
-<br/>
-</div>
-
-<div class="doc">
-<a id="lab2"></a><h2 class="section">Discrimination trees</h2>
-
-</div>
-<div class="code">
+<span class="id" title="keyword">Module</span> <span class="id" title="var">KV</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>) (<span class="id" title="var">L</span> : <span class="id" title="var">RegularLanguage</span> <span class="id" title="var">s</span>) (<span class="id" title="var">Tch</span> : <span class="id" title="var">Teacher</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span>).<br/>
+<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span> <span class="id" title="var">Tch</span> <span class="id" title="var">D</span>.<br/>
 
 <br/>
 </div>
 
 <div class="doc">
 A discrimination tree is a binary tree whose internal nodes hold a
-    discriminator suffix and whose leaves hold an access string. 
+    discriminator suffix and whose leaves hold an access string 
 </div>
 <div class="code">
 <span class="id" title="keyword">Inductive</span> <span class="id" title="var">dtree</span> : <span class="id" title="keyword">Type</span> :=<br/>
@@ -97,9 +69,8 @@ A discrimination tree is a binary tree whose internal nodes hold a
 </div>
 
 <div class="doc">
-Sifting classifies a string u by descending the tree: at <span class="inlinecode"><span class="id" title="var">Node</span></span> <span class="inlinecode"><span class="id" title="var">e</span></span> <span class="inlinecode"><span class="id" title="var">lt</span></span> <span class="inlinecode"><span class="id" title="var">rt</span></span> we
-    go into <span class="inlinecode"><span class="id" title="var">lt</span></span> when <span class="inlinecode"><span class="id" title="var">member</span></span> <span class="inlinecode">(<span class="id" title="var">u</span></span> <span class="inlinecode">++</span> <span class="inlinecode"><span class="id" title="var">e</span>)</span> holds and into <span class="inlinecode"><span class="id" title="var">rt</span></span> otherwise.  The
-    result is the access string of the leaf reached. 
+Sifting classifies a string u by descending the tree until it reaches
+    the appropriate access node 
 </div>
 <div class="code">
 <span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">sift</span> (<span class="id" title="var">t</span> : <span class="id" title="var">dtree</span>) (<span class="id" title="var">u</span> : <span class="id" title="var">string</span>) : <span class="id" title="var">string</span> :=<br/>
@@ -110,12 +81,6 @@ Sifting classifies a string u by descending the tree: at <span class="inlinecode
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-The access strings (the states) of a tree. 
-</div>
-<div class="code">
 <span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">leaves</span> (<span class="id" title="var">t</span> : <span class="id" title="var">dtree</span>) : <span class="id" title="var">list</span> <span class="id" title="var">string</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">t</span> <span class="id" title="keyword">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Leaf</span> <span class="id" title="var">q</span> ⇒ [<span class="id" title="var">q</span>]<br/>
@@ -123,12 +88,6 @@ The access strings (the states) of a tree.
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-The discriminators (the experiments) of a tree. 
-</div>
-<div class="code">
 <span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">discriminators</span> (<span class="id" title="var">t</span> : <span class="id" title="var">dtree</span>) : <span class="id" title="var">list</span> <span class="id" title="var">string</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">t</span> <span class="id" title="keyword">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">Leaf</span> <span class="id" title="var">_</span> ⇒ []<br/>
@@ -139,9 +98,7 @@ The discriminators (the experiments) of a tree.
 </div>
 
 <div class="doc">
-Sifting always lands on a leaf of the tree.  This is the discrimination-tree
-    counterpart of <span class="inlinecode"><span class="id" title="var">closed</span></span> in <span class="inlinecode"><span class="id" title="var">Lstar.v</span></span>: it is what makes the hypothesis
-    transition function total, with no separate well-definedness obligation. 
+Sifting always lands on a leaf of the tree 
 </div>
 <div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">sift_in_leaves</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span> <span class="id" title="var">u</span>, <span class="id" title="var">In</span> (<span class="id" title="var">sift</span> <span class="id" title="var">t</span> <span class="id" title="var">u</span>) (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>).<br/>
@@ -150,29 +107,10 @@ Sifting always lands on a leaf of the tree.  This is the discrimination-tree
 </div>
 
 <div class="doc">
-A tree always has at least one leaf, so the hypothesis always has an
-    initial state. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <span class="id" title="var">leaves_nonempty</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span>, <span class="id" title="var">leaves</span> <span class="id" title="var">t</span> ≠ [].<br/>
+Tree invariants 
+<div class="paragraph"> </div>
 
-<br/>
-</div>
-
-<div class="doc">
-<a id="lab3"></a><h2 class="section">The tree invariants: consistency, separation, and well-formedness</h2>
-
-</div>
-<div class="code">
-
-<br/>
-</div>
-
-<div class="doc">
-A tree is *consistent* when every access string sifts to its own leaf.
-    This is the discrimination-tree counterpart of the requirement that each
-    representative in Q be T-equivalent to itself under the transition
-    function. 
+ A tree is <i>consistent</i> when every access string sifts to its own leaf 
 </div>
 <div class="code">
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">consistent</span> (<span class="id" title="var">t</span> : <span class="id" title="var">dtree</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
@@ -182,9 +120,8 @@ A tree is *consistent* when every access string sifts to its own leaf.
 </div>
 
 <div class="doc">
-A tree is *separated* when any two distinct leaves are told apart by some
-    discriminator of the tree.  This is the discrimination-tree counterpart of
-    <span class="inlinecode"><span class="id" title="var">separable</span></span> over the discriminator set. 
+A tree is <i>separated</i> when any two distinct leaves are told apart by some
+    discriminator of the tree 
 </div>
 <div class="code">
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">separated</span> (<span class="id" title="var">t</span> : <span class="id" title="var">dtree</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
@@ -196,12 +133,9 @@ A tree is *separated* when any two distinct leaves are told apart by some
 </div>
 
 <div class="doc">
-A tree is *well-formed* when each node's discriminator orients its two
-    subtrees: every leaf below the <span class="inlinecode"><span class="id" title="var">true</span></span> branch agrees with the discriminator,
-    and every leaf below the <span class="inlinecode"><span class="id" title="var">false</span></span> branch disagrees.  This single structural
-    invariant is the load-bearing one: <span class="inlinecode"><span class="id" title="var">NoDup</span></span> <span class="inlinecode">(<span class="id" title="var">leaves</span></span> <span class="inlinecode"><span class="id" title="var">t</span>)</span>, <span class="inlinecode"><span class="id" title="var">consistent</span></span> <span class="inlinecode"><span class="id" title="var">t</span></span>, and
-    <span class="inlinecode"><span class="id" title="var">separated</span></span> <span class="inlinecode"><span class="id" title="var">t</span></span> all follow from it (see below), so <span class="inlinecode"><span class="id" title="var">kv_learn</span></span> need only carry
-    <span class="inlinecode"><span class="id" title="keyword">wf</span></span>. 
+A tree is <i>well-formed</i> when each node's discriminator bisects the behavior
+    of its two subtrees. Or, every leaf below the <span class="inlinecode"><span class="id" title="var">true</span></span> branch agrees with the
+    discriminator, every leaf below the <span class="inlinecode"><span class="id" title="var">false</span></span> branch disagrees 
 </div>
 <div class="code">
 <span class="id" title="keyword">Fixpoint</span> <span class="id" title="keyword">wf</span> (<span class="id" title="var">t</span> : <span class="id" title="var">dtree</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
@@ -214,109 +148,26 @@ A tree is *well-formed* when each node's discriminator orients its two
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-<a id="lab4"></a><h2 class="section">Counting: the number of states is bounded by 2 ^ |discriminators|</h2>
-
-</div>
-<div class="code">
-
-<br/>
-</div>
-
-<div class="doc">
-The membership profile of a string u over the tree's discriminators: the
-    Boolean vector recording, for each discriminator e, whether <span class="inlinecode"><span class="id" title="var">u</span></span> <span class="inlinecode">++</span> <span class="inlinecode"><span class="id" title="var">e</span></span> is in
-    the language.  This is exactly the vector used in the <span class="inlinecode"><span class="id" title="var">Lstar.v</span></span> counting
-    argument <span class="inlinecode"><span class="id" title="var">loop_terminates</span></span>. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">profile</span> (<span class="id" title="var">t</span> : <span class="id" title="var">dtree</span>) (<span class="id" title="var">u</span> : <span class="id" title="var">string</span>) : <span class="id" title="var">list</span> <span class="id" title="var">bool</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">map</span> (<span class="id" title="keyword">fun</span> <span class="id" title="var">e</span> ⇒ <span class="id" title="var">member</span> (<span class="id" title="var">u</span> ++ <span class="id" title="var">e</span>)) (<span class="id" title="var">discriminators</span> <span class="id" title="var">t</span>).<br/>
-
-<br/>
-<span class="id" title="keyword">Lemma</span> <span class="id" title="var">profile_length</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span> <span class="id" title="var">u</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">length</span> (<span class="id" title="var">profile</span> <span class="id" title="var">t</span> <span class="id" title="var">u</span>) = <span class="id" title="var">length</span> (<span class="id" title="var">discriminators</span> <span class="id" title="var">t</span>).<br/>
-
-<br/>
-</div>
-
-<div class="doc">
-On a separated tree the profile is injective over the leaves: distinct
-    leaves differ on some discriminator and hence have distinct profiles.  This
-    mirrors <span class="inlinecode"><span class="id" title="var">Hvec_inj</span></span> inside <span class="inlinecode"><span class="id" title="var">Lstar.loop_terminates</span></span>. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <span class="id" title="var">profile_injective</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">separated</span> <span class="id" title="var">t</span> →<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> <span class="id" title="var">u</span> <span class="id" title="var">v</span>, <span class="id" title="var">In</span> <span class="id" title="var">u</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>) → <span class="id" title="var">In</span> <span class="id" title="var">v</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>) →<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">profile</span> <span class="id" title="var">t</span> <span class="id" title="var">u</span> = <span class="id" title="var">profile</span> <span class="id" title="var">t</span> <span class="id" title="var">v</span> → <span class="id" title="var">u</span> = <span class="id" title="var">v</span>.<br/>
-
-<br/>
-</div>
-
-<div class="doc">
-The number of leaves is bounded by 2<sup>|discriminators|</sup>.  This is
-    the discrimination-tree instance of the <span class="inlinecode"><span class="id" title="var">Lstar.v</span></span> counting argument; the
-    heavy lifting is done by <span class="inlinecode"><span class="id" title="var">NoDup_boollist_length</span></span> from <span class="inlinecode"><span class="id" title="var">ListLemmas.v</span></span>. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <span class="id" title="var">leaf_count_bound</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">NoDup</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>) →<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">separated</span> <span class="id" title="var">t</span> →<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">length</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>) ≤ <span class="id" title="var">Nat.pow</span> 2 (<span class="id" title="var">length</span> (<span class="id" title="var">discriminators</span> <span class="id" title="var">t</span>)).<br/>
-
-<br/>
-</div>
-
-<div class="doc">
-<a id="lab5"></a><h2 class="section">The hypothesis DFA induced by a tree</h2>
-
-</div>
-<div class="code">
-
-<br/>
-</div>
-
-<div class="doc">
-The concrete DFA built from a tree, mirroring <span class="inlinecode"><span class="id" title="var">Lstar.make_dfa</span></span>.  Its states
-    are the leaves of the tree (as a sigma type), its initial state is the leaf
-    that <span class="inlinecode"><span class="id" title="var">nil</span></span> sifts to, and its transition reads off the leaf that the one-step
-    extension sifts to.  In each case <span class="inlinecode"><span class="id" title="var">sift_in_leaves</span></span> discharges the obligation
-    that the result is a genuine state. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">make_dfa_kv</span> (<span class="id" title="var">t</span> : <span class="id" title="var">dtree</span>) : <span class="id" title="var">DFA.t</span> { <span class="id" title="var">q</span> | <span class="id" title="var">In</span> <span class="id" title="var">q</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>) }.<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">make_dfa</span> (<span class="id" title="var">t</span> : <span class="id" title="var">dtree</span>) : <span class="id" title="var">D.t</span> { <span class="id" title="var">q</span> | <span class="id" title="var">In</span> <span class="id" title="var">q</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>) }.<br/>
 <span class="id" title="keyword">Defined</span>.<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-<a id="lab6"></a><h2 class="section">Counterexample analysis: which leaf to split, and with which suffix</h2>
-
-</div>
-<div class="code">
-
-<br/>
-</div>
-
-<div class="doc">
 <span class="inlinecode"><span class="id" title="var">kv_p</span></span> <span class="inlinecode"><span class="id" title="var">t</span></span> <span class="inlinecode"><span class="id" title="var">w</span></span> <span class="inlinecode"><span class="id" title="var">i</span></span> is the access string of the state that the hypothesis induced
-    by t reaches after reading the length-i prefix of w.  These mirror
-    <span class="inlinecode"><span class="id" title="var">Lstar.p</span></span> and <span class="inlinecode"><span class="id" title="var">Lstar.correct</span></span>. 
+    by t reaches after reading the length-i prefix of w 
 </div>
 <div class="code">
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">kv_p</span> (<span class="id" title="var">t</span> : <span class="id" title="var">dtree</span>) (<span class="id" title="var">w</span> : <span class="id" title="var">string</span>) (<span class="id" title="var">i</span> : <span class="id" title="var">nat</span>) : <span class="id" title="var">string</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">proj1_sig</span> (<span class="id" title="var">run</span> (<span class="id" title="var">make_dfa_kv</span> <span class="id" title="var">t</span>) (<span class="id" title="var">firstn</span> <span class="id" title="var">i</span> <span class="id" title="var">w</span>)).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">proj1_sig</span> (<span class="id" title="var">run</span> (<span class="id" title="var">make_dfa</span> <span class="id" title="var">t</span>) (<span class="id" title="var">firstn</span> <span class="id" title="var">i</span> <span class="id" title="var">w</span>)).<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-A prefix of length i is *correct* when its continuation classifies as in
-    the language exactly when w does. 
+A prefix of length i is <i>correct</i> when its continuation classifies as in
+    the language exactly when w does 
 </div>
 <div class="code">
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">kv_correct</span> (<span class="id" title="var">t</span> : <span class="id" title="var">dtree</span>) (<span class="id" title="var">w</span> : <span class="id" title="var">string</span>) (<span class="id" title="var">i</span> : <span class="id" title="var">nat</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
@@ -326,38 +177,20 @@ A prefix of length i is *correct* when its continuation classifies as in
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">kv_correct_dec</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span> <span class="id" title="var">w</span> <span class="id" title="var">i</span>, {<span class="id" title="var">kv_correct</span> <span class="id" title="var">t</span> <span class="id" title="var">w</span> <span class="id" title="var">i</span>} + {~ <span class="id" title="var">kv_correct</span> <span class="id" title="var">t</span> <span class="id" title="var">w</span> <span class="id" title="var">i</span>}.<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-The empty prefix is correct, because <span class="inlinecode"><span class="id" title="var">nil</span></span> sifts to a leaf whose access
-    string is <span class="inlinecode"><span class="id" title="var">nil</span></span> (consistency), so it agrees with w on the whole word. 
-</div>
-<div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">kv_eps_correct</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span> <span class="id" title="var">w</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">In</span> <span class="id" title="var">nil</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>) → <span class="id" title="var">consistent</span> <span class="id" title="var">t</span> → <span class="id" title="var">kv_correct</span> <span class="id" title="var">t</span> <span class="id" title="var">w</span> 0.<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-The full prefix is not correct, because w is a counterexample: the
-    hypothesis accepts w exactly when <span class="inlinecode"><span class="id" title="var">member</span></span> of the final leaf agrees with w,
-    which by assumption it does not. 
-</div>
-<div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">kv_full_not_correct</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span> <span class="id" title="var">w</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">accept_string</span> (<span class="id" title="var">make_dfa_kv</span> <span class="id" title="var">t</span>) <span class="id" title="var">w</span> ≠ <span class="id" title="var">member</span> <span class="id" title="var">w</span> →<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">accept_string</span> (<span class="id" title="var">make_dfa</span> <span class="id" title="var">t</span>) <span class="id" title="var">w</span> ≠ <span class="id" title="var">member</span> <span class="id" title="var">w</span> →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;¬ <span class="id" title="var">kv_correct</span> <span class="id" title="var">t</span> <span class="id" title="var">w</span> (<span class="id" title="var">length</span> <span class="id" title="var">w</span>).<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-Splitting a leaf: replace the leaf whose access string is <span class="inlinecode"><span class="id" title="var">target</span></span> by an
-    internal node discriminating on e, keeping the original access string on
-    one side and the fresh access string <span class="inlinecode"><span class="id" title="var">q_new</span></span> on the other.  Orientation
-    follows the membership of <span class="inlinecode"><span class="id" title="var">target</span></span> on e, so that <span class="inlinecode"><span class="id" title="var">target</span></span> stays on the side
-    consistent with its own profile. 
+Replace the leaf whose access string is <span class="inlinecode"><span class="id" title="var">target</span></span> by an internal node discriminating
+    on e 
 </div>
 <div class="code">
 <span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">split_leaf</span> (<span class="id" title="var">t</span> : <span class="id" title="var">dtree</span>) (<span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span> : <span class="id" title="var">string</span>) : <span class="id" title="var">dtree</span> :=<br/>
@@ -373,67 +206,30 @@ Splitting a leaf: replace the leaf whose access string is <span class="inlinecod
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-Old leaves are never removed, and the only new leaf is <span class="inlinecode"><span class="id" title="var">q_new</span></span>.  This
-    direction needs no assumption about <span class="inlinecode"><span class="id" title="var">target</span></span>. 
-</div>
-<div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">split_leaves_fwd</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span> <span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span> <span class="id" title="var">x</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">In</span> <span class="id" title="var">x</span> (<span class="id" title="var">leaves</span> (<span class="id" title="var">split_leaf</span> <span class="id" title="var">t</span> <span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span>)) →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">x</span> = <span class="id" title="var">q_new</span> ∨ <span class="id" title="var">In</span> <span class="id" title="var">x</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>).<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-A split touches nothing when <span class="inlinecode"><span class="id" title="var">target</span></span> is not a leaf. 
-</div>
-<div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">split_leaf_id</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span> <span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;¬ <span class="id" title="var">In</span> <span class="id" title="var">target</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>) →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">split_leaf</span> <span class="id" title="var">t</span> <span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span> = <span class="id" title="var">t</span>.<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-Every old leaf is preserved by a split. 
-</div>
-<div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">split_leaves_pres</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span> <span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span> <span class="id" title="var">x</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">In</span> <span class="id" title="var">x</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>) → <span class="id" title="var">In</span> <span class="id" title="var">x</span> (<span class="id" title="var">leaves</span> (<span class="id" title="var">split_leaf</span> <span class="id" title="var">t</span> <span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span>)).<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-The fresh leaf appears whenever <span class="inlinecode"><span class="id" title="var">target</span></span> really was a leaf. 
-</div>
-<div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">split_q_new_in</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span> <span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">In</span> <span class="id" title="var">target</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>) → <span class="id" title="var">In</span> <span class="id" title="var">q_new</span> (<span class="id" title="var">leaves</span> (<span class="id" title="var">split_leaf</span> <span class="id" title="var">t</span> <span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span>)).<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-The converse of <span class="inlinecode"><span class="id" title="var">split_leaves_fwd</span></span>, given that <span class="inlinecode"><span class="id" title="var">target</span></span> is a leaf. 
-</div>
-<div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">split_leaves_bwd</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span> <span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span> <span class="id" title="var">x</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">In</span> <span class="id" title="var">target</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>) →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">x</span> = <span class="id" title="var">q_new</span> ∨ <span class="id" title="var">In</span> <span class="id" title="var">x</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>)) →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">In</span> <span class="id" title="var">x</span> (<span class="id" title="var">leaves</span> (<span class="id" title="var">split_leaf</span> <span class="id" title="var">t</span> <span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span>)).<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-The discriminators after a split are the old ones, plus the new one e. 
-</div>
-<div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">split_discriminators_incl</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span> <span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">incl</span> (<span class="id" title="var">discriminators</span> <span class="id" title="var">t</span>) (<span class="id" title="var">discriminators</span> (<span class="id" title="var">split_leaf</span> <span class="id" title="var">t</span> <span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span>)).<br/>
 
@@ -441,41 +237,9 @@ The discriminators after a split are the old ones, plus the new one e.
 </div>
 
 <div class="doc">
-<a id="lab7"></a><h2 class="section"><span class="inlinecode"><span class="id" title="var">NoDup</span></span> over concatenation</h2>
-
-</div>
-<div class="code">
-
-<br/>
-</div>
-
-<div class="doc">
-Small self-contained facts about <span class="inlinecode"><span class="id" title="var">NoDup</span></span> and <span class="inlinecode">++</span>, used to reason about the
-    leaves of <span class="inlinecode"><span class="id" title="var">Node</span></span>s. 
-</div>
-<div class="code">
-
-<br/>
-<span class="id" title="keyword">Lemma</span> <span class="id" title="var">NoDup_app_intro</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">l1</span> <span class="id" title="var">l2</span> : <span class="id" title="var">list</span> <span class="id" title="var">string</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">NoDup</span> <span class="id" title="var">l1</span> → <span class="id" title="var">NoDup</span> <span class="id" title="var">l2</span> → (<span class="id" title="keyword">∀</span> <span class="id" title="var">x</span>, <span class="id" title="var">In</span> <span class="id" title="var">x</span> <span class="id" title="var">l1</span> → ¬ <span class="id" title="var">In</span> <span class="id" title="var">x</span> <span class="id" title="var">l2</span>) → <span class="id" title="var">NoDup</span> (<span class="id" title="var">l1</span> ++ <span class="id" title="var">l2</span>).<br/>
-
-<br/>
-<span class="id" title="keyword">Lemma</span> <span class="id" title="var">NoDup_app_l</span> : <span class="id" title="keyword">∀</span> {<span class="id" title="var">A</span>} (<span class="id" title="var">l1</span> <span class="id" title="var">l2</span> : <span class="id" title="var">list</span> <span class="id" title="var">A</span>), <span class="id" title="var">NoDup</span> (<span class="id" title="var">l1</span> ++ <span class="id" title="var">l2</span>) → <span class="id" title="var">NoDup</span> <span class="id" title="var">l1</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Lemma</span> <span class="id" title="var">NoDup_app_r</span> : <span class="id" title="keyword">∀</span> {<span class="id" title="var">A</span>} (<span class="id" title="var">l1</span> <span class="id" title="var">l2</span> : <span class="id" title="var">list</span> <span class="id" title="var">A</span>), <span class="id" title="var">NoDup</span> (<span class="id" title="var">l1</span> ++ <span class="id" title="var">l2</span>) → <span class="id" title="var">NoDup</span> <span class="id" title="var">l2</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Lemma</span> <span class="id" title="var">NoDup_app_disj</span> : <span class="id" title="keyword">∀</span> {<span class="id" title="var">A</span>} (<span class="id" title="var">l1</span> <span class="id" title="var">l2</span> : <span class="id" title="var">list</span> <span class="id" title="var">A</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">NoDup</span> (<span class="id" title="var">l1</span> ++ <span class="id" title="var">l2</span>) → <span class="id" title="keyword">∀</span> <span class="id" title="var">x</span>, <span class="id" title="var">In</span> <span class="id" title="var">x</span> <span class="id" title="var">l1</span> → ¬ <span class="id" title="var">In</span> <span class="id" title="var">x</span> <span class="id" title="var">l2</span>.<br/>
-
-<br/>
-</div>
-
-<div class="doc">
 A well-oriented split preserves distinctness of leaves: <span class="inlinecode"><span class="id" title="var">target</span></span> occurs once
     and <span class="inlinecode"><span class="id" title="var">q_new</span></span> is fresh, so replacing the former by the pair adds no
-    duplicates. 
+    duplicates 
 </div>
 <div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">split_NoDup</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span> <span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span>,<br/>
@@ -483,57 +247,15 @@ A well-oriented split preserves distinctness of leaves: <span class="inlinecode"
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">NoDup</span> (<span class="id" title="var">leaves</span> (<span class="id" title="var">split_leaf</span> <span class="id" title="var">t</span> <span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span>)).<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-<a id="lab8"></a><h2 class="section"><span class="inlinecode"><span class="id" title="keyword">wf</span></span> implies the other invariants</h2>
-
-</div>
-<div class="code">
-
-<br/>
-</div>
-
-<div class="doc">
-From well-formedness, the leaves are pairwise distinct: the two subtrees of
-    a node are disjoint because their leaves disagree on the node's
-    discriminator. 
-</div>
-<div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">wf_NoDup</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span>, <span class="id" title="keyword">wf</span> <span class="id" title="var">t</span> → <span class="id" title="var">NoDup</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>).<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-From well-formedness, every access string sifts to its own leaf: at each
-    node it descends into the subtree the discriminator orients it toward. 
-</div>
-<div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">wf_consistent</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span>, <span class="id" title="keyword">wf</span> <span class="id" title="var">t</span> → <span class="id" title="var">consistent</span> <span class="id" title="var">t</span>.<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-From well-formedness, distinct leaves are separated by the discriminator at
-    the node where their paths diverge: leaves in different subtrees disagree on
-    that node's discriminator, and leaves in the same subtree are handled
-    inductively. 
-</div>
-<div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">wf_separated</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span>, <span class="id" title="keyword">wf</span> <span class="id" title="var">t</span> → <span class="id" title="var">separated</span> <span class="id" title="var">t</span>.<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-The converse direction we need: with distinct leaves, consistency forces
-    well-formedness.  At each node a leaf below the <span class="inlinecode"><span class="id" title="var">true</span></span> branch must agree
-    with the discriminator (else it would sift into the other subtree and, by
-    distinctness, contradict consistency), and dually for the <span class="inlinecode"><span class="id" title="var">false</span></span> branch. 
-</div>
-<div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">consistent_NoDup_wf</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">NoDup</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>) → <span class="id" title="var">consistent</span> <span class="id" title="var">t</span> → <span class="id" title="keyword">wf</span> <span class="id" title="var">t</span>.<br/>
 
@@ -541,12 +263,7 @@ The converse direction we need: with distinct leaves, consistency forces
 </div>
 
 <div class="doc">
-The central preservation lemma: a well-oriented split of a well-formed tree
-    is again well-formed.  The split needs only that <span class="inlinecode"><span class="id" title="var">q_new</span></span> sifts to <span class="inlinecode"><span class="id" title="var">target</span></span>
-    (so it follows the same path) and that the new discriminator e tells them
-    apart.  Disjointness of the subtrees comes from <span class="inlinecode"><span class="id" title="keyword">wf</span></span> itself, so neither
-    <span class="inlinecode"><span class="id" title="var">NoDup</span></span> nor <span class="inlinecode"><span class="id" title="var">separated</span></span> is needed as a hypothesis.  This subsumes both the
-    <span class="inlinecode"><span class="id" title="var">NoDup</span></span>- and the <span class="inlinecode"><span class="id" title="var">separated</span></span>-preservation arguments. 
+<span class="inlinecode"><span class="id" title="var">split_leaf</span></span> preserves the invariant 
 </div>
 <div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">split_preserves_wf</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span> <span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span>,<br/>
@@ -561,22 +278,9 @@ The central preservation lemma: a well-oriented split of a well-formed tree
 </div>
 
 <div class="doc">
-<a id="lab9"></a><h2 class="section">Existence of a split point</h2>
-
-</div>
-<div class="code">
-
-<br/>
-</div>
-
-<div class="doc">
 Given a tree whose hypothesis mispredicts on a counterexample w, we can find
     a leaf <span class="inlinecode"><span class="id" title="var">target</span></span> and a fresh discriminator e such that splitting <span class="inlinecode"><span class="id" title="var">target</span></span> on
-    e yields a still well-formed tree (with the empty string still a leaf, ready
-    for the next round).  This is the discrimination-tree analogue of
-    <span class="inlinecode"><span class="id" title="var">Lstar.find_separable</span></span>, and its proof follows the same shape: locate the
-    breakpoint where the hypothesis stops tracking w, and read off the new
-    discriminator from the remaining suffix. 
+    e yields a still well-formed tree 
 </div>
 <div class="code">
 <span class="id" title="keyword">Theorem</span> <span class="id" title="var">find_split</span> :<br/>
@@ -584,7 +288,7 @@ Given a tree whose hypothesis mispredicts on a counterexample w, we can find
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Heps</span> : <span class="id" title="var">In</span> <span class="id" title="var">nil</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Hcons</span> : <span class="id" title="var">consistent</span> <span class="id" title="var">t</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">HND</span> : <span class="id" title="var">NoDup</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Hce</span> : <span class="id" title="var">accept_string</span> (<span class="id" title="var">make_dfa_kv</span> <span class="id" title="var">t</span>) <span class="id" title="var">w</span> ≠ <span class="id" title="var">member</span> <span class="id" title="var">w</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Hce</span> : <span class="id" title="var">accept_string</span> (<span class="id" title="var">make_dfa</span> <span class="id" title="var">t</span>) <span class="id" title="var">w</span> ≠ <span class="id" title="var">member</span> <span class="id" title="var">w</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id" title="var">target</span> : <span class="id" title="var">string</span> &amp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id" title="var">e</span> : <span class="id" title="var">string</span> &amp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id" title="var">q_new</span> : <span class="id" title="var">string</span> |<br/>
@@ -598,8 +302,7 @@ Given a tree whose hypothesis mispredicts on a counterexample w, we can find
 </div>
 
 <div class="doc">
-Each counterexample adds exactly one state.  This is the progress guarantee
-    for the learning loop: it never spins on a counterexample. 
+Each counterexample adds exactly one state 
 </div>
 <div class="code">
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">split_leaf_count</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span> <span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span>,<br/>
@@ -607,49 +310,45 @@ Each counterexample adds exactly one state.  This is the progress guarantee
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">length</span> (<span class="id" title="var">leaves</span> (<span class="id" title="var">split_leaf</span> <span class="id" title="var">t</span> <span class="id" title="var">target</span> <span class="id" title="var">e</span> <span class="id" title="var">q_new</span>)) = <span class="id" title="var">S</span> (<span class="id" title="var">length</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>)).<br/>
 
 <br/>
-</div>
+<span class="id" title="keyword">Lemma</span> <span class="id" title="var">make_dfa_minimal</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">wf</span> <span class="id" title="var">t</span> →<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">equiv_query</span> <span class="id" title="var">_</span> (<span class="id" title="var">make_dfa</span> <span class="id" title="var">t</span>) = <span class="id" title="var">None</span> →<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">minimal</span> (<span class="id" title="var">make_dfa</span> <span class="id" title="var">t</span>).<br/>
 
-<div class="doc">
-<a id="lab10"></a><h2 class="section">The top-level learner</h2>
+<br/>
+<span class="id" title="keyword">Lemma</span> <span class="id" title="var">kv_le_min</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">wf</span> <span class="id" title="var">t</span> →<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">length</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>) ≤ <span class="id" title="var">num_states_in_minimal</span>.<br/>
 
-</div>
-<div class="code">
+<br/>
+<span class="id" title="keyword">Lemma</span> <span class="id" title="var">full_states_no_ce</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">t</span> : <span class="id" title="var">dtree</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">wf</span> <span class="id" title="var">t</span> →<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">In</span> <span class="id" title="var">nil</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>) →<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">L.num_states_in_minimal</span> ≤ <span class="id" title="var">List.length</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>) →<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">equiv_query</span> <span class="id" title="var">_</span> (<span class="id" title="var">make_dfa</span> <span class="id" title="var">t</span>) = <span class="id" title="var">None</span>.<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-Unlike <span class="inlinecode"><span class="id" title="var">Lstar.lstar_opt</span></span>, the Kearns--Vazirani learner needs no inner
-    closing loop: each counterexample adds exactly one state (see
-    <span class="inlinecode"><span class="id" title="var">split_leaf_count</span></span>).  The loop is therefore structurally recursive in the
-    fuel, just as <span class="inlinecode"><span class="id" title="var">lstar_opt</span></span> is, and on success the returned DFA carries a
-    proof that it <span class="inlinecode"><span class="id" title="var">encodes</span></span> L, obtained from <span class="inlinecode"><span class="id" title="var">equiv_query_correct</span></span>.
-
-<div class="paragraph"> </div>
-
-    Convergence within a fuel bound is not proved, as it would require the
-    unobservable size of the minimal target DFA --- the same status as the outer
-    loop of <span class="inlinecode"><span class="id" title="var">lstar_opt</span></span>. 
+The main KV implementation. Adds one state per counterexample 
 </div>
 <div class="code">
 <span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">kv_learn</span> (<span class="id" title="var">fuel</span> : <span class="id" title="var">nat</span>) (<span class="id" title="var">t</span> : <span class="id" title="var">dtree</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">LE</span> : <span class="id" title="var">L.num_states_in_minimal</span> - <span class="id" title="var">List.length</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>) ≤ <span class="id" title="var">fuel</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Hwf</span> : <span class="id" title="keyword">wf</span> <span class="id" title="var">t</span>) (<span class="id" title="var">Heps</span> : <span class="id" title="var">In</span> <span class="id" title="var">nil</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">result</span> { <span class="id" title="var">St</span> : <span class="id" title="keyword">Type</span> &amp; {<span class="id" title="var">d</span> : <span class="id" title="var">DFA.t</span> <span class="id" title="var">St</span> | <span class="id" title="var">encodes</span> <span class="id" title="var">d</span>} }<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id" title="var">St</span> : <span class="id" title="keyword">Type</span> &amp; {<span class="id" title="var">d</span> : <span class="id" title="var">DFA.t</span> <span class="id" title="var">St</span> | <span class="id" title="var">True</span>} }.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: { <span class="id" title="var">St</span> : <span class="id" title="keyword">Type</span> &amp; {<span class="id" title="var">d</span> : <span class="id" title="var">D.t</span> <span class="id" title="var">St</span> | <span class="id" title="var">minimal</span> <span class="id" title="var">d</span>} }.<br/>
 <span class="id" title="keyword">Defined</span>.<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-The learner is seeded with the single-leaf tree for the empty string, which
-    is trivially well-formed and contains <span class="inlinecode"><span class="id" title="var">nil</span></span>. 
+The learner is seeded with a trivially well-formed tree 
 </div>
 <div class="code">
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">kv_run</span> (<span class="id" title="var">fuel</span> : <span class="id" title="var">nat</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">result</span> { <span class="id" title="var">St</span> : <span class="id" title="keyword">Type</span> &amp; {<span class="id" title="var">d</span> : <span class="id" title="var">DFA.t</span> <span class="id" title="var">St</span> | <span class="id" title="var">encodes</span> <span class="id" title="var">d</span>} }<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id" title="var">St</span> : <span class="id" title="keyword">Type</span> &amp; {<span class="id" title="var">d</span> : <span class="id" title="var">DFA.t</span> <span class="id" title="var">St</span> | <span class="id" title="var">True</span>} } :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">kv_learn</span> <span class="id" title="var">fuel</span> (<span class="id" title="var">Leaf</span> <span class="id" title="var">nil</span>) <span class="id" title="var">I</span> (<span class="id" title="var">or_introl</span> <span class="id" title="var">eq_refl</span>).<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">kv</span> (<span class="id" title="var">_</span> : <span class="id" title="var">unit</span>) : { <span class="id" title="var">St</span> : <span class="id" title="keyword">Type</span> &amp; {<span class="id" title="var">d</span> : <span class="id" title="var">D.t</span> <span class="id" title="var">St</span> | <span class="id" title="var">minimal</span> <span class="id" title="var">d</span>} } :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">kv_learn</span> <span class="id" title="var">num_states_in_minimal</span> (<span class="id" title="var">Leaf</span> <span class="id" title="var">nil</span>) <span class="id" title="keyword">ltac</span>:(<span class="id" title="var">lia</span>) <span class="id" title="var">I</span> (<span class="id" title="var">or_introl</span> <span class="id" title="var">eq_refl</span>).<br/>
 
 <br/>
 <span class="id" title="keyword">End</span> <span class="id" title="var">KV</span>.<br/>

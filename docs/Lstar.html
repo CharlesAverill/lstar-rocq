@@ -27,7 +27,7 @@ https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.
 <div class="code">
 
 <br/>
-<span class="id" title="keyword">From</span> <span class="id" title="var">lstar</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Language</span> <span class="id" title="var">DFA</span> <span class="id" title="var">ListLemmas</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">lstar</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">DFA</span> <span class="id" title="var">ListLemmas</span>.<br/>
 <span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Classes.RelationClasses</span>.<br/>
 <span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Setoids.Setoid</span>.<br/>
 <span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">List</span>.<br/>
@@ -35,60 +35,11 @@ https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.
 <span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Recdef</span>.<br/>
 <span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">PeanoNat</span>. <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Nat</span>.<br/>
 <span class="id" title="keyword">Import</span> <span class="id" title="var">ListNotations</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">lstar</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Teacher</span>.<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-The L<sup>*</sup> algorithm can be thought of as a game between two players -
-    a Teacher and a Learner.
-
-<div class="paragraph"> </div>
-
-    We play the role of the Learner, who wants to learn a regular language
-    L from the Teacher. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Module</span> <span class="id" title="keyword">Type</span> <span class="id" title="var">Teacher</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>) (<span class="id" title="var">L</span> : <span class="id" title="var">L</span> <span class="id" title="var">s</span>).<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Module</span> <span class="id" title="var">DFA</span> := <span class="id" title="var">DFA</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Import</span> <span class="id" title="var">DFA</span>.<br/>
-
-<br/>
-</div>
-
-<div class="doc">
-The teacher answers equivalence queries: whether the given
-        DFA encodes L or not 
-</div>
-<div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">equiv_query</span> : <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">DFA.t</span> <span class="id" title="var">state</span> → <span class="id" title="var">option</span> <span class="id" title="var">string</span>.<br/>
-</div>
-
-<div class="doc">
-If the equivalence query returns <span class="inlinecode"><span class="id" title="var">None</span></span>, the DFA encodes L 
-</div>
-<div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">equiv_query_correct</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>) <span class="id" title="var">d</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">equiv_query</span> <span class="id" title="var">state</span> <span class="id" title="var">d</span> = <span class="id" title="var">None</span> ↔ <span class="id" title="var">encodes</span> <span class="id" title="var">d</span>.<br/>
-</div>
-
-<div class="doc">
-If the equivalence query returns <span class="inlinecode"><span class="id" title="var">Some</span></span> <span class="inlinecode"><span class="id" title="var">x</span></span>, the DFA does not
-        encode L, and <span class="inlinecode"><span class="id" title="var">x</span></span> is a counter-example on which the DFA
-        mis-predicts 
-</div>
-<div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">equiv_query_ce</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>) <span class="id" title="var">d</span> <span class="id" title="var">w</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">equiv_query</span> <span class="id" title="var">state</span> <span class="id" title="var">d</span> = <span class="id" title="var">Some</span> <span class="id" title="var">w</span> →<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">accept_string</span> <span class="id" title="var">d</span> <span class="id" title="var">w</span> ≠ <span class="id" title="var">member</span> <span class="id" title="var">w</span>.<br/>
-<span class="id" title="keyword">End</span> <span class="id" title="var">Teacher</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Module</span> <span class="id" title="var">Lstar</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>) (<span class="id" title="var">L</span> : <span class="id" title="var">L</span> <span class="id" title="var">s</span>) (<span class="id" title="var">T</span> : <span class="id" title="var">Teacher</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span>).<br/>
-<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span> <span class="id" title="var">T</span> <span class="id" title="var">DFA</span>.<br/>
+<span class="id" title="keyword">Module</span> <span class="id" title="var">Lstar</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>) (<span class="id" title="var">L</span> : <span class="id" title="var">RegularLanguage</span> <span class="id" title="var">s</span>) (<span class="id" title="var">T</span> : <span class="id" title="var">Teacher</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span>).<br/>
+<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span> <span class="id" title="var">T</span> <span class="id" title="var">D</span>.<br/>
 
 <br/>
 </div>
@@ -182,22 +133,6 @@ But Σ∗ is a superset of all the T's, so IL refines every ≡T.
 The states Q and T that we maintain will be finite 
 </div>
 <div class="code">
-
-<br/>
-<span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">InS</span> {<span class="id" title="var">A</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">a</span> : <span class="id" title="var">A</span>) (<span class="id" title="var">l</span> : <span class="id" title="var">list</span> <span class="id" title="var">A</span>) : <span class="id" title="keyword">Type</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">l</span> <span class="id" title="keyword">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| [] ⇒ <span class="id" title="var">Empty_set</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">b</span> :: <span class="id" title="var">l'</span> ⇒ (<span class="id" title="var">b</span> = <span class="id" title="var">a</span>) + <span class="id" title="var">InS</span> <span class="id" title="var">a</span> <span class="id" title="var">l'</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Lemma</span> <span class="id" title="var">In_to_InS</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">A</span> <span class="id" title="var">a</span> (<span class="id" title="var">l</span> : <span class="id" title="var">list</span> <span class="id" title="var">A</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">dec</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">x</span> <span class="id" title="var">y</span> : <span class="id" title="var">A</span>), {<span class="id" title="var">x</span> = <span class="id" title="var">y</span>} + {<span class="id" title="var">x</span> ≠ <span class="id" title="var">y</span>}),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">In</span> <span class="id" title="var">a</span> <span class="id" title="var">l</span> → <span class="id" title="var">InS</span> <span class="id" title="var">a</span> <span class="id" title="var">l</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Lemma</span> <span class="id" title="var">InS_to_In</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">A</span> <span class="id" title="var">a</span> (<span class="id" title="var">l</span> : <span class="id" title="var">list</span> <span class="id" title="var">A</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">InS</span> <span class="id" title="var">a</span> <span class="id" title="var">l</span> → <span class="id" title="var">In</span> <span class="id" title="var">a</span> <span class="id" title="var">l</span>.<br/>
 
 <br/>
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">finite</span> (<span class="id" title="var">f</span> : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span>) :=<br/>
@@ -325,19 +260,13 @@ Q and T must be finite
 }.<br/>
 
 <br/>
-<span class="id" title="keyword">Lemma</span> <span class="id" title="var">list_with_proof</span> : <span class="id" title="keyword">∀</span> {<span class="id" title="var">A</span> : <span class="id" title="keyword">Type</span>}<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">l</span> : <span class="id" title="var">list</span> <span class="id" title="var">A</span>) (<span class="id" title="var">P</span> : <span class="id" title="var">A</span> → <span class="id" title="keyword">Prop</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">pf</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">s</span>, <span class="id" title="var">In</span> <span class="id" title="var">s</span> <span class="id" title="var">l</span> → <span class="id" title="var">P</span> <span class="id" title="var">s</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">list</span> {<span class="id" title="var">s</span> | <span class="id" title="var">P</span> <span class="id" title="var">s</span>}.<br/>
-
-<br/>
 </div>
 
 <div class="doc">
 The concrete DFA extracted from a HypothesisDFA 
 </div>
 <div class="code">
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">make_dfa</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>) : <span class="id" title="var">DFA.t</span> {<span class="id" title="var">q</span> | <span class="id" title="var">H</span>.(<span class="id" title="var">Q</span>) <span class="id" title="var">q</span> = <span class="id" title="var">true</span>}.<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">make_dfa</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>) : <span class="id" title="var">D.t</span> {<span class="id" title="var">q</span> | <span class="id" title="var">H</span>.(<span class="id" title="var">Q</span>) <span class="id" title="var">q</span> = <span class="id" title="var">true</span>}.<br/>
 
 <br/>
 <span class="id" title="keyword">Defined</span>.<br/>
@@ -552,10 +481,84 @@ The main L<sup>*</sup> implementation that uses Lemmas 2 and 3 to iteratively
     If fuel runs out, we return the in-progress DFA 
 </div>
 <div class="code">
-<span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">lstar_opt</span> (<span class="id" title="var">fuel</span> : <span class="id" title="var">nat</span>) (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">result</span> { <span class="id" title="var">T</span> : <span class="id" title="keyword">Type</span> &amp; {<span class="id" title="var">d</span> : <span class="id" title="var">DFA.t</span> <span class="id" title="var">T</span> | <span class="id" title="var">encodes</span> <span class="id" title="var">d</span>} }<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id" title="var">T</span> : <span class="id" title="keyword">Type</span> &amp; {<span class="id" title="var">d</span> : <span class="id" title="var">DFA.t</span> <span class="id" title="var">T</span> | <span class="id" title="var">True</span>} }.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">num_states_of_fin</span> {<span class="id" title="var">f</span>} (<span class="id" title="var">H</span> : <span class="id" title="var">finite</span> <span class="id" title="var">f</span>) : <span class="id" title="var">nat</span>.<br/>
 <span class="id" title="keyword">Defined</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">num_states</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>) : <span class="id" title="var">nat</span>.<br/>
+<span class="id" title="keyword">Defined</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <span class="id" title="var">finite_subset_is_smaller</span> : <span class="id" title="keyword">∀</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">f</span> <span class="id" title="var">g</span> : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FinF</span> : <span class="id" title="var">finite</span> <span class="id" title="var">f</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FinG</span> : <span class="id" title="var">finite</span> <span class="id" title="var">g</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FsubG</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">x</span> : <span class="id" title="var">string</span>), <span class="id" title="var">f</span> <span class="id" title="var">x</span> = <span class="id" title="var">true</span> → <span class="id" title="var">g</span> <span class="id" title="var">x</span> = <span class="id" title="var">true</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">num_states_of_fin</span> <span class="id" title="var">FinF</span> ≤ <span class="id" title="var">num_states_of_fin</span> <span class="id" title="var">FinG</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <span class="id" title="var">finite_update_impl_finite</span> : <span class="id" title="keyword">∀</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">f</span> : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span>) <span class="id" title="var">k</span> <span class="id" title="var">v</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FinUpdF</span> : <span class="id" title="var">finite</span> <span class="id" title="var">f</span>[<span class="id" title="var">k</span> := <span class="id" title="var">v</span>]),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">finite</span> <span class="id" title="var">f</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+A hypothesis DFA must be smaller than the number of states in the
+    minimal DFA. This follows from separability of Q 
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <span class="id" title="var">num_states_le_min</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">num_states</span> <span class="id" title="var">H</span> ≤ <span class="id" title="var">L.num_states_in_minimal</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+If <span class="inlinecode"><span class="id" title="var">make_dfa</span></span> has no counterexample then it is minimal. By separability,
+    all q : Q reach distinct states in any encoding DFA, so none can have fewer states 
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <span class="id" title="var">make_dfa_minimal</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">equiv_query</span> <span class="id" title="var">_</span> (<span class="id" title="var">make_dfa</span> <span class="id" title="var">H</span>) = <span class="id" title="var">None</span> →<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">minimal</span> (<span class="id" title="var">make_dfa</span> <span class="id" title="var">H</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Once Q has the full minimal state count there is no counterexample left 
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <span class="id" title="var">full_states_no_ce</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">L.num_states_in_minimal</span> ≤ <span class="id" title="var">num_states</span> <span class="id" title="var">H</span> →<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">equiv_query</span> <span class="id" title="var">_</span> (<span class="id" title="var">make_dfa</span> <span class="id" title="var">H</span>) = <span class="id" title="var">None</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The main L* implementation 
+</div>
+<div class="code">
+<span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">lstar_fuel</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>) (<span class="id" title="var">fuel</span> : <span class="id" title="var">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">LE</span> : <span class="id" title="var">L.num_states_in_minimal</span> - <span class="id" title="var">num_states</span> <span class="id" title="var">H</span> ≤ <span class="id" title="var">fuel</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: { <span class="id" title="var">T</span> : <span class="id" title="keyword">Type</span> &amp; {<span class="id" title="var">d</span> : <span class="id" title="var">D.t</span> <span class="id" title="var">T</span> | <span class="id" title="var">minimal</span> <span class="id" title="var">d</span>} }.<br/>
+<span class="id" title="keyword">Defined</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The total L* implementation 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">lstar</span> (<span class="id" title="var">_</span> : <span class="id" title="var">unit</span>) : { <span class="id" title="var">T</span> : <span class="id" title="keyword">Type</span> &amp; {<span class="id" title="var">d</span> : <span class="id" title="var">D.t</span> <span class="id" title="var">T</span> | <span class="id" title="var">minimal</span> <span class="id" title="var">d</span>} }.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
 
 <br/>
 <span class="id" title="keyword">End</span> <span class="id" title="var">Lstar</span>.<br/>
