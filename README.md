@@ -9,6 +9,13 @@ A collection of formally-verified implementations of [automata learning](https:/
 
 Functions return sigma types, so each sub-component of each algorithm provides a proof of correctness alongside its computational outputs.
 
+## Installation
+
+```
+# Will install both lstar (the OCaml release) and lstar-rocq (the Rocq theory development)
+opam install lstar
+```
+
 ## Building
 
 ```bash
