@@ -2,7 +2,6 @@
 (using rocq 0.11)
 
 (name lstar-rocq)
-(version 39fdc9f-dirty)
 
 (generate_opam_files true)
 
@@ -24,7 +23,6 @@
  (synopsis "Formally-verified automata learning in Rocq")
  (description "Formally-verified implementations of L* and similar algorithms in Rocq")
  (depends
-   (dune (>= 3.21.0))
    (rocq-core (>= 9.1.0))
    rocq-prover
    rocq-stdlib
@@ -35,10 +33,9 @@
  (synopsis "Automata learning with from lstar-rocq")
  (description "Formally-verified implementations of L* and similar algorithms")
  (depends
-   (dune (>= 3.21.0))
    (rocq-core (>= 9.1.0))
    rocq-prover
    rocq-stdlib
    rocq-runtime
-   lstar-rocq))
+   (lstar-rocq (= :version))))
 
