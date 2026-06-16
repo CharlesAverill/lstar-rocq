@@ -187,8 +187,4 @@ let print_results name dfa =
 
 let () =
   (match Lstar.lstar () with Coq_existT (_, d) -> print_results "L*" d) ;
-  match KV.kv_run Int.max_int with
-  | Error _ ->
-      print_endline "No DFA found"
-  | Ok (Coq_existT (_, d)) ->
-      print_results "KV" d
+  match KV.kv () with Coq_existT (_, d) -> print_results "KV" d

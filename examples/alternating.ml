@@ -110,11 +110,5 @@ let print_results name dfa n =
   Printf.printf "Accuracy: %d/%d\n" correct (List.length strings)
 
 let () =
-  match Lstar.lstar () with
-  | Coq_existT (_, d) -> (
-      print_results "L*" d 3 ;
-      match KV.kv_run Int.max_int with
-      | Error _ ->
-          prerr_endline "No DFA found"
-      | Ok (Coq_existT (_, d)) ->
-          print_results "KV" d 3 )
+  (match Lstar.lstar () with Coq_existT (_, d) -> print_results "L*" d 3) ;
+  match KV.kv () with Coq_existT (_, d) -> print_results "KV" d 3

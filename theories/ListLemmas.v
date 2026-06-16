@@ -197,3 +197,40 @@ Proof.
         exists a. apply pf. now left.
     apply IHl. intros s Hin. apply pf. now right.
 Defined.
+
+Lemma list_with_proof_preserves_len : forall {X} (l : list X) P In,
+    List.length (list_with_proof l P In) = List.length l.
+Proof.
+    induction l; intros.
+        reflexivity.
+    simpl. f_equal. apply IHl.
+Qed.
+
+Fixpoint InS {A : Type} (a : A) (l : list A) : Type :=
+    match l with
+    | nil => Empty_set
+    | b :: l' => (b = a) + InS a l'
+    end.
+
+Lemma In_to_InS : forall A a (l : list A)
+    (dec : forall (x y : A), {x = y} + {x <> y}),
+    In a l -> InS a l.
+Proof.
+    induction l; intros.
+        contradiction.
+    simpl in *. specialize (IHl dec).
+    destruct (dec a0 a); subst.
+        now left.
+    assert (In a l) by now destruct H.
+    right. now apply IHl.
+Defined.
+
+Lemma InS_to_In : forall A a (l : list A),
+    InS a l -> In a l.
+Proof.
+    intros. induction l.
+        contradiction.
+    destruct X; subst.
+        now left.
+    right. auto.
+Qed.

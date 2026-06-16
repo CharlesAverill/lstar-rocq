@@ -9,7 +9,7 @@
     A string is classified by _sifting_ it down the tree: at each internal node
     with discriminator e, we ask the membership query [member (u ++ e)] and
     descend left when it holds and right otherwise; the leaf reached names the
-    state of u. *)
+    state of u *)
 
 From lstar Require Import DFA ListLemmas Teacher.
 From Stdlib Require Import List.
@@ -22,13 +22,13 @@ Module KV (s : Symbol) (L : RegularLanguage s) (Tch : Teacher s L).
 Import s L Tch D.
 
 (** A discrimination tree is a binary tree whose internal nodes hold a
-    discriminator suffix and whose leaves hold an access string. *)
+    discriminator suffix and whose leaves hold an access string *)
 Inductive dtree : Type :=
 | Leaf (access : string)
 | Node (discrim : string) (lt rt : dtree).
 
 (** Sifting classifies a string u by descending the tree until it reaches
-    the appropriate access node. *)
+    the appropriate access node *)
 Fixpoint sift (t : dtree) (u : string) : string :=
     match t with
     | Leaf q => q
@@ -48,7 +48,7 @@ Fixpoint discriminators (t : dtree) : list string :=
     | Node e lt rt => e :: discriminators lt ++ discriminators rt
     end.
 
-(** Sifting always lands on a leaf of the tree. *)
+(** Sifting always lands on a leaf of the tree *)
 Lemma sift_in_leaves : forall t u, In (sift t u) (leaves t).
 Proof.
     induction t0 as [q | e lt IHlt rt IHrt]; intro u; simpl.
@@ -71,7 +71,7 @@ Definition separated (t : dtree) : Prop :=
 
 (** A tree is _well-formed_ when each node's discriminator bisects the behavior
     of its two subtrees. Or, every leaf below the [true] branch agrees with the
-    discriminator, every leaf below the [false] branch disagrees. *)
+    discriminator, every leaf below the [false] branch disagrees *)
 Fixpoint wf (t : dtree) : Prop :=
     match t with
     | Leaf _ => True
@@ -100,12 +100,12 @@ Definition make_dfa (t : dtree) : D.t { q | In q (leaves t) }.
 Defined.
 
 (** [kv_p t w i] is the access string of the state that the hypothesis induced
-    by t reaches after reading the length-i prefix of w. *)
+    by t reaches after reading the length-i prefix of w *)
 Definition kv_p (t : dtree) (w : string) (i : nat) : string :=
     proj1_sig (run (make_dfa t) (firstn i w)).
 
 (** A prefix of length i is _correct_ when its continuation classifies as in
-    the language exactly when w does. *)
+    the language exactly when w does *)
 Definition kv_correct (t : dtree) (w : string) (i : nat) : Prop :=
     member (kv_p t w i ++ skipn i w) = member w.
 
@@ -229,7 +229,7 @@ Qed.
 
 (** A well-oriented split preserves distinctness of leaves: [target] occurs once
     and [q_new] is fresh, so replacing the former by the pair adds no
-    duplicates. *)
+    duplicates *)
 Lemma split_NoDup : forall t target e q_new,
     NoDup (leaves t) -> In target (leaves t) -> ~ In q_new (leaves t) ->
     NoDup (leaves (split_leaf t target e q_new)).
@@ -414,7 +414,7 @@ Qed.
 
 (** Given a tree whose hypothesis mispredicts on a counterexample w, we can find
     a leaf [target] and a fresh discriminator e such that splitting [target] on
-    e yields a still well-formed tree. *)
+    e yields a still well-formed tree *)
 Theorem find_split :
     forall (t : dtree) (w : string)
            (Heps : In nil (leaves t))
@@ -432,7 +432,7 @@ Theorem find_split :
 Proof.
     intros t. intros.
     (* There is some k such that the prefix of length k is correct but the one
-       of length (S k) is not, found by scanning [0 .. length w]. *)
+       of length (S k) is not, found by scanning [0 .. length w] *)
     assert (ExK : { k | kv_correct t w k /\ ~ kv_correct t w (S k) }). {
         pose proof (kv_eps_correct t w Heps Hcons).
         pose proof (kv_full_not_correct t w Hce).
@@ -443,14 +443,14 @@ Proof.
         destruct (IH Hn) as [k [Hk HSk]]. now exists k.
     } destruct ExK as (k & Kcorrect & SKincorrect).
     (* The breakpoint lies strictly inside w, since beyond [length w] both
-       prefixes coincide with all of w. *)
+       prefixes coincide with all of w *)
     assert (Hlt : k < length w). {
         destruct (Nat.le_gt_cases (length w) k) as [Hle |]; [| assumption].
         exfalso. apply SKincorrect. unfold kv_correct, kv_p in *.
         rewrite firstn_all2, skipn_all2, app_nil_r by lia.
         now rewrite firstn_all2, skipn_all2, app_nil_r in Kcorrect by lia.
     }
-    (* Retrieve w[k]. *)
+    (* Retrieve w[k] *)
     assert {wk | nth_error w k = Some wk}. {
         destruct (nth_error w k) eqn:E.
             now exists t0.
@@ -464,13 +464,13 @@ Proof.
     }
     set (qk1 := kv_p t w k ++ [wk]).
     exists (sift t qk1), (skipn (S k) w), qk1.
-    (* One step of the hypothesis advances from p_k to the leaf [qk1] sifts to. *)
+    (* One step of the hypothesis advances from p_k to the leaf [qk1] sifts to *)
     assert (HSk : kv_p t w (S k) = sift t qk1). {
         unfold kv_p, qk1. rewrite Hfirstn. unfold run.
         rewrite fold_left_app. unfold make_dfa; simpl. reflexivity.
     }
     (* From correctness at k and incorrectness at (S k), the extension and the
-       leaf it sifts to are told apart by the suffix e. *)
+       leaf it sifts to are told apart by the suffix e *)
     assert (Hgk : member (qk1 ++ skipn (S k) w) = member w). {
         unfold kv_correct in Kcorrect.
         rewrite (skipn_S_wk _ _ _ _ Hwk) in Kcorrect.
@@ -487,7 +487,7 @@ Proof.
                   <> member (qk1 ++ skipn (S k) w)). {
         now rewrite Hgk.
     }
-    (* Recover [wf] of the current tree, then push it through the split. *)
+    (* Recover [wf] of the current tree, then push it through the split *)
     assert (Hwf : wf t) by (apply consistent_NoDup_wf; assumption).
     assert (Hwf' : wf (split_leaf t (sift t qk1) (skipn (S k) w) qk1))
         by (apply split_preserves_wf; trivial).
@@ -517,30 +517,157 @@ Proof.
     simpl in L1, L2. lia.
 Qed.
 
+Lemma make_dfa_minimal : forall t,
+    wf t ->
+    equiv_query _ (make_dfa t) = None ->
+    minimal (make_dfa t).
+Proof.
+  intros t Hwf Heq.
+  unfold minimal. split.
+    now apply equiv_query_correct in Heq.
+  intros state' dfa' H_encodes.
+  assert (H_LHS : List.length (states _ (make_dfa t)) = List.length (leaves t)). {
+    unfold make_dfa. simpl. apply list_with_proof_preserves_len. }
+  rewrite H_LHS.
+  pose proof (wf_separated _ Hwf) as Hsep.
+  pose proof (wf_consistent _ Hwf) as Hcons.
+  pose proof (wf_NoDup _ Hwf) as HND.
+  set (f := fun q => D.run dfa' q).
+  assert (Hinj : forall u v, In u (leaves t) -> In v (leaves t) ->
+                 u <> v -> f u <> f v). {
+    intros u v Hu Hv Huv Hf.
+    destruct (Hsep u v Hu Hv Huv) as (e & He & Hdiff).
+    apply Hdiff.
+    assert (Hsplit : forall x,
+              D.accept_string dfa' (x ++ e)
+              = dfa'.(D.accept _) (fold_left dfa'.(D.transition _) e (f x)))
+      by (intro x; unfold D.accept_string, D.run, f; now rewrite fold_left_app).
+    assert (Hacc : D.accept_string dfa' (u ++ e) = D.accept_string dfa' (v ++ e))
+      by (rewrite !Hsplit; unfold f in *; now rewrite Hf).
+    destruct (member (u ++ e)) eqn:Mu, (member (v ++ e)) eqn:Mv;
+      try reflexivity; exfalso.
+    - assert (D.accept_string dfa' (u ++ e) = true) by (now apply H_encodes).
+      assert (D.accept_string dfa' (v ++ e) = true) by (now rewrite <- Hacc).
+      assert (member (v ++ e) = true) by (now apply H_encodes). congruence.
+    - assert (D.accept_string dfa' (v ++ e) = true) by (now apply H_encodes).
+      assert (D.accept_string dfa' (u ++ e) = true) by (now rewrite Hacc).
+      assert (member (u ++ e) = true) by (now apply H_encodes). congruence. }
+  rewrite <- (length_map f (leaves t)).
+  apply NoDup_incl_length.
+  - clear - HND Hinj.
+    induction (leaves t) as [| x xs IH]; [constructor|].
+    apply NoDup_cons_iff in HND. destruct HND as [Hnin NDxs]. constructor.
+    + intro HIn. apply in_map_iff in HIn. destruct HIn as (y & Hfy & Hyin).
+      replace x with y in *. contradiction.
+      destruct (str_eq x y) as [e0|n0]; [now symmetry|].
+      exfalso. apply (Hinj x y); [now left | now right | assumption | now symmetry].
+    + apply IH; auto. intros u v Hu Hv. apply Hinj; now right.
+  - (* every mapped state is a real state of dfa' *)
+    intros st Hst. apply in_map_iff in Hst.
+    destruct Hst as (q & <- & _). unfold f. apply D.run_in_states.
+Qed.
+
+Lemma kv_le_min : forall t,
+    wf t ->
+    length (leaves t) <= num_states_in_minimal.
+Proof.
+  intro t. intro Hwf.
+  destruct L.exists_dfa as (state_m & D & [Denc Minimal] & Len).
+  (* It suffices to bound leaves by D's state count *)
+  enough (Hle : List.length (leaves t) <= List.length (D.states state_m D)) by lia.
+  pose proof (wf_separated _ Hwf) as Hsep.
+  pose proof (wf_NoDup _ Hwf) as HND.
+  set (f := fun q => D.run D q).
+  (* f is injective on the leaves *)
+  assert (Hinj : forall u v, In u (leaves t) -> In v (leaves t) ->
+                 u <> v -> f u <> f v). {
+    intros u v Hu Hv Huv Hf.
+    (* Some discriminator e of t tells u and v apart *)
+    destruct (Hsep u v Hu Hv Huv) as (e & He & Hdiff).
+    (* But equal runs make u and v agree on every suffix, including e *)
+    apply Hdiff.
+    assert (Hsplit : forall x,
+              D.accept_string D (x ++ e)
+              = D.(D.accept _) (fold_left D.(D.transition _) e (f x))). {
+      intro x. unfold D.accept_string, D.run, f. now rewrite fold_left_app. }
+    assert (Hacc : D.accept_string D (u ++ e) = D.accept_string D (v ++ e)). {
+      rewrite Hsplit. unfold f in *. now rewrite Hf. }
+    (* Transport the acceptance equality back to membership via Denc *)
+    destruct (member (u ++ e)) eqn:Mu, (member (v ++ e)) eqn:Mv;
+      try reflexivity; exfalso.
+    - assert (D.accept_string D (u ++ e) = true) by (now apply Denc).
+      assert (D.accept_string D (v ++ e) = true) by (now rewrite <- Hacc).
+      assert (member (v ++ e) = true) by (now apply Denc). congruence.
+    - assert (D.accept_string D (v ++ e) = true) by (now apply Denc).
+      assert (D.accept_string D (u ++ e) = true) by (now rewrite Hacc).
+      assert (member (u ++ e) = true) by (now apply Denc). congruence.
+  }
+  (* An injection from leaves into D's states bounds the lengths *)
+  rewrite <- (length_map f (leaves t)).
+  apply NoDup_incl_length.
+  - (* map f (leaves t) is duplicate-free, by injectivity of f on the leaves *)
+    clear - HND Hinj.
+    induction (leaves t) as [| x xs IH]; [constructor|].
+    apply NoDup_cons_iff in HND. destruct HND as [Hnin NDxs]. constructor.
+    + intro HIn. apply in_map_iff in HIn. destruct HIn as (y & Hfy & Hyin).
+      assert (x = y). { destruct (str_eq x y) as [e|n]; [exact e|].
+        exfalso. apply (Hinj x y); [now left | now right | exact n | now symmetry]. }
+      subst y; contradiction.
+    + apply IH; auto. intros u v Hu Hv. apply Hinj; now right.
+  - (* every mapped state is an actual state of D *)
+    intros st Hst. apply in_map_iff in Hst.
+    destruct Hst as (q & <- & _). unfold f. apply D.run_in_states.
+Qed.
+
+Lemma full_states_no_ce : forall (t : dtree),
+    wf t ->
+    In nil (leaves t) ->
+    L.num_states_in_minimal <= List.length (leaves t) ->
+    equiv_query _ (make_dfa t) = None.
+Proof.
+    intros t Hwf Heps Contra.
+    destruct (equiv_query _ (make_dfa t)) eqn:Heq; [exfalso | reflexivity].
+    assert (Hce : accept_string (make_dfa t) s <> member s)
+        by now apply equiv_query_ce.
+    pose proof (wf_separated _ Hwf) as Hsep.
+    pose proof (wf_consistent _ Hwf) as Hcons.
+    pose proof (wf_NoDup _ Hwf) as HND.
+    destruct (find_split _ s Heps Hcons HND Hce) as
+        (target & e & q_new & In_target & NIn_qnew & Membership & X).
+    cbv zeta in X. destruct X as (Wft' & Heps').
+    pose proof (split_leaf_count t target e q_new HND In_target NIn_qnew) as Hcount.
+    pose proof (kv_le_min _ Wft') as Hcap.
+    (* Hcap : length (leaves (split_leaf t target e q_new)) <= num_states_in_minimal *)
+    rewrite Hcount in Hcap.
+    (* Hcap : S (length (leaves t)) <= num_states_in_minimal *)
+    lia.
+Qed.
+
 (** The main KV implementation. Adds one state per counterexample *)
 Fixpoint kv_learn (fuel : nat) (t : dtree)
+                  (LE : L.num_states_in_minimal - List.length (leaves t) <= fuel)
                   (Hwf : wf t) (Heps : In nil (leaves t))
-    : result { St : Type & {d : D.t St | encodes d} }
-             { St : Type & {d : D.t St | True} }.
-    destruct fuel as [| n].
-    - (* out of fuel: return the in-progress hypothesis *)
-      apply Error. eexists. now exists (make_dfa t).
-    - destruct (equiv_query _ (make_dfa t)) as [w |] eqn:Heq.
-      + (* counterexample w: split one leaf and recurse *)
-        assert (Hce : accept_string (make_dfa t) w <> member w)
-            by now apply equiv_query_ce.
-        destruct (find_split t w Heps (wf_consistent t Hwf) (wf_NoDup t Hwf) Hce)
-            as (target & e & q_new & HinT & Hfresh & Hdiff & Hwf' & Heps').
-        apply (kv_learn n (split_leaf t target e q_new) Hwf' Heps').
-      + (* no counterexample, make_dfa t encodes L *)
-        apply Ok. eexists. exists (make_dfa t).
-        now apply equiv_query_correct in Heq.
+    : { St : Type & {d : D.t St | minimal d} }.
+    destruct (equiv_query _ (make_dfa t)) eqn:Heq.
+    - (* counterexample *)
+        destruct fuel as [| n].
+        -- assert (forall x y, x - y <= 0 -> x - y = 0) by lia. apply H in LE. clear H.
+           apply Nat.sub_0_le, full_states_no_ce in LE; auto.
+           rewrite Heq in LE. discriminate.
+        -- assert (Hce : accept_string (make_dfa t) s <> member s)
+                by now apply equiv_query_ce.
+            destruct (find_split t s Heps (wf_consistent t Hwf) (wf_NoDup t Hwf) Hce)
+                as (target & e & q_new & HinT & Hfresh & Hdiff & Hwf' & Heps').
+            enough (num_states_in_minimal - List.length (leaves (split_leaf t target e q_new)) <= n).
+            eapply (kv_learn n (split_leaf t target e q_new) H Hwf' Heps').
+            pose proof (split_leaf_count t target e q_new
+                          (wf_NoDup t Hwf) HinT Hfresh) as Hcount.
+            rewrite Hcount. lia.
+    - eexists. exists (make_dfa t). apply (make_dfa_minimal t Hwf Heq).
 Defined.
 
 (** The learner is seeded with a trivially well-formed tree *)
-Definition kv_run (fuel : nat)
-    : result { St : Type & {d : D.t St | encodes d} }
-             { St : Type & {d : D.t St | True} } :=
-    kv_learn fuel (Leaf nil) I (or_introl eq_refl).
+Definition kv (_ : unit) : { St : Type & {d : D.t St | minimal d} } :=
+    kv_learn num_states_in_minimal (Leaf nil) ltac:(lia) I (or_introl eq_refl).
 
 End KV.
