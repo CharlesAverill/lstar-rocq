@@ -49,3 +49,9 @@ Accuracy: 8/8
 ```
 
 Examples `lstar.div7` and `lstar.mod3` show the learning of DFAs for decimal strings divisible by 7, and binary strings where the number of `1`s is divisible by 3.
+
+![alternating DFA](examples/alternating_1.png)
+
+![mod3 DFA](examples/mod3_2.png)
+
+![div7 DFA](examples/div7_1.png)

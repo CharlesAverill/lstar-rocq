@@ -76,8 +76,9 @@ let rec enumerate (n : int) : S.str list =
 (** Run the DFA on test cases and pretty-print the results *)
 let print_results name dfa n =
   Printf.printf "\n=== %s ===\n" name ;
-  Lstar.print_dfa dfa ;
   print_endline "DFA found" ;
+  Lstar.print_dfa dfa ;
+  Printf.printf "DOT file at %s\n" (Lstar.to_dot ~name:(name ^ "_alternating") dfa);
   let strings = enumerate n in
   let col_w = max 10 (n + 2) in
   let header =
