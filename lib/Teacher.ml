@@ -91,54 +91,82 @@ module DFAPrinter (Teacher : TEACHER) = struct
               | '"' -> Buffer.add_string buf "\\\""
               | '\\' -> Buffer.add_string buf "\\\\"
               | '\n' -> Buffer.add_string buf "\\n"
+              | '_' -> Buffer.add_string buf " - "
               | c -> Buffer.add_char buf c )
             s ;
           Buffer.contents buf
         in
         p "digraph \"%s\" {\n" (escape name) ;
-        p "  label=\"%s\";\n" (escape name) ;
-                p "  labelloc=\"t\";\n" ;
-        p "  fontsize=20;\n" ;
+        (* ---- graph-level styling ---- *)
+        p "  bgcolor=\"#fbfbfd\";\n" ;
         p "  rankdir=LR;\n" ;
-        p "  __start [shape=point, width=0.1];\n" ;
+        p "  nodesep=0.5;\n" ;
+        p "  ranksep=0.6;\n" ;
+        p "  pad=0.3;\n" ;
+        p "  label=\"%s\";\n" (escape name) ;
+        p "  labelloc=\"t\";\n" ;
+        p "  fontsize=22;\n" ;
+        p "  fontname=\"Helvetica Neue, Helvetica, Arial, sans-serif\";\n" ;
+        p "  fontcolor=\"#1d1d1f\";\n" ;
+        (* ---- shared node + edge defaults ---- *)
+        p "  node [fontname=\"Helvetica Neue, Helvetica, Arial, sans-serif\", \
+             fontsize=13, penwidth=1.4, style=filled];\n" ;
+        p "  edge [fontname=\"Menlo, Consolas, monospace\", fontsize=11, \
+             color=\"#8a8a8e\", fontcolor=\"#3a3a3c\", arrowsize=0.8, \
+             penwidth=1.1];\n" ;
+        (* ---- start marker ---- *)
+        p "  __start [shape=point, width=0.12, color=\"#1d1d1f\"];\n" ;
+        (* ---- states ---- *)
         List.iter
           (fun s ->
             let i = id_of s in
-            let shape =
-              if Teacher.D.accept d s then "doublecircle" else "circle"
+            let shape, fill, line =
+              if Teacher.D.accept d s then
+                ("doublecircle", "#d6f0dd", "#349a57")   (* accept: green *)
+              else
+                ("circle", "#eef1f6", "#9aa0aa")         (* reject: grey-blue *)
             in
-            p "  q%d [shape=%s, label=\"q%d\"];\n" i shape i )
+            p "  q%d [shape=%s, label=\"q%d\", fillcolor=\"%s\", \
+                 color=\"%s\"];\n"
+              i shape i fill line )
           states ;
-        p "  __start -> q%d;\n" init_id ;
+        (* ---- start arrow ---- *)
+        p "  __start -> q%d [color=\"#1d1d1f\", penwidth=1.4];\n" init_id ;
+        (* ---- transitions (collapse parallel edges, omit universal label) ---- *)
+        let alphabet_size = List.length S.enum in
         List.iter
           (fun s ->
             let i = id_of s in
-            (* group this state's outgoing transitions by destination id,
-               preserving first-seen order of destinations and of symbols *)
-            let tbl : (int, Buffer.t) Hashtbl.t = Hashtbl.create 8 in
+            let tbl : (int, Buffer.t * int ref) Hashtbl.t = Hashtbl.create 8 in
             let dst_order = ref [] in
             List.iter
               (fun c ->
                 let dst = id_of (Teacher.D.transition d s c) in
-                let buf =
+                let buf, cnt =
                   match Hashtbl.find_opt tbl dst with
-                  | Some b -> b
+                  | Some bc -> bc
                   | None ->
-                      let b = Buffer.create 16 in
-                      Hashtbl.add tbl dst b ;
+                      let bc = (Buffer.create 16, ref 0) in
+                      Hashtbl.add tbl dst bc ;
                       dst_order := dst :: !dst_order ;
-                      b
+                      bc
                 in
                 if Buffer.length buf > 0 then Buffer.add_string buf ", " ;
-                Buffer.add_string buf (escape (S.string_of_t c)) )
+                Buffer.add_string buf (escape (S.string_of_t c)) ;
+                incr cnt )
               S.enum ;
             List.iter
               (fun dst ->
-                let lbl = Buffer.contents (Hashtbl.find tbl dst) in
-                p "  q%d -> q%d [label=\"%s\"];\n" i dst lbl )
+                let buf, cnt = Hashtbl.find tbl dst in
+                let self = if i = dst then " dir=back" else "" in
+                if !cnt = alphabet_size then
+                  p "  q%d -> q%d [color=\"#c6c6cc\"%s];\n" i dst self
+                else
+                  p "  q%d -> q%d [label=\" %s \"%s];\n"
+                    i dst (Buffer.contents buf) self )
               (List.rev !dst_order) )
           states ;
-          p "}\n"; ) ;
+        p "}\n" ) ;
     path
 end
 
