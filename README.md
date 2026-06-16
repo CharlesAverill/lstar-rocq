@@ -22,6 +22,11 @@ git clone https://github.com/CharlesAverill/lstar-rocq && cd lstar-rocq
 make # will build lstar-rocq, extract, then build lstar
 ```
 
+> [!WARNING]
+> By default, this project will build with [ExtrOcamlNatInt](https://rocq-prover.org/doc/V9.1.0/stdlib/Stdlib.extraction.ExtrOcamlNatInt.html), which is unsound in the event of overflow.
+> Unless your DFAs could potentially include 2^63 states, this shouldn't be a problem.
+> If you'd like me to support [ExtrOcamlNatBigInt](https://rocq-prover.org/doc/V9.1.0/stdlib/Stdlib.extraction.ExtrOcamlNatBigInt.html) instead, please [open an issue](https://github.com/CharlesAverill/lstar-rocq/issues/new/choose) and I'll get on it.
+
 ## Example
 
 An example execution is provided in [alternating.ml](examples/alternating.ml).
