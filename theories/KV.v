@@ -294,7 +294,7 @@ Qed.
 Lemma wf_NoDup : forall t, wf t -> NoDup (leaves t).
 Proof.
     induction t0 as [q | e lt IHlt rt IHrt]; intro Hwf.
-        simpl. constructor; [intros [] | constructor].
+        simpl. constructor; [intuition | constructor].
     simpl in Hwf. destruct Hwf as (Hl & Hr & Wl & Wr). simpl.
     apply NoDup_app_intro; [now apply IHlt | now apply IHrt |].
     intros x Hx Hxr. pose proof (Hl x Hx). pose proof (Hr x Hxr). congruence.
@@ -305,9 +305,9 @@ Proof.
     induction t0 as [q | e lt IHlt rt IHrt]; intros Hwf q0 Hin.
         simpl in Hin. destruct Hin as [H | []]. simpl. assumption.
     simpl in Hwf. destruct Hwf as (Hl & Hr & Wl & Wr).
-    simpl in Hin. apply in_app_or in Hin. simpl. destruct Hin as [Hin | Hin].
-        rewrite (Hl q0 Hin). now apply IHlt.
-    rewrite (Hr q0 Hin). now apply IHrt.
+    simpl in Hin. apply in_app_or in Hin. simpl. destruct Hin.
+        rewrite (Hl q0 H). now apply IHlt.
+    rewrite (Hr q0 H). now apply IHrt.
 Qed.
 
 Lemma wf_separated : forall t, wf t -> separated t.
@@ -361,8 +361,7 @@ Proof.
         assert (Hsc : sift (Node e lt rt) q = q)
             by (apply Hcons; simpl; apply in_or_app; now right).
         simpl in Hsc. now rewrite (Hr q Hq) in Hsc. }
-    simpl. repeat split;
-        [assumption | assumption | now apply IHlt | now apply IHrt].
+    simpl. repeat split; auto.
 Qed.
 
 (** [split_leaf] preserves the invariant *)
@@ -378,17 +377,14 @@ Proof.
         intros target e q_new Hwf HinT Hfresh Hsift Hdiff.
     - simpl in HinT. destruct HinT as [Hq | []]. subst target.
       simpl. destruct (str_eq q q) as [_ | Hneq]; [| now destruct (Hneq eq_refl)].
-      (* the new node's two singleton leaves witness orientation; the
-         disagreement hypothesis [Hdiff] fixes [q_new]'s side *)
+      (* the new node's two singleton leaves witness orientation *)
       destruct (member (q ++ e)) eqn:Em; simpl; (split; [| split; [| split]]); auto.
-      + intros x Hx; destruct Hx as [Hx | []]; subst x. assumption.
+      + intros x Hx; destruct Hx as [Hx | []]; now subst.
       + intros x Hx; destruct Hx as [Hx | []]; subst x.
-        destruct (member (q_new ++ e)) eqn:En; [| reflexivity].
-        exfalso. now apply Hdiff.
+        now destruct (member (q_new ++ e)).
       + intros x Hx; destruct Hx as [Hx | []]; subst x.
-        destruct (member (q_new ++ e)) eqn:En; [reflexivity |].
-        exfalso. now apply Hdiff.
-      + intros x Hx; destruct Hx as [Hx | []]; subst x. assumption.
+        now destruct (member (q_new ++ e)).
+      + intros x Hx; destruct Hx as [Hx | []]; now subst x.
     - simpl in Hwf. destruct Hwf as (Hl & Hr & Wl & Wr).
       simpl in HinT, Hfresh. apply in_app_or in HinT. simpl.
       assert (Hfl : ~ In q_new (leaves lt))
@@ -403,38 +399,28 @@ Proof.
         (* q_new sifts toward the left subtree as well *)
         assert (Hqe' : member (q_new ++ e') = true). {
             destruct (member (q_new ++ e')) eqn:E; [reflexivity |].
-            exfalso. apply Hnr.
+            destruct Hnr.
             assert (sift rt q_new = target) by (simpl in Hsift; now rewrite E in Hsift).
             rewrite <- H. apply sift_in_leaves. }
         assert (Hsl : sift lt q_new = target)
             by (simpl in Hsift; now rewrite Hqe' in Hsift).
         rewrite (split_leaf_id rt target e q_new Hnr).
-        split; [| split; [| split]].
-        * intros x Hx. apply split_leaves_fwd in Hx. destruct Hx as [-> | Hx].
-              assumption.
-          now apply Hl.
-        * assumption.
-        * now apply IHlt.
-        * assumption.
+        repeat split; auto.
+        intros x Hx. apply split_leaves_fwd in Hx. destruct Hx as [-> | Hx]; auto.
       + (* symmetric: target is in the right subtree *)
         assert (Hnl : ~ In target (leaves lt))
             by (intro H; pose proof (Hl target H); pose proof (Hr target Hin);
                 congruence).
         assert (Hqe' : member (q_new ++ e') = false). {
             destruct (member (q_new ++ e')) eqn:E; [| reflexivity].
-            exfalso. apply Hnl.
+            destruct Hnl.
             assert (sift lt q_new = target) by (simpl in Hsift; now rewrite E in Hsift).
             rewrite <- H. apply sift_in_leaves. }
         assert (Hsr : sift rt q_new = target)
             by (simpl in Hsift; now rewrite Hqe' in Hsift).
         rewrite (split_leaf_id lt target e q_new Hnl).
-        split; [| split; [| split]].
-        * assumption.
-        * intros x Hx. apply split_leaves_fwd in Hx. destruct Hx as [-> | Hx].
-              assumption.
-          now apply Hr.
-        * assumption.
-        * now apply IHrt.
+        repeat split; auto.
+        intros x Hx. apply split_leaves_fwd in Hx. destruct Hx as [-> | Hx]; auto.
 Qed.
 
 (** Given a tree whose hypothesis mispredicts on a counterexample w, we can find
@@ -471,7 +457,7 @@ Proof.
        prefixes coincide with all of w *)
     assert (Hlt : k < length w). {
         destruct (Nat.le_gt_cases (length w) k) as [Hle |]; [| assumption].
-        exfalso. apply SKincorrect. unfold kv_correct, kv_p in *.
+        destruct SKincorrect. unfold kv_correct, kv_p in *.
         rewrite firstn_all2, skipn_all2, app_nil_r by lia.
         now rewrite firstn_all2, skipn_all2, app_nil_r in Kcorrect by lia.
     }
@@ -491,8 +477,8 @@ Proof.
     exists (sift t qk1), (skipn (S k) w), qk1.
     (* One step of the hypothesis advances from p_k to the leaf [qk1] sifts to *)
     assert (HSk : kv_p t w (S k) = sift t qk1). {
-        unfold kv_p, qk1. rewrite Hfirstn. unfold run.
-        rewrite fold_left_app. unfold make_dfa; simpl. reflexivity.
+        unfold kv_p, qk1, run, make_dfa. rewrite Hfirstn, fold_left_app.
+        reflexivity.
     }
     (* From correctness at k and incorrectness at (S k), the extension and the
        leaf it sifts to are told apart by the suffix e *)
@@ -504,15 +490,12 @@ Proof.
     assert (Hgk1 : member (sift t qk1 ++ skipn (S k) w) <> member w). {
         rewrite <- HSk. now unfold kv_correct in SKincorrect.
     }
-    assert (HinT : In (sift t qk1) (leaves t)) by apply sift_in_leaves.
+    pose proof (sift_in_leaves t qk1) as HinT.
     assert (Hfresh : ~ In qk1 (leaves t)). {
-        intro Hin. apply Hgk1. rewrite (Hcons qk1 Hin). assumption.
+        intro Hin. apply Hgk1. now rewrite (Hcons qk1 Hin).
     }
     assert (Hdiff : member (sift t qk1 ++ skipn (S k) w)
-                  <> member (qk1 ++ skipn (S k) w)). {
-        now rewrite Hgk.
-    }
-    (* Recover [wf] of the current tree, then push it through the split *)
+                  <> member (qk1 ++ skipn (S k) w)) by now rewrite Hgk.
     assert (Hwf : wf t) by (apply consistent_NoDup_wf; assumption).
     assert (Hwf' : wf (split_leaf t (sift t qk1) (skipn (S k) w) qk1))
         by (apply split_preserves_wf; trivial).
@@ -527,7 +510,7 @@ Proof.
     intros t target e q_new HND HinT Hfresh.
     assert (ND' : NoDup (leaves (split_leaf t target e q_new)))
         by now apply split_NoDup.
-    assert (NDc : NoDup (q_new :: leaves t)) by (constructor; assumption).
+    assert (NDc : NoDup (q_new :: leaves t)) by now constructor.
     (* the split tree and [q_new :: leaves t] have the same elements *)
     assert (I1 : incl (leaves (split_leaf t target e q_new)) (q_new :: leaves t)). {
         intros x Hx. apply split_leaves_fwd in Hx. destruct Hx as [-> | Hx];

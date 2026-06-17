@@ -13,7 +13,7 @@ Functions return sigma types, so each sub-component of each algorithm provides a
 
 ## Installation
 
-```
+```bash
 # Will install both lstar (the OCaml release) and lstar-rocq (the Rocq theory development)
 opam install lstar
 ```
