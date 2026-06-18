@@ -11,7 +11,7 @@
     descend left when it holds and right otherwise; the leaf reached names the
     state of u *)
 
-From lstar Require Import DFA ListLemmas Teacher.
+From lstar Require Import DFA ListLemmas Teacher RS.
 From Stdlib Require Import List.
 From Stdlib Require Import Lia.
 From Stdlib Require Import PeanoNat.
@@ -124,39 +124,68 @@ Definition make_dfa (t : dtree) : D.t { q | mem q (leaves t) = true }.
     intros. apply UIP_dec, Bool.bool_dec.
 Defined.
 
-(** [pi t w i] is the access string of the state that the hypothesis induced
-    by t reaches after reading the length-i prefix of w *)
-Definition pi (t : dtree) (w : str) (i : nat) : str :=
-    proj1_sig (run (make_dfa t) (firstn i w)).
 
-(** A prefix of length i is _correct_ when its continuation classifies as in
-    the language exactly when w does *)
-Definition correct (t : dtree) (w : str) (i : nat) : Prop :=
-    member (pi t w i ++ skipn i w) = member w.
-
-Lemma correct_dec : forall t w i, {correct t w i} + {~ correct t w i}.
+Lemma wf_NoDup : forall t, wf t -> NoDup (leaves t).
 Proof.
-    intros. unfold correct. destruct member, member; decide equality.
-Defined.
-
-Lemma eps_correct : forall t w,
-    In nil (leaves t) -> consistent t -> correct t w 0.
-Proof.
-    intros t w Heps Hcons.
-    unfold correct, pi, run; simpl.
-    now rewrite (Hcons nil Heps).
+    intros. destruct H as (Hwf & _).
+    induction t0 as [q | e lt IHlt rt IHrt].
+        simpl. constructor; [intuition | constructor].
+    simpl in Hwf. destruct Hwf as (Hl & Hr & Wl & Wr). simpl.
+    apply NoDup_app_intro; [now apply IHlt | now apply IHrt |].
+    intros x Hx Hxr. pose proof (Hl x Hx). pose proof (Hr x Hxr). congruence.
 Qed.
 
-Lemma full_not_correct : forall t w,
-    accept_string (make_dfa t) w <> member w ->
-    ~ correct t w (length w).
+Lemma wf_consistent : forall t, wf t -> consistent t.
 Proof.
-    intros t w Hce Contra.
-    unfold correct, pi in Contra.
-    rewrite firstn_all, skipn_all, app_nil_r in Contra.
-    apply Hce. unfold accept_string, accept, make_dfa; simpl.
-    assumption.
+    intros. destruct H as (Hwf & _).
+    induction t0 as [q | e lt IHlt rt IHrt]; intros q0 Hin.
+        simpl in Hin. destruct Hin as [H | []]. simpl. assumption.
+    simpl in Hwf. destruct Hwf as (Hl & Hr & Wl & Wr).
+    simpl in Hin. apply in_app_or in Hin. simpl. destruct Hin.
+        rewrite (Hl q0 H). now apply IHlt.
+    rewrite (Hr q0 H). now apply IHrt.
 Qed.
+
+Lemma wf_separated : forall t, wf t -> separated t.
+Proof.
+    intros. destruct H as (Hwf & _).
+    induction t0 as [q | e lt IHlt rt IHrt]; intros u v Hu Hv Huv.
+        simpl in Hu, Hv. destruct Hu as [-> | []], Hv as [-> | []]. now elim Huv.
+    simpl in Hwf. destruct Hwf as (Hl & Hr & Wl & Wr).
+    simpl in Hu, Hv. apply in_app_or in Hu. apply in_app_or in Hv.
+    destruct Hu as [Hu | Hu], Hv as [Hv | Hv].
+    - destruct (IHlt Wl u v Hu Hv Huv) as (d & Hd & Hdiff).
+      exists d. split; [simpl; right; apply in_or_app; now left | assumption].
+    - exists e. split; [simpl; now left |].
+      rewrite (Hl u Hu), (Hr v Hv). discriminate.
+    - exists e. split; [simpl; now left |].
+      rewrite (Hr u Hu), (Hl v Hv). discriminate.
+    - destruct (IHrt Wr u v Hu Hv Huv) as (d & Hd & Hdiff).
+      exists d. split; [simpl; right; apply in_or_app; now right | assumption].
+Qed.
+
+(** Set up Rivest-Schapire counterexample analysis *)
+Module RSS <: RS_Setup s L Tch.
+  Definition obt := { o : dtree | wf o }.
+  Definition P (o : obt) (q : str) : Prop := mem q (leaves (proj1_sig o)) = true.
+  Definition make_dfa (o : obt) : D.t { q | P o q } := make_dfa (proj1_sig o).
+
+  Lemma eps_in_H : forall (o : obt),
+      proj1_sig (make_dfa o).(initial _) = [].
+  Proof.
+    intros (t & Hwf). unfold make_dfa, KV.make_dfa. simpl.
+    apply (wf_consistent t Hwf). now destruct Hwf.
+  Qed.
+
+  Lemma acc_correct : forall (o : obt) q,
+      accept _ (make_dfa o) q = member (proj1_sig q).
+  Proof.
+    intros (t & Hwf) q. unfold make_dfa, KV.make_dfa. reflexivity.
+  Qed.
+End RSS.
+
+Module RSan := RS s L Tch RSS.
+Import RSan.
 
 (** Replace the leaf whose access string is [target] by an internal node discriminating
     on e *)
@@ -282,45 +311,6 @@ Proof.
         now apply (NoDup_app_disj _ _ HND x Hx).
 Qed.
 
-Lemma wf_NoDup : forall t, wf t -> NoDup (leaves t).
-Proof.
-    intros. destruct H as (Hwf & _).
-    induction t0 as [q | e lt IHlt rt IHrt].
-        simpl. constructor; [intuition | constructor].
-    simpl in Hwf. destruct Hwf as (Hl & Hr & Wl & Wr). simpl.
-    apply NoDup_app_intro; [now apply IHlt | now apply IHrt |].
-    intros x Hx Hxr. pose proof (Hl x Hx). pose proof (Hr x Hxr). congruence.
-Qed.
-
-Lemma wf_consistent : forall t, wf t -> consistent t.
-Proof.
-    intros. destruct H as (Hwf & _).
-    induction t0 as [q | e lt IHlt rt IHrt]; intros q0 Hin.
-        simpl in Hin. destruct Hin as [H | []]. simpl. assumption.
-    simpl in Hwf. destruct Hwf as (Hl & Hr & Wl & Wr).
-    simpl in Hin. apply in_app_or in Hin. simpl. destruct Hin.
-        rewrite (Hl q0 H). now apply IHlt.
-    rewrite (Hr q0 H). now apply IHrt.
-Qed.
-
-Lemma wf_separated : forall t, wf t -> separated t.
-Proof.
-    intros. destruct H as (Hwf & _).
-    induction t0 as [q | e lt IHlt rt IHrt]; intros u v Hu Hv Huv.
-        simpl in Hu, Hv. destruct Hu as [-> | []], Hv as [-> | []]. now elim Huv.
-    simpl in Hwf. destruct Hwf as (Hl & Hr & Wl & Wr).
-    simpl in Hu, Hv. apply in_app_or in Hu. apply in_app_or in Hv.
-    destruct Hu as [Hu | Hu], Hv as [Hv | Hv].
-    - destruct (IHlt Wl u v Hu Hv Huv) as (d & Hd & Hdiff).
-      exists d. split; [simpl; right; apply in_or_app; now left | assumption].
-    - exists e. split; [simpl; now left |].
-      rewrite (Hl u Hu), (Hr v Hv). discriminate.
-    - exists e. split; [simpl; now left |].
-      rewrite (Hr u Hu), (Hl v Hv). discriminate.
-    - destruct (IHrt Wr u v Hu Hv Huv) as (d & Hd & Hdiff).
-      exists d. split; [simpl; right; apply in_or_app; now right | assumption].
-Qed.
-
 Lemma consistent_NoDup_wf' : forall t,
     NoDup (leaves t) -> consistent t -> wf' t.
 Proof.
@@ -432,17 +422,9 @@ Theorem find_split :
         wf t' }}}.
 Proof.
     intros t. intros.
-    (* There is some k such that the prefix of length k is correct but the one
-       of length (S k) is not, found by scanning [0 .. length w] *)
-    assert (ExK : { k | correct t w k /\ ~ correct t w (S k) }). {
-        pose proof (eps_correct t w Heps Hcons).
-        pose proof (full_not_correct t w Hce).
-        induction (length w) as [| n IH].
-            contradiction.
-        destruct (correct_dec t w n) as [Hn | Hn].
-            now exists n.
-        destruct (IH Hn) as [k [Hk HSk]]. now exists k.
-    } destruct ExK as (k & Kcorrect & SKincorrect).
+    assert (Hwf : wf t) by (split; [ now apply consistent_NoDup_wf' | easy ]).
+    destruct (partition_binary (exist _ t Hwf) w Hce)
+      as (k & Kcorrect & SKincorrect).
     (* The breakpoint lies strictly inside w, since beyond [length w] both
        prefixes coincide with all of w *)
     assert (Hlt : k < length w). {
@@ -463,10 +445,11 @@ Proof.
         now rewrite firstn_app, Nat.sub_succ_l, firstn_all2, firstn_cons,
                     Nat.sub_diag, firstn_0, firstn_len_app by lia.
     }
-    set (qk1 := pi t w k ++ [wk]).
+    set (o := exist wf t Hwf : RSS.obt).
+    set (qk1 := pi o w k ++ [wk]).
     exists (sift t qk1), (skipn (S k) w), qk1.
     (* One step of the hypothesis advances from p_k to the leaf [qk1] sifts to *)
-    assert (HSk : pi t w (S k) = sift t qk1). {
+    assert (HSk : pi o w (S k) = sift t qk1). {
         unfold pi, qk1, run, make_dfa. rewrite Hfirstn, fold_left_app.
         reflexivity.
     }
@@ -486,8 +469,8 @@ Proof.
     }
     assert (Hdiff : member (sift t qk1 ++ skipn (S k) w)
                   <> member (qk1 ++ skipn (S k) w)) by now rewrite Hgk.
-    assert (Hwf : wf' t) by (now apply consistent_NoDup_wf').
-    assert (Hwf' : wf' (split_leaf t (sift t qk1) (skipn (S k) w) qk1))
+    assert (Hwf' : wf' t) by (now apply consistent_NoDup_wf').
+    assert (Hwf'' : wf' (split_leaf t (sift t qk1) (skipn (S k) w) qk1))
         by (now apply split_preserves_wf').
     repeat split; auto using split_leaves_pres.
 Defined.

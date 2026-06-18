@@ -9,7 +9,8 @@
   ListLemmas
   List
   ListDef
-  PeanoNat)
+  PeanoNat
+  RS)
  (theories Stdlib lstar))
 
 (library
