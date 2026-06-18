@@ -104,16 +104,18 @@ Proof.
         lia.
       (* if hi = S lo, the flip is at lo.
          Otherwise, look for the midpoint *)
-        destruct (Nat.eq_dec hi (S lo)).
+        destruct (Nat.eqb hi (S lo)) eqn:E.
         - exists lo. split; [assumption|].
-          now rewrite <- e.
+          apply Nat.eqb_eq in E. now rewrite <- E.
         - (* lo + 1 < hi, so there is a midpoint strictly between *)
-          set (mid := (lo + hi) / 2).
+          set (mid := Nat.div2 (lo + hi)).
           assert (Hmid_lo : lo < mid). {
-            unfold mid. apply Nat.div_le_lower_bound.
-            discriminate. lia. }
+            unfold mid.
+            apply Nat.div2_le_lower_bound.
+            apply Nat.eqb_neq in E. lia. }
           assert (Hmid_hi : mid < hi). {
-            unfold mid. apply Nat.Div0.div_lt_upper_bound. lia. }
+            unfold mid. rewrite Nat.div2_div.
+            apply Nat.Div0.div_lt_upper_bound. lia. }
           destruct (correct_dec o w mid).
           (* correct at mid: recurse on [mid, hi] *)
             apply (IHgap mid hi); now try lia.
@@ -121,9 +123,10 @@ Proof.
             apply (IHgap lo mid); now try lia.
     }
     (* search(length w, 0 length w) *)
-    destruct (Nat.eq_dec (List.length w) 0).
-    - destruct Cm. now rewrite e.
-    - apply (search (List.length w) 0 (List.length w)); now try lia.
+    destruct (Nat.eqb (List.length w) 0) eqn:E.
+    - destruct Cm. apply Nat.eqb_eq in E. now rewrite E.
+    - apply Nat.eqb_neq in E.
+      apply (search (List.length w) 0 (List.length w)); now try lia.
 Defined.
 
 End RS.
