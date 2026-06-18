@@ -1,12 +1,12 @@
  (** https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.pdf *)
 
-From lstar Require Import DFA ListLemmas.
+From lstar Require Import DFA ListLemmas RS.
 From Stdlib Require Import Classes.RelationClasses.
 From Stdlib Require Import Setoids.Setoid.
 From Stdlib Require Import List.
 From Stdlib Require Import Lia.
 From Stdlib Require Import Recdef.
-From Stdlib Require Import PeanoNat. Require Import Nat.
+From Stdlib Require Import PeanoNat.
 From Stdlib Require Import Eqdep_dec.
 Import ListNotations.
 From lstar Require Import Teacher.
@@ -277,42 +277,30 @@ Qed.
 
 (** Given a counter-example, we can always find q_new and t
     to add to Q, T such that Q' and T' are finite and Q' is
-    separable wrt T' *)
+    separable wrt T' (see RS.v for linear and binary searches) *)
 
-(** Define pi_i = delta∗(ε, w1w2 ... wi) *)
-Definition pi (H : HypothesisDFA) (w : str) (i : nat) :=
-    run (make_dfa H) (firstn i w).
+Module RSS <: RS_Setup s L T.
+  Definition obt := HypothesisDFA.
+  Definition P (o : obt) (q : str) : Prop := o.(Q) q = true.
+  Definition make_dfa (o : obt) : D.t { q | P o q } := make_dfa o.
 
-(** We say a state pi_i is correct if pi_i w_(i+1) ... w_m ∈ L ⇐⇒ w ∈ L. *)
-Definition correct (H : HypothesisDFA) (w : str) (i : nat) : Prop :=
-    L.member (proj1_sig (pi H w i) ++ skipn i w) = L.member w.
-
-(** Now, ε is correct trivially, and p_m is not correct since w is a counterexample. *)
-Example eps_correct : forall H w, correct H w 0.
-Proof.
-    intros.
-    unfold correct, pi, run, make_dfa, initial, fin_Q. simpl.
+  Lemma eps_in_H : forall (o : obt),
+      proj1_sig (make_dfa o).(initial _) = [].
+  Proof.
+    intro H. unfold make_dfa, Lstar.make_dfa, initial, fin_Q. simpl.
     now destruct H, fin_Q0, a.
-Qed.
+  Qed.
 
-Example full_not_correct : forall H w
-    (* w is a counterexample *)
-    (Hce : accept_string (make_dfa H) w <> member w),
-    ~ correct H w (length w).
-Proof.
-    intros H w Hce Contra.
-    unfold correct, pi in Contra.
-    rewrite firstn_all, skipn_all, app_nil_r in Contra.
-    apply Hce. unfold accept_string, accept, make_dfa in *.
-    destruct H, fin_Q, a. contradiction.
-Qed.
+  Lemma acc_correct : forall (o : obt) q,
+      accept _ (make_dfa o) q = member (proj1_sig q).
+  Proof.
+    intros H q. unfold make_dfa, Lstar.make_dfa, accept.
+    now destruct fin_Q, a.
+  Qed.
+End RSS.
 
-(** Correctness is decidable *)
-Lemma correct_dec : forall H w i, {correct H w i} + {~ correct H w i}.
-Proof.
-    intros. unfold correct. destruct member, member;
-    decide equality.
-Defined.
+Module RSan := RS s L T RSS.
+Import RSan.
 
 Theorem find_separable :
   forall (H : HypothesisDFA) (* Q is closed and separable wrt T *)
@@ -328,22 +316,13 @@ Theorem find_separable :
       finite Q' *
       finite T' }}.
     intros.
-    (* Define p_i = delta∗(ε, w1w2 ... wi) *)
-    set (pi := pi H w).
-    (* We say a state p_i is correct if p_i w_(i+1) ... w_m ∈ L ⇐⇒ w ∈ L. *)
-    set (correct := correct H w).
     (* There is some k such that p_(k−1) is correct but p_k is not *)
-    assert (ExK: {k : nat | correct k /\ ~ correct (S k)}). {
-        pose proof (eps_correct H w).
-        pose proof (full_not_correct H w Hce). 
-        induction (length w) as [| n IH].
-          contradiction.
-        destruct (correct_dec H w n) as [Hn | Hn]; eauto.
-    } destruct ExK as (k & KCorrect & SKIncorrect).
+    destruct (RSan.partition_binary H w Hce) as
+        (k & KCorrect & SKIncorrect).
     (* Then t = w_(k+1) ... w_m distinguishes p_k and p_(k−1)w_k. *)
-    assert (Dist: member (proj1_sig (pi k) ++ skipn k w) <>
-                  member (proj1_sig (pi (S k)) ++ skipn (S k) w)). {
-        unfold correct, Lstar.correct, pi, Lstar.pi in *.
+    assert (Dist: member (pi H w k ++ skipn k w) <>
+                  member (pi H w (S k) ++ skipn (S k) w)). {
+        unfold correct, pi in *.
         now rewrite KCorrect.
     }
     (* Since p_(k−1)w_k ≡T p_k and p_k ∈ Q, by separability of Q,
@@ -351,7 +330,7 @@ Theorem find_separable :
     assert (Hlt : k < length w). {
         destruct (Nat.le_gt_cases (length w) k) as [Hle |]; [|assumption].
         destruct SKIncorrect.
-        unfold correct, Lstar.correct, pi, Lstar.pi in *.
+        unfold correct, pi in *.
         now rewrite firstn_all2, skipn_all2, app_nil_r in * by lia.
     }
     (* Retrieve w[k] *)
@@ -362,7 +341,7 @@ Theorem find_separable :
     } destruct X as (wk & Hwk).
     (* q_new := p_k w_k *)
     (* t := w[S k:] *)
-    exists (proj1_sig (pi k) ++ [wk]), (skipn (S k) w).
+    exists (pi H w k ++ [wk]), (skipn (S k) w).
     destruct (nth_error_split_sig _ _ _ Hwk) as (l1 & l2 & Hw & Hlen).
     assert (Hfirstn : firstn (S k) w = firstn k w ++ [wk]). {
         subst.
@@ -376,43 +355,45 @@ Theorem find_separable :
           (make_dfa H).(transition _) (run (make_dfa H) (firstn i w)) a). {
       intros. unfold run. now rewrite fold_left_app.
     }
-    assert (HTeq : H.(T) [proj1_sig (pi k) ++ [wk] == proj1_sig (pi (S k))]). {
-        unfold pi, Lstar.pi. rewrite Hfirstn, run_step.
+    assert (HTeq : H.(T) [pi H w k ++ [wk] == pi H w (S k)]). {
+        unfold pi. rewrite Hfirstn, run_step.
         set (q := run (make_dfa H) (firstn k w)).
         destruct (delta H.(Q) H.(T) H.(clos) (proj1_sig q)
                       wk (proj2_sig q)) as [q' [Hq' Heq]].
         unfold transition, make_dfa, delta.
         now destruct H, fin_Q, a, clos, a.
     }
+    assert (H.(Q) (pi H w (S k)) = true) by
+        exact (proj2_sig (run (make_dfa H) (firstn (S k) w))).
     repeat split.
     - pose proof H.(sep). unfold separable in X.
-      destruct (H.(Q) (proj1_sig (pi k) ++ [wk])) eqn:HQ; auto.
+      destruct (H.(Q) (pi H w k ++ [wk])) eqn:HQ; auto.
       destruct Dist.
-      assert (proj1_sig (pi k) ++ [wk] = proj1_sig (pi (S k))). {
-          destruct (str_eq (proj1_sig (pi k) ++ [wk]) (proj1_sig (pi (S k)))) as [|Hneq].
+      assert (pi H w k ++ [wk] = pi H w (S k)). {
+          destruct (str_eq (pi H w k ++ [wk]) (pi H w (S k))) as [|Hneq].
             easy.
-          destruct (H.(sep) _ _ HQ (proj2_sig (pi (S k))) Hneq HTeq).
+          destruct (H.(sep) _ _ HQ H0 Hneq HTeq).
       } subst.
-      now rewrite <- H0, skipn_len_app, skipn_Slen_cons_app, <- app_assoc.
+      now rewrite <- H1, skipn_len_app, skipn_Slen_cons_app, <- app_assoc.
     - intros u v Qu Qv Neq Contra.
       unfold update in Qu, Qv.
-      destruct (str_eq u (proj1_sig (pi k) ++ [wk])),
-               (str_eq v (proj1_sig (pi k) ++ [wk])); try subst u; try subst v; auto.
-      + apply (H.(sep) (proj1_sig (pi (S k))) v (proj2_sig (pi (S k))) Qv).
+      destruct (str_eq u (pi H w k ++ [wk])),
+               (str_eq v (pi H w k ++ [wk])); try subst u; try subst v; auto.
+      + apply (H.(sep) (pi H w (S k)) v H0 Qv).
           intro Contra'. subst v. unfold T_equiv in Contra.
           apply Dist.
           specialize (Contra (skipn (S k) w) (update_eq _ _ _)).
           now erewrite <- Contra, <- app_assoc, skipn_S_wk.
-        transitivity (proj1_sig (pi k) ++ [wk]).
+        transitivity (pi H w k ++ [wk]).
           now symmetry.
         eapply refined_distinguish; [| apply Contra].
         intros. unfold update. now destruct str_eq.
-      + apply (H.(sep) (proj1_sig (pi (S k))) u (proj2_sig (pi (S k))) Qu).
+      + apply (H.(sep) (pi H w (S k)) u H0 Qu).
           intro Contra'. subst u. unfold T_equiv in Contra.
           apply Dist.
           specialize (Contra (skipn (S k) w) (update_eq _ _ _)).
           now erewrite Contra, <- app_assoc, skipn_S_wk.
-        transitivity (proj1_sig (pi k) ++ [wk]).
+        transitivity (pi H w k ++ [wk]).
           now symmetry.
         eapply refined_distinguish; [| symmetry; apply Contra].
         intros. unfold update. now destruct str_eq.
@@ -425,25 +406,25 @@ Theorem find_separable :
         apply NoDup_cons; eauto.
         + intro Contra.
           rewrite <- X in Contra.
-          destruct (str_eq (proj1_sig (pi k) ++ [wk]) (proj1_sig (pi (S k))))
+          destruct (str_eq (pi H w k ++ [wk]) (pi H w (S k)))
             as [Heq | Hneq].
             apply Dist. rewrite <- Heq, <- app_assoc.
             unfold app. now rewrite <- skipn_S_wk.
-          apply (H.(sep) _ _ Contra (proj2_sig (pi (S k)))); eauto.
+          apply (H.(sep) _ _ Contra H0); eauto.
         + split; intros.
-        -- destruct (str_eq s (proj1_sig (pi k) ++ [wk])).
+        -- destruct (str_eq s ((pi H w k) ++ [wk])).
             subst. now constructor.
-            apply in_cons, X. now rewrite update_neq in H0.
-        -- destruct H0. subst.
+            apply in_cons, X. now rewrite update_neq in H1.
+        -- destruct H1. subst.
             apply update_eq.
-            destruct (str_eq s (proj1_sig (pi k) ++ [wk])). subst.
+            destruct (str_eq s (pi H w k ++ [wk])). subst.
             apply update_eq.
             rewrite update_neq. now apply X. now symmetry.
     - unfold finite. destruct H.(fin_T) as (l & ND & X).
       eexists. split.
         apply NoDup_cons; eauto. intro Contra.
         rewrite <- X in Contra.
-        destruct (str_eq (proj1_sig (pi k) ++ [wk]) (proj1_sig (pi (S k))))
+        destruct (str_eq (pi H w k ++ [wk]) (pi H w (S k)))
             as [Heq | Hneq].
             apply Dist. rewrite <- Heq, <- app_assoc.
             unfold app. now rewrite <- skipn_S_wk.
@@ -455,8 +436,8 @@ Theorem find_separable :
       split; intros.
       + destruct (str_eq s (skipn (S k) w)).
            subst. now constructor.
-           apply in_cons, X. now rewrite update_neq in H0.
-      + simpl in H0. destruct H0. subst.
+           apply in_cons, X. now rewrite update_neq in H1.
+      + simpl in H1. destruct H1. subst.
            apply update_eq.
         destruct (str_eq s (skipn (S k) w)). subst.
            apply update_eq.
