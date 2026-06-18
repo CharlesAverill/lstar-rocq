@@ -89,9 +89,8 @@ Definition mem (q : str) (l : list str) : bool :=
 Lemma mem_In : forall q l, mem q l = true <-> In q l.
 Proof.
     intros q l. unfold mem. rewrite existsb_exists. split.
-    - intros (y & Hy & Heq). destruct (str_eq y q); [now subst | discriminate].
-    - intro Hin. exists q. split; [assumption|].
-      destruct (str_eq q q); [reflexivity | now elim n].
+    - intros (y & Hy & Heq). destruct (str_eq y q); now subst.
+    - intro Hin. exists q. split; now destruct (str_eq q q).
 Qed.
 
 Lemma sift_mem : forall t u, mem (sift t u) (leaves t) = true.
@@ -179,21 +178,15 @@ Lemma split_leaves_fwd : forall t target e q_new x,
 Proof.
     induction t0 as [q | e' lt IHlt rt IHrt]; intros target e q_new x H.
     - simpl in H. destruct (str_eq q target) as [Heq | Hneq]; simpl in H.
-      + destruct (member (q ++ e)); simpl in H.
-        * destruct H as [Hq | [Hqn | []]].
-              right. simpl. now left.
-          left. now symmetry.
-        * destruct H as [Hqn | [Hq | []]].
-              left. now symmetry.
-          right. simpl. now left.
-      + destruct H as [Hq | []]. right. simpl. now left.
-    - simpl in H. apply in_app_or in H. destruct H as [H | H].
-      + destruct (IHlt target e q_new x H) as [Hqn | Hin].
-            now left.
-        right. simpl. apply in_or_app. now left.
-      + destruct (IHrt target e q_new x H) as [Hqn | Hin].
-            now left.
-        right. simpl. apply in_or_app. now right.
+      + destruct (member (q ++ e)); simpl in H;
+        destruct H; subst; auto.
+            right. now left.
+        destruct H; [|contradiction]; auto.
+      + destruct H; [|contradiction]. right. now left.
+    - simpl in H. apply in_app_or in H. destruct H;
+      [destruct (IHlt target e q_new x H) as [Hqn | Hin]|
+       destruct (IHrt target e q_new x H) as [Hqn | Hin]]; auto;
+       right; apply in_or_app; auto.
 Qed.
 
 Lemma split_leaf_id : forall t target e q_new,
@@ -201,9 +194,8 @@ Lemma split_leaf_id : forall t target e q_new,
     split_leaf t target e q_new = t.
 Proof.
     induction t0 as [q | e' lt IHlt rt IHrt]; intros target e q_new Hni; simpl in *.
-    - destruct (str_eq q target) as [Heq | Hneq].
-          exfalso. apply Hni. now left.
-      reflexivity.
+    - destruct (str_eq q target); auto.
+      destruct Hni; auto.
     - f_equal; [apply IHlt|apply IHrt]; intro; eauto using in_or_app.
 Qed.
 
@@ -211,23 +203,22 @@ Lemma split_leaves_pres : forall t target e q_new x,
     In x (leaves t) -> In x (leaves (split_leaf t target e q_new)).
 Proof.
     induction t0 as [q | e' lt IHlt rt IHrt]; intros target e q_new x H.
-    - simpl in H. destruct H as [Hq | []].
-      simpl. destruct (str_eq q target) as [_ | _].
-          destruct (member (q ++ e)); simpl; [left | right; left]; assumption.
-      simpl. now left.
-    - simpl in H. apply in_app_or in H. simpl. apply in_or_app.
-      destruct H as [H | H]; [left|right]; auto.
+    - simpl in H. destruct H; [|contradiction].
+      simpl. destruct (str_eq q target); subst; [|now left].
+      now destruct (member (target ++ e)); simpl; [left | right; left].
+    - apply in_app_or in H. apply in_or_app.
+      destruct H; auto.
 Qed.
 
 Lemma split_q_new_in : forall t target e q_new,
     In target (leaves t) -> In q_new (leaves (split_leaf t target e q_new)).
 Proof.
     induction t0 as [q | e' lt IHlt rt IHrt]; intros target e q_new H.
-    - simpl in H. destruct H as [Hq | []].
-      simpl. destruct (str_eq q target) as [_ | Hneq]; [| destruct (Hneq Hq)].
-      destruct (member (q ++ e)); simpl; [right; left | left]; reflexivity.
+    - simpl in H. destruct H; [|contradiction]; subst.
+      simpl. destruct (str_eq target target); [|contradiction].
+      now destruct (member (target ++ e)); simpl; [right; left | left].
     - simpl in H. apply in_app_or in H. simpl. apply in_or_app.
-      destruct H as [H | H]; [left|right]; auto.
+      destruct H; auto.
 Qed.
 
 Lemma split_leaves_bwd : forall t target e q_new x,
@@ -248,7 +239,7 @@ Proof.
         intros x Hx; inversion Hx.
     - intros x Hx. simpl in Hx. destruct Hx as [-> | Hx].
           now left.
-      right. apply in_or_app. apply in_app_or in Hx as [Hx | Hx].
+      right. apply in_or_app. apply in_app_or in Hx. destruct Hx.
         left. now apply IHlt.
         right. now apply IHrt.
 Qed.
@@ -263,11 +254,10 @@ Proof.
     induction t0 as [q | e' lt IHlt rt IHrt]; intros target e q_new HND HinT Hfresh.
     - simpl in HinT. destruct HinT as [Hq | []]. simpl in Hfresh.
       assert (Hqn : q_new <> q) by (intro Heq; apply Hfresh; left; congruence).
-      simpl. destruct (str_eq q target) as [_ | Hneq]; [| destruct (Hneq Hq)].
-      destruct (member (q ++ e)); simpl;
-          constructor; solve
-              [ intros [H | []]; congruence
-              | constructor; [intros [] | constructor] ].
+      simpl. destruct (str_eq q target) as [_ | Hneq]; [| contradiction].
+      destruct (member (q ++ e)); simpl; (constructor;
+              [ intros x; destruct x; easy || congruence
+              | constructor; [intros x; destruct x | constructor] ]).
     - simpl in HND, HinT, Hfresh. simpl.
       pose proof (NoDup_app_l _ _ HND) as NDl.
       pose proof (NoDup_app_r _ _ HND) as NDr.
@@ -382,13 +372,9 @@ Proof.
     - simpl in HinT. destruct HinT as [Hq | []]. subst target.
       simpl. destruct (str_eq q q) as [_ | Hneq]; [| now destruct (Hneq eq_refl)].
       (* the new node's two singleton leaves witness orientation *)
-      destruct (member (q ++ e)) eqn:Em; simpl; (split; [| split; [| split]]); auto.
-      + intros x Hx; destruct Hx as [Hx | []]; now subst.
-      + intros x Hx; destruct Hx as [Hx | []]; subst x.
-        now destruct (member (q_new ++ e)).
-      + intros x Hx; destruct Hx as [Hx | []]; subst x.
-        now destruct (member (q_new ++ e)).
-      + intros x Hx; destruct Hx as [Hx | []]; now subst x.
+      destruct (member (q ++ e)) eqn:Em; repeat split; auto;
+      intros x Hx; destruct Hx as [Hx|[]]; subst x; subst; easy ||
+      now destruct (member (q_new ++ e)).
     - simpl in Hwf. destruct Hwf as (Hl & Hr & Wl & Wr).
       simpl in HinT, Hfresh. apply in_app_or in HinT. simpl.
       assert (Hfl : ~ In q_new (leaves lt))
@@ -517,8 +503,7 @@ Proof.
     assert (NDc : NoDup (q_new :: leaves t)) by now constructor.
     (* the split tree and [q_new :: leaves t] have the same elements *)
     assert (I1 : incl (leaves (split_leaf t target e q_new)) (q_new :: leaves t)). {
-        intros x Hx. apply split_leaves_fwd in Hx. destruct Hx as [-> | Hx];
-            [now left | now right].
+        intros x Hx. apply split_leaves_fwd in Hx. destruct Hx as [-> | Hx]; now constructor.
     }
     assert (I2 : incl (q_new :: leaves t) (leaves (split_leaf t target e q_new))). {
         intros x [-> | Hx];
