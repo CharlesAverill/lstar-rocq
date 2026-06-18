@@ -73,14 +73,15 @@ Definition separated (t : dtree) : Prop :=
 (** A tree is _well-formed_ when each node's discriminator bisects the behavior
     of its two subtrees. Or, every leaf below the [true] branch agrees with the
     discriminator, every leaf below the [false] branch disagrees *)
-Fixpoint wf (t : dtree) : Prop :=
+Fixpoint wf' (t : dtree) : Prop :=
     match t with
     | Leaf _ => True
     | Node e lt rt =>
         (forall q, In q (leaves lt) -> member (q ++ e) = true) /\
         (forall q, In q (leaves rt) -> member (q ++ e) = false) /\
-        wf lt /\ wf rt
+        wf' lt /\ wf' rt
     end.
+Definition wf t := wf' t /\ In nil (leaves t).
 
 Definition mem (q : str) (l : list str) : bool :=
     existsb (fun y => if str_eq y q then true else false) l.
@@ -293,7 +294,8 @@ Qed.
 
 Lemma wf_NoDup : forall t, wf t -> NoDup (leaves t).
 Proof.
-    induction t0 as [q | e lt IHlt rt IHrt]; intro Hwf.
+    intros. destruct H as (Hwf & _).
+    induction t0 as [q | e lt IHlt rt IHrt].
         simpl. constructor; [intuition | constructor].
     simpl in Hwf. destruct Hwf as (Hl & Hr & Wl & Wr). simpl.
     apply NoDup_app_intro; [now apply IHlt | now apply IHrt |].
@@ -302,7 +304,8 @@ Qed.
 
 Lemma wf_consistent : forall t, wf t -> consistent t.
 Proof.
-    induction t0 as [q | e lt IHlt rt IHrt]; intros Hwf q0 Hin.
+    intros. destruct H as (Hwf & _).
+    induction t0 as [q | e lt IHlt rt IHrt]; intros q0 Hin.
         simpl in Hin. destruct Hin as [H | []]. simpl. assumption.
     simpl in Hwf. destruct Hwf as (Hl & Hr & Wl & Wr).
     simpl in Hin. apply in_app_or in Hin. simpl. destruct Hin.
@@ -312,7 +315,8 @@ Qed.
 
 Lemma wf_separated : forall t, wf t -> separated t.
 Proof.
-    induction t0 as [q | e lt IHlt rt IHrt]; intros Hwf u v Hu Hv Huv.
+    intros. destruct H as (Hwf & _).
+    induction t0 as [q | e lt IHlt rt IHrt]; intros u v Hu Hv Huv.
         simpl in Hu, Hv. destruct Hu as [-> | []], Hv as [-> | []]. now elim Huv.
     simpl in Hwf. destruct Hwf as (Hl & Hr & Wl & Wr).
     simpl in Hu, Hv. apply in_app_or in Hu. apply in_app_or in Hv.
@@ -327,8 +331,8 @@ Proof.
       exists d. split; [simpl; right; apply in_or_app; now right | assumption].
 Qed.
 
-Lemma consistent_NoDup_wf : forall t,
-    NoDup (leaves t) -> consistent t -> wf t.
+Lemma consistent_NoDup_wf' : forall t,
+    NoDup (leaves t) -> consistent t -> wf' t.
 Proof.
     induction t0 as [q | e lt IHlt rt IHrt]; intros HND Hcons; [exact I |].
     simpl in HND.
@@ -365,13 +369,13 @@ Proof.
 Qed.
 
 (** [split_leaf] preserves the invariant *)
-Lemma split_preserves_wf : forall t target e q_new,
-    wf t ->
+Lemma split_preserves_wf' : forall t target e q_new,
+    wf' t ->
     In target (leaves t) ->
     ~ In q_new (leaves t) ->
     sift t q_new = target ->
     member (target ++ e) <> member (q_new ++ e) ->
-    wf (split_leaf t target e q_new).
+    wf' (split_leaf t target e q_new).
 Proof.
     induction t0 as [q | e' lt IHlt rt IHrt];
         intros target e q_new Hwf HinT Hfresh Hsift Hdiff.
@@ -439,7 +443,7 @@ Theorem find_split :
         ~ In q_new (leaves t) /\
         member (target ++ e) <> member (q_new ++ e) /\
         let t' := split_leaf t target e q_new in
-        wf t' /\ In nil (leaves t') }}}.
+        wf t' }}}.
 Proof.
     intros t. intros.
     (* There is some k such that the prefix of length k is correct but the one
@@ -496,9 +500,9 @@ Proof.
     }
     assert (Hdiff : member (sift t qk1 ++ skipn (S k) w)
                   <> member (qk1 ++ skipn (S k) w)) by now rewrite Hgk.
-    assert (Hwf : wf t) by (apply consistent_NoDup_wf; assumption).
-    assert (Hwf' : wf (split_leaf t (sift t qk1) (skipn (S k) w) qk1))
-        by (apply split_preserves_wf; trivial).
+    assert (Hwf : wf' t) by (now apply consistent_NoDup_wf').
+    assert (Hwf' : wf' (split_leaf t (sift t qk1) (skipn (S k) w) qk1))
+        by (now apply split_preserves_wf').
     repeat split; auto using split_leaves_pres.
 Defined.
 
@@ -629,22 +633,22 @@ Qed.
 
 Lemma full_states_no_ce : forall (t : dtree),
     wf t ->
-    In nil (leaves t) ->
     L.num_states_in_minimal <= List.length (leaves t) ->
     equiv_query _ (make_dfa t) = None.
 Proof.
-    intros t Hwf Heps Contra.
+    intros t Hwf Contra.
     destruct (equiv_query _ (make_dfa t)) eqn:Heq; [exfalso | reflexivity].
     assert (Hce : accept_string (make_dfa t) s <> member s)
         by now apply equiv_query_ce.
     pose proof (wf_separated _ Hwf) as Hsep.
     pose proof (wf_consistent _ Hwf) as Hcons.
-    pose proof (wf_NoDup _ Hwf) as HND.
+    pose proof (wf_NoDup _ Hwf) as HND. destruct Hwf as (Hwf & Heps).
     destruct (find_split _ s Heps Hcons HND Hce) as
         (target & e & q_new & In_target & NIn_qnew & Membership & X).
     cbv zeta in X. destruct X as (Wft' & Heps').
     pose proof (split_leaf_count t target e q_new HND In_target NIn_qnew) as Hcount.
-    pose proof (kv_le_min _ Wft') as Hcap.
+    assert (wf (split_leaf t target e q_new)) by now split.
+    pose proof (kv_le_min _ H) as Hcap.
     (* Hcap : length (leaves (split_leaf t target e q_new)) <= num_states_in_minimal *)
     rewrite Hcount in Hcap.
     (* Hcap : S (length (leaves t)) <= num_states_in_minimal *)
@@ -654,7 +658,7 @@ Qed.
 (** The main KV implementation. Adds one state per counterexample *)
 Fixpoint kv_learn (fuel : nat) (t : dtree)
                   (LE : L.num_states_in_minimal - List.length (leaves t) <= fuel)
-                  (Hwf : wf t) (Heps : In nil (leaves t))
+                  (Hwf : wf t)
     : { St : Type & {d : D.t St | minimal d} }.
     destruct (equiv_query _ (make_dfa t)) eqn:Heq.
     - (* counterexample *)
@@ -664,10 +668,12 @@ Fixpoint kv_learn (fuel : nat) (t : dtree)
            rewrite Heq in LE. discriminate.
         -- assert (Hce : accept_string (make_dfa t) s <> member s)
                 by now apply equiv_query_ce.
+            pose proof Hwf as Hwf'.
+            destruct Hwf' as (Hwf' & Heps).
             destruct (find_split t s Heps (wf_consistent t Hwf) (wf_NoDup t Hwf) Hce)
-                as (target & e & q_new & HinT & Hfresh & Hdiff & Hwf' & Heps').
+                as (target & e & q_new & HinT & Hfresh & Hdiff & Hwf'' & Heps').
             enough (num_states_in_minimal - List.length (leaves (split_leaf t target e q_new)) <= n).
-            eapply (kv_learn n (split_leaf t target e q_new) H Hwf' Heps').
+            eapply (kv_learn n (split_leaf t target e q_new) H (conj Hwf'' Heps')).
             pose proof (split_leaf_count t target e q_new
                           (wf_NoDup t Hwf) HinT Hfresh) as Hcount.
             rewrite Hcount. lia.
@@ -676,6 +682,6 @@ Defined.
 
 (** The learner is seeded with a trivially well-formed tree *)
 Definition kv (_ : unit) : { St : Type & {d : D.t St | minimal d} } :=
-    kv_learn num_states_in_minimal (Leaf nil) ltac:(lia) I (or_introl eq_refl).
+    kv_learn num_states_in_minimal (Leaf nil) ltac:(lia) (conj I (or_introl eq_refl)).
 
 End KV.

@@ -30,7 +30,7 @@
 
 (package
  (name lstar)
- (synopsis "Automata learning with from lstar-rocq")
+ (synopsis "Automata learning with lstar-rocq")
  (description "Formally-verified implementations of L* and similar algorithms")
  (depends
    (rocq-core (>= 9.1.0))
