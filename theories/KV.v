@@ -125,35 +125,35 @@ Definition make_dfa (t : dtree) : D.t { q | mem q (leaves t) = true }.
     intros. apply UIP_dec, Bool.bool_dec.
 Defined.
 
-(** [kv_p t w i] is the access string of the state that the hypothesis induced
+(** [pi t w i] is the access string of the state that the hypothesis induced
     by t reaches after reading the length-i prefix of w *)
-Definition kv_p (t : dtree) (w : str) (i : nat) : str :=
+Definition pi (t : dtree) (w : str) (i : nat) : str :=
     proj1_sig (run (make_dfa t) (firstn i w)).
 
 (** A prefix of length i is _correct_ when its continuation classifies as in
     the language exactly when w does *)
-Definition kv_correct (t : dtree) (w : str) (i : nat) : Prop :=
-    member (kv_p t w i ++ skipn i w) = member w.
+Definition correct (t : dtree) (w : str) (i : nat) : Prop :=
+    member (pi t w i ++ skipn i w) = member w.
 
-Lemma kv_correct_dec : forall t w i, {kv_correct t w i} + {~ kv_correct t w i}.
+Lemma correct_dec : forall t w i, {correct t w i} + {~ correct t w i}.
 Proof.
-    intros. unfold kv_correct. destruct member, member; decide equality.
+    intros. unfold correct. destruct member, member; decide equality.
 Defined.
 
-Lemma kv_eps_correct : forall t w,
-    In nil (leaves t) -> consistent t -> kv_correct t w 0.
+Lemma eps_correct : forall t w,
+    In nil (leaves t) -> consistent t -> correct t w 0.
 Proof.
     intros t w Heps Hcons.
-    unfold kv_correct, kv_p, run; simpl.
+    unfold correct, pi, run; simpl.
     now rewrite (Hcons nil Heps).
 Qed.
 
-Lemma kv_full_not_correct : forall t w,
+Lemma full_not_correct : forall t w,
     accept_string (make_dfa t) w <> member w ->
-    ~ kv_correct t w (length w).
+    ~ correct t w (length w).
 Proof.
     intros t w Hce Contra.
-    unfold kv_correct, kv_p in Contra.
+    unfold correct, pi in Contra.
     rewrite firstn_all, skipn_all, app_nil_r in Contra.
     apply Hce. unfold accept_string, accept, make_dfa; simpl.
     assumption.
@@ -448,12 +448,12 @@ Proof.
     intros t. intros.
     (* There is some k such that the prefix of length k is correct but the one
        of length (S k) is not, found by scanning [0 .. length w] *)
-    assert (ExK : { k | kv_correct t w k /\ ~ kv_correct t w (S k) }). {
-        pose proof (kv_eps_correct t w Heps Hcons).
-        pose proof (kv_full_not_correct t w Hce).
+    assert (ExK : { k | correct t w k /\ ~ correct t w (S k) }). {
+        pose proof (eps_correct t w Heps Hcons).
+        pose proof (full_not_correct t w Hce).
         induction (length w) as [| n IH].
             contradiction.
-        destruct (kv_correct_dec t w n) as [Hn | Hn].
+        destruct (correct_dec t w n) as [Hn | Hn].
             now exists n.
         destruct (IH Hn) as [k [Hk HSk]]. now exists k.
     } destruct ExK as (k & Kcorrect & SKincorrect).
@@ -461,7 +461,7 @@ Proof.
        prefixes coincide with all of w *)
     assert (Hlt : k < length w). {
         destruct (Nat.le_gt_cases (length w) k) as [Hle |]; [| assumption].
-        destruct SKincorrect. unfold kv_correct, kv_p in *.
+        destruct SKincorrect. unfold correct, pi in *.
         rewrite firstn_all2, skipn_all2, app_nil_r by lia.
         now rewrite firstn_all2, skipn_all2, app_nil_r in Kcorrect by lia.
     }
@@ -477,22 +477,22 @@ Proof.
         now rewrite firstn_app, Nat.sub_succ_l, firstn_all2, firstn_cons,
                     Nat.sub_diag, firstn_0, firstn_len_app by lia.
     }
-    set (qk1 := kv_p t w k ++ [wk]).
+    set (qk1 := pi t w k ++ [wk]).
     exists (sift t qk1), (skipn (S k) w), qk1.
     (* One step of the hypothesis advances from p_k to the leaf [qk1] sifts to *)
-    assert (HSk : kv_p t w (S k) = sift t qk1). {
-        unfold kv_p, qk1, run, make_dfa. rewrite Hfirstn, fold_left_app.
+    assert (HSk : pi t w (S k) = sift t qk1). {
+        unfold pi, qk1, run, make_dfa. rewrite Hfirstn, fold_left_app.
         reflexivity.
     }
     (* From correctness at k and incorrectness at (S k), the extension and the
        leaf it sifts to are told apart by the suffix e *)
     assert (Hgk : member (qk1 ++ skipn (S k) w) = member w). {
-        unfold kv_correct in Kcorrect.
+        unfold correct in Kcorrect.
         rewrite (skipn_S_wk _ _ _ _ Hwk) in Kcorrect.
         unfold qk1. now rewrite <- app_assoc.
     }
     assert (Hgk1 : member (sift t qk1 ++ skipn (S k) w) <> member w). {
-        rewrite <- HSk. now unfold kv_correct in SKincorrect.
+        rewrite <- HSk. now unfold correct in SKincorrect.
     }
     pose proof (sift_in_leaves t qk1) as HinT.
     assert (Hfresh : ~ In qk1 (leaves t)). {
@@ -579,7 +579,7 @@ Proof.
     destruct Hst as (q & <- & _). unfold f. apply D.run_in_states.
 Qed.
 
-Lemma kv_le_min : forall t,
+Lemma le_min : forall t,
     wf t ->
     length (leaves t) <= num_states_in_minimal.
 Proof.
@@ -648,7 +648,7 @@ Proof.
     cbv zeta in X. destruct X as (Wft' & Heps').
     pose proof (split_leaf_count t target e q_new HND In_target NIn_qnew) as Hcount.
     assert (wf (split_leaf t target e q_new)) by now split.
-    pose proof (kv_le_min _ H) as Hcap.
+    pose proof (le_min _ H) as Hcap.
     (* Hcap : length (leaves (split_leaf t target e q_new)) <= num_states_in_minimal *)
     rewrite Hcount in Hcap.
     (* Hcap : S (length (leaves t)) <= num_states_in_minimal *)
