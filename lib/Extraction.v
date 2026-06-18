@@ -1,4 +1,4 @@
-From Stdlib Require Import Bool List String.
+From Stdlib Require Import Bool List String PeanoNat.
 From Stdlib Require Import Extraction ExtrOcamlNativeString ExtrOcamlBasic ExtrOcamlNatInt.
 
 From lstar Require Import Lstar KV DFA RS.

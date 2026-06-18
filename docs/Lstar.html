@@ -34,6 +34,7 @@ https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.
 <span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Lia</span>.<br/>
 <span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Recdef</span>.<br/>
 <span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">PeanoNat</span>. <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Nat</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Eqdep_dec</span>.<br/>
 <span class="id" title="keyword">Import</span> <span class="id" title="var">ListNotations</span>.<br/>
 <span class="id" title="keyword">From</span> <span class="id" title="var">lstar</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Teacher</span>.<br/>
 
@@ -54,8 +55,8 @@ T-equivalent
     Otherwise, we say that they are T-distinguishable
 </div>
 <div class="code">
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">T_equiv</span> (<span class="id" title="var">T</span> : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span>) (<span class="id" title="var">u</span> <span class="id" title="var">v</span> : <span class="id" title="var">string</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">t</span> : <span class="id" title="var">string</span>),<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">T_equiv</span> (<span class="id" title="var">T</span> : <span class="id" title="var">str</span> → <span class="id" title="var">bool</span>) (<span class="id" title="var">u</span> <span class="id" title="var">v</span> : <span class="id" title="var">str</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">t</span> : <span class="id" title="var">str</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">T</span> <span class="id" title="var">t</span> = <span class="id" title="var">true</span> →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">member</span> (<span class="id" title="var">u</span> ++ <span class="id" title="var">t</span>) = <span class="id" title="var">member</span> (<span class="id" title="var">v</span> ++ <span class="id" title="var">t</span>).<br/>
 
@@ -88,7 +89,7 @@ Note that ≡T is an equivalence relation
 <span class="id" title="keyword">Instance</span> <span class="id" title="var">Teq_relation</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">T</span>, <span class="id" title="var">Equivalence</span> (<span class="id" title="var">T_equiv</span> <span class="id" title="var">T</span>).<br/>
 
 <br/>
-<span class="id" title="keyword">Add</span> <span class="id" title="var">Parametric</span> <span class="id" title="var">Relation</span> <span class="id" title="var">T</span> : <span class="id" title="var">string</span> (<span class="id" title="var">T_equiv</span> <span class="id" title="var">T</span>)<br/>
+<span class="id" title="keyword">Add</span> <span class="id" title="var">Parametric</span> <span class="id" title="var">Relation</span> <span class="id" title="var">T</span> : <span class="id" title="var">str</span> (<span class="id" title="var">T_equiv</span> <span class="id" title="var">T</span>)<br/>
 &nbsp;&nbsp;<span class="id" title="tactic">reflexivity</span> <span class="id" title="var">proved</span> <span class="id" title="tactic">by</span> (<span class="id" title="var">Teq_refl</span> <span class="id" title="var">T</span>)<br/>
 &nbsp;&nbsp;<span class="id" title="tactic">symmetry</span> <span class="id" title="var">proved</span> <span class="id" title="tactic">by</span> (<span class="id" title="var">Teq_sym</span> <span class="id" title="var">T</span>)<br/>
 &nbsp;&nbsp;<span class="id" title="tactic">transitivity</span> <span class="id" title="var">proved</span> <span class="id" title="tactic">by</span> (<span class="id" title="var">Teq_trans</span> <span class="id" title="var">T</span>)<br/>
@@ -109,7 +110,7 @@ Also, for every T1 ⊆ T2 ⊆ Σ∗, ≡T2 is a refinement of ≡T1.
 
 <br/>
 <span class="id" title="keyword">Theorem</span> <span class="id" title="var">refined_distinguish</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">T1</span> <span class="id" title="var">T2</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Subset</span>: <span class="id" title="keyword">∀</span> <span class="id" title="var">s</span> : <span class="id" title="var">string</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Subset</span>: <span class="id" title="keyword">∀</span> <span class="id" title="var">s</span> : <span class="id" title="var">str</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">T1</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span> → <span class="id" title="var">T2</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> <span class="id" title="var">u</span> <span class="id" title="var">v</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">T2</span> [<span class="id" title="var">u</span> == <span class="id" title="var">v</span>] → <span class="id" title="var">T1</span> [<span class="id" title="var">u</span> == <span class="id" title="var">v</span>].<br/>
@@ -135,9 +136,9 @@ The states Q and T that we maintain will be finite
 <div class="code">
 
 <br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">finite</span> (<span class="id" title="var">f</span> : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span>) :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">l</span> : <span class="id" title="var">list</span> <span class="id" title="var">string</span> | <span class="id" title="var">NoDup</span> <span class="id" title="var">l</span> ∧<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">s</span> : <span class="id" title="var">string</span>), <span class="id" title="var">f</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span> ↔ <span class="id" title="var">In</span> <span class="id" title="var">s</span> <span class="id" title="var">l</span>}.<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">finite</span> (<span class="id" title="var">f</span> : <span class="id" title="var">str</span> → <span class="id" title="var">bool</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">l</span> : <span class="id" title="var">list</span> <span class="id" title="var">str</span> | <span class="id" title="var">NoDup</span> <span class="id" title="var">l</span> ∧<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">s</span> : <span class="id" title="var">str</span>), <span class="id" title="var">f</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span> ↔ <span class="id" title="var">In</span> <span class="id" title="var">s</span> <span class="id" title="var">l</span>}.<br/>
 
 <br/>
 </div>
@@ -146,7 +147,7 @@ The states Q and T that we maintain will be finite
 T-equivalence is decidable for finite sets 
 </div>
 <div class="code">
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">T_equiv_dec</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">T</span> (<span class="id" title="var">u</span> <span class="id" title="var">v</span> : <span class="id" title="var">string</span>),<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">T_equiv_dec</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">T</span> (<span class="id" title="var">u</span> <span class="id" title="var">v</span> : <span class="id" title="var">str</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">finite</span> <span class="id" title="var">T</span> →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">T</span> [<span class="id" title="var">u</span> == <span class="id" title="var">v</span>]} + {~ <span class="id" title="var">T</span> [<span class="id" title="var">u</span> == <span class="id" title="var">v</span>]}.<br/>
 
@@ -158,8 +159,8 @@ A set Q ⊆ Σ∗ is said to be separable with respect to T,
     if the elements of Q are pairwise T-distinguishable. 
 </div>
 <div class="code">
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">separable</span> (<span class="id" title="var">Q</span> <span class="id" title="var">T</span> : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span>) : <span class="id" title="keyword">Type</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">u</span> <span class="id" title="var">v</span> : <span class="id" title="var">string</span>), <span class="id" title="var">Q</span> <span class="id" title="var">u</span> = <span class="id" title="var">true</span> → <span class="id" title="var">Q</span> <span class="id" title="var">v</span> = <span class="id" title="var">true</span> →<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">separable</span> (<span class="id" title="var">Q</span> <span class="id" title="var">T</span> : <span class="id" title="var">str</span> → <span class="id" title="var">bool</span>) : <span class="id" title="keyword">Type</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">u</span> <span class="id" title="var">v</span> : <span class="id" title="var">str</span>), <span class="id" title="var">Q</span> <span class="id" title="var">u</span> = <span class="id" title="var">true</span> → <span class="id" title="var">Q</span> <span class="id" title="var">v</span> = <span class="id" title="var">true</span> →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">u</span> ≠ <span class="id" title="var">v</span> →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;¬ <span class="id" title="var">T</span> [<span class="id" title="var">u</span> == <span class="id" title="var">v</span>].<br/>
 
@@ -171,10 +172,10 @@ A set Q is said to be closed with respect to T, if
     ∀q ∈ Q ∀a ∈ Σ, ∃q′ ∈ Q such that q · a ≡T q'. 
 </div>
 <div class="code">
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">closed</span> (<span class="id" title="var">Q</span> <span class="id" title="var">T</span> : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span>) :=<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">closed</span> (<span class="id" title="var">Q</span> <span class="id" title="var">T</span> : <span class="id" title="var">str</span> → <span class="id" title="var">bool</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> <span class="id" title="var">q</span> <span class="id" title="var">a</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Q</span> <span class="id" title="var">q</span> = <span class="id" title="var">true</span> →<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">q'</span> : <span class="id" title="var">string</span> | <span class="id" title="var">Q</span> <span class="id" title="var">q'</span> = <span class="id" title="var">true</span> ∧ <span class="id" title="var">T</span> [(<span class="id" title="var">q</span> ++ [<span class="id" title="var">a</span>]) == <span class="id" title="var">q'</span>]}.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">q'</span> : <span class="id" title="var">str</span> | <span class="id" title="var">Q</span> <span class="id" title="var">q'</span> = <span class="id" title="var">true</span> ∧ <span class="id" title="var">T</span> [(<span class="id" title="var">q</span> ++ [<span class="id" title="var">a</span>]) == <span class="id" title="var">q'</span>]}.<br/>
 
 <br/>
 </div>
@@ -196,7 +197,7 @@ Closedness is decidable for finite sets:
 &nbsp;&nbsp;<span class="id" title="var">finite</span> <span class="id" title="var">Q</span> →<br/>
 &nbsp;&nbsp;<span class="id" title="var">finite</span> <span class="id" title="var">T</span> →<br/>
 &nbsp;&nbsp;<span class="id" title="var">closed</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span> + <br/>
-&nbsp;&nbsp;{ <span class="id" title="var">q</span> : <span class="id" title="var">string</span> &amp; { <span class="id" title="var">a</span> : <span class="id" title="var">s.t</span> &amp;<br/>
+&nbsp;&nbsp;{ <span class="id" title="var">q</span> : <span class="id" title="var">str</span> &amp; { <span class="id" title="var">a</span> : <span class="id" title="var">s.t</span> &amp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Q</span> <span class="id" title="var">q</span> = <span class="id" title="var">true</span> ∧<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> <span class="id" title="var">q'</span>, <span class="id" title="var">Q</span> <span class="id" title="var">q'</span> = <span class="id" title="var">true</span> → ¬ <span class="id" title="var">T</span> [<span class="id" title="var">q</span> ++ [<span class="id" title="var">a</span>] == <span class="id" title="var">q'</span>] }}.<br/>
 
@@ -217,8 +218,8 @@ Lemma 1. If Q is closed and separable with respect to T,
 <div class="code">
 
 <br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="keyword">delta</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span> (<span class="id" title="var">c</span> : <span class="id" title="var">closed</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span>) (<span class="id" title="var">q</span> : <span class="id" title="var">string</span>) (<span class="id" title="var">a</span> : <span class="id" title="var">s.t</span>) (<span class="id" title="var">Qq</span> : <span class="id" title="var">Q</span> <span class="id" title="var">q</span> = <span class="id" title="var">true</span>) :<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">q'</span> : <span class="id" title="var">string</span> | <span class="id" title="var">Q</span> <span class="id" title="var">q'</span> = <span class="id" title="var">true</span> ∧ <span class="id" title="var">T</span> [<span class="id" title="var">q'</span> == (<span class="id" title="var">q</span> ++ [<span class="id" title="var">a</span>])]}.<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="keyword">delta</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span> (<span class="id" title="var">c</span> : <span class="id" title="var">closed</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span>) (<span class="id" title="var">q</span> : <span class="id" title="var">str</span>) (<span class="id" title="var">a</span> : <span class="id" title="var">s.t</span>) (<span class="id" title="var">Qq</span> : <span class="id" title="var">Q</span> <span class="id" title="var">q</span> = <span class="id" title="var">true</span>) :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">q'</span> : <span class="id" title="var">str</span> | <span class="id" title="var">Q</span> <span class="id" title="var">q'</span> = <span class="id" title="var">true</span> ∧ <span class="id" title="var">T</span> [<span class="id" title="var">q'</span> == (<span class="id" title="var">q</span> ++ [<span class="id" title="var">a</span>])]}.<br/>
 <span class="id" title="keyword">Defined</span>.<br/>
 
 <br/>
@@ -238,8 +239,8 @@ Lemma 2. Given a hypothesis DFA H = (Q, Σ, δ, ε, F) where
 </div>
 <div class="code">
 <span class="id" title="keyword">Record</span> <span class="id" title="var">HypothesisDFA</span> : <span class="id" title="keyword">Type</span> := {<br/>
-&nbsp;&nbsp;<span class="id" title="var">Q</span>    : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span>;<br/>
-&nbsp;&nbsp;<span class="id" title="var">T</span>    : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span>;<br/>
+&nbsp;&nbsp;<span class="id" title="var">Q</span>    : <span class="id" title="var">str</span> → <span class="id" title="var">bool</span>;<br/>
+&nbsp;&nbsp;<span class="id" title="var">T</span>    : <span class="id" title="var">str</span> → <span class="id" title="var">bool</span>;<br/>
 &nbsp;&nbsp;<span class="id" title="var">sep</span>  : <span class="id" title="var">separable</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span>;<br/>
 &nbsp;&nbsp;<span class="id" title="var">clos</span> : <span class="id" title="var">closed</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span>;<br/>
 &nbsp;&nbsp;</div>
@@ -267,8 +268,6 @@ The concrete DFA extracted from a HypothesisDFA
 </div>
 <div class="code">
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">make_dfa</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>) : <span class="id" title="var">D.t</span> {<span class="id" title="var">q</span> | <span class="id" title="var">H</span>.(<span class="id" title="var">Q</span>) <span class="id" title="var">q</span> = <span class="id" title="var">true</span>}.<br/>
-
-<br/>
 <span class="id" title="keyword">Defined</span>.<br/>
 
 <br/>
@@ -278,11 +277,11 @@ The concrete DFA extracted from a HypothesisDFA
 Updating sets of strings 
 </div>
 <div class="code">
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">str_upd</span> (<span class="id" title="var">S</span> : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span>) <span class="id" title="var">k</span> <span class="id" title="var">b</span> :=<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">update</span> (<span class="id" title="var">S</span> : <span class="id" title="var">str</span> → <span class="id" title="var">bool</span>) <span class="id" title="var">k</span> <span class="id" title="var">b</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">s</span> ⇒ <span class="id" title="keyword">if</span> <span class="id" title="var">str_eq</span> <span class="id" title="var">s</span> <span class="id" title="var">k</span> <span class="id" title="keyword">then</span> <span class="id" title="var">b</span> <span class="id" title="keyword">else</span> <span class="id" title="var">S</span> <span class="id" title="var">s</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">Notation</span> &quot;s [ k := v ]" := (<span class="id" title="var">str_upd</span> <span class="id" title="var">s</span> <span class="id" title="var">k</span> <span class="id" title="var">v</span>).<br/>
+<span class="id" title="keyword">Notation</span> &quot;s [ k := v ]" := (<span class="id" title="var">update</span> <span class="id" title="var">s</span> <span class="id" title="var">k</span> <span class="id" title="var">v</span>).<br/>
 
 <br/>
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">update_neq</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">S</span> <span class="id" title="var">x</span> <span class="id" title="var">y</span> <span class="id" title="var">k</span>,<br/>
@@ -302,21 +301,21 @@ Given a counter-example, we can always find q_new and t
     separable wrt T' 
 <div class="paragraph"> </div>
 
- Define p_i = delta∗(ε, w1w2 ... wi) 
+ Define pi_i = delta∗(ε, w1w2 ... wi) 
 </div>
 <div class="code">
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">p</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>) (<span class="id" title="var">w</span> : <span class="id" title="var">string</span>) (<span class="id" title="var">i</span> : <span class="id" title="var">nat</span>) :=<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">pi</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>) (<span class="id" title="var">w</span> : <span class="id" title="var">str</span>) (<span class="id" title="var">i</span> : <span class="id" title="var">nat</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">run</span> (<span class="id" title="var">make_dfa</span> <span class="id" title="var">H</span>) (<span class="id" title="var">firstn</span> <span class="id" title="var">i</span> <span class="id" title="var">w</span>).<br/>
 
 <br/>
 </div>
 
 <div class="doc">
-We say a state p_i is correct if p_i w(i+1) ... w_m ∈ L ⇐⇒ w ∈ L. 
+We say a state pi_i is correct if pi_i w(i+1) ... w_m ∈ L ⇐⇒ w ∈ L. 
 </div>
 <div class="code">
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">correct</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>) (<span class="id" title="var">w</span> : <span class="id" title="var">string</span>) (<span class="id" title="var">i</span> : <span class="id" title="var">nat</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">L.member</span> (<span class="id" title="var">proj1_sig</span> (<span class="id" title="var">p</span> <span class="id" title="var">H</span> <span class="id" title="var">w</span> <span class="id" title="var">i</span>) ++ <span class="id" title="var">skipn</span> <span class="id" title="var">i</span> <span class="id" title="var">w</span>) = <span class="id" title="var">L.member</span> <span class="id" title="var">w</span>.<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">correct</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>) (<span class="id" title="var">w</span> : <span class="id" title="var">str</span>) (<span class="id" title="var">i</span> : <span class="id" title="var">nat</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">L.member</span> (<span class="id" title="var">proj1_sig</span> (<span class="id" title="var">pi</span> <span class="id" title="var">H</span> <span class="id" title="var">w</span> <span class="id" title="var">i</span>) ++ <span class="id" title="var">skipn</span> <span class="id" title="var">i</span> <span class="id" title="var">w</span>) = <span class="id" title="var">L.member</span> <span class="id" title="var">w</span>.<br/>
 
 <br/>
 </div>
@@ -326,7 +325,7 @@ Now, ε is correct trivially, and p_m is not correct since w is a counterexample
 </div>
 <div class="code">
 <span class="id" title="keyword">Example</span> <span class="id" title="var">eps_correct</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">H</span> <span class="id" title="var">w</span>, <span class="id" title="var">correct</span> <span class="id" title="var">H</span> <span class="id" title="var">w</span> 0.<br/>
- 
+
 <br/>
 <span class="id" title="keyword">Example</span> <span class="id" title="var">full_not_correct</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">H</span> <span class="id" title="var">w</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
@@ -345,11 +344,11 @@ Correctness is decidable
 <br/>
 <span class="id" title="keyword">Theorem</span> <span class="id" title="var">find_separable</span> :<br/>
 &nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>) <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">w</span> : <span class="id" title="var">string</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">w</span> : <span class="id" title="var">str</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Hce</span> : <span class="id" title="var">accept_string</span> (<span class="id" title="var">make_dfa</span> <span class="id" title="var">H</span>) <span class="id" title="var">w</span> ≠ <span class="id" title="var">member</span> <span class="id" title="var">w</span>),<br/>
-&nbsp;&nbsp;{ <span class="id" title="var">q_new</span> : <span class="id" title="var">string</span> &amp;<br/>
-&nbsp;&nbsp;{ <span class="id" title="var">t</span>     : <span class="id" title="var">string</span> &amp;<br/>
+&nbsp;&nbsp;{ <span class="id" title="var">q_new</span> : <span class="id" title="var">str</span> &amp;<br/>
+&nbsp;&nbsp;{ <span class="id" title="var">t</span>     : <span class="id" title="var">str</span> &amp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">H</span>.(<span class="id" title="var">Q</span>) <span class="id" title="var">q_new</span> = <span class="id" title="var">false</span>) ×<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">Q'</span> := <span class="id" title="var">H</span>.(<span class="id" title="var">Q</span>) [<span class="id" title="var">q_new</span> := <span class="id" title="var">true</span>] <span class="id" title="tactic">in</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">let</span> <span class="id" title="var">T'</span> := <span class="id" title="var">H</span>.(<span class="id" title="var">T</span>) [<span class="id" title="var">t</span> := <span class="id" title="var">true</span>] <span class="id" title="tactic">in</span><br/>
@@ -374,7 +373,7 @@ Lemma 3. If Q is separable with respect to T, it is possible to
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">find_representative</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">finQ</span> : <span class="id" title="var">finite</span> <span class="id" title="var">Q</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">finT</span> : <span class="id" title="var">finite</span> <span class="id" title="var">T</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">u</span> : <span class="id" title="var">string</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">u</span> : <span class="id" title="var">str</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id" title="var">r</span> | <span class="id" title="var">Q</span> <span class="id" title="var">r</span> = <span class="id" title="var">true</span> ∧ <span class="id" title="var">T</span> [<span class="id" title="var">u</span> == <span class="id" title="var">r</span>] } +<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id" title="keyword">∀</span> <span class="id" title="var">r</span>, <span class="id" title="var">Q</span> <span class="id" title="var">r</span> = <span class="id" title="var">true</span> → ¬ <span class="id" title="var">T</span> [<span class="id" title="var">u</span> == <span class="id" title="var">r</span>] }.<br/>
 
@@ -391,7 +390,7 @@ We can add a representative of q to Q to get a new
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">sep</span> : <span class="id" title="var">separable</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">finQ</span> : <span class="id" title="var">finite</span> <span class="id" title="var">Q</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">finT</span> : <span class="id" title="var">finite</span> <span class="id" title="var">T</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id" title="var">Q'</span> : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span> &amp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id" title="var">Q'</span> : <span class="id" title="var">str</span> → <span class="id" title="var">bool</span> &amp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((<span class="id" title="var">Q'</span> = <span class="id" title="var">Q</span> [<span class="id" title="var">q</span> ++ [<span class="id" title="var">a</span>] := <span class="id" title="var">true</span>]) + (<span class="id" title="var">Q'</span> = <span class="id" title="var">Q</span>)) ×<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">separable</span> <span class="id" title="var">Q'</span> <span class="id" title="var">T</span> ×<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">finite</span> <span class="id" title="var">Q'</span> ×<br/>
@@ -411,7 +410,7 @@ If Q is not closed wrt T, we can find a q in Q such that
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">closed</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span> → <span class="id" title="var">False</span>) →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">finite</span> <span class="id" title="var">Q</span> → <span class="id" title="var">finite</span> <span class="id" title="var">T</span> →<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">q</span> : <span class="id" title="var">string</span> &amp; {<span class="id" title="var">a</span> : <span class="id" title="var">s.t</span> | <span class="id" title="var">Q</span> <span class="id" title="var">q</span> = <span class="id" title="var">true</span> ∧<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">q</span> : <span class="id" title="var">str</span> &amp; {<span class="id" title="var">a</span> : <span class="id" title="var">s.t</span> | <span class="id" title="var">Q</span> <span class="id" title="var">q</span> = <span class="id" title="var">true</span> ∧<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> <span class="id" title="var">q'</span>, <span class="id" title="var">Q</span> <span class="id" title="var">q'</span> = <span class="id" title="var">true</span> → ¬ <span class="id" title="var">T</span> [<span class="id" title="var">q</span> ++ [<span class="id" title="var">a</span>] == <span class="id" title="var">q'</span>] }}.<br/>
 
 <br/>
@@ -427,7 +426,7 @@ Adds a finite number of strings to Q to make it closed wrt T
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">finT</span> : <span class="id" title="var">finite</span> <span class="id" title="var">T</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">finQ'</span> : <span class="id" title="var">finite</span> <span class="id" title="var">Q'</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">sub'</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">s</span>, <span class="id" title="var">Q</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span> → <span class="id" title="var">Q'</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">option</span> { <span class="id" title="var">Q''</span> : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span> &amp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">option</span> { <span class="id" title="var">Q''</span> : <span class="id" title="var">str</span> → <span class="id" title="var">bool</span> &amp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">closed</span> <span class="id" title="var">Q''</span> <span class="id" title="var">T</span> ×<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">separable</span> <span class="id" title="var">Q''</span> <span class="id" title="var">T</span> ×<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">finite</span> <span class="id" title="var">Q''</span> ×<br/>
@@ -444,9 +443,9 @@ union_closed_loop always returns Some with enough fuel
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">loop_terminates</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">n</span> <span class="id" title="var">Q</span> <span class="id" title="var">Q'</span> <span class="id" title="var">T</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">sep'</span> : <span class="id" title="var">separable</span> <span class="id" title="var">Q'</span> <span class="id" title="var">T</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">finQ'</span> : <span class="id" title="var">finite</span> <span class="id" title="var">Q'</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Tl</span> : <span class="id" title="var">list</span> <span class="id" title="var">string</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Tl</span> : <span class="id" title="var">list</span> <span class="id" title="var">str</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">NDT</span> : <span class="id" title="var">NoDup</span> <span class="id" title="var">Tl</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">HTl</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">s</span> : <span class="id" title="var">string</span>, <span class="id" title="var">T</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span> ↔ <span class="id" title="var">In</span> <span class="id" title="var">s</span> <span class="id" title="var">Tl</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">HTl</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">s</span> : <span class="id" title="var">str</span>, <span class="id" title="var">T</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span> ↔ <span class="id" title="var">In</span> <span class="id" title="var">s</span> <span class="id" title="var">Tl</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">sub'</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">s</span>, <span class="id" title="var">Q</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span> → <span class="id" title="var">Q'</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Nat.pow</span> 2 (<span class="id" title="var">length</span> <span class="id" title="var">Tl</span>) - <span class="id" title="var">length</span> (<span class="id" title="var">proj1_sig</span> <span class="id" title="var">finQ'</span>) &lt; <span class="id" title="var">n</span> →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">x</span> | <span class="id" title="var">union_closed_loop</span> <span class="id" title="var">n</span> <span class="id" title="var">Q</span> <span class="id" title="var">Q'</span> <span class="id" title="var">T</span> <span class="id" title="var">sep'</span> (<span class="id" title="var">exist</span> <span class="id" title="var">_</span> <span class="id" title="var">Tl</span> (<span class="id" title="var">conj</span> <span class="id" title="var">NDT</span> <span class="id" title="var">HTl</span>)) <span class="id" title="var">finQ'</span> <span class="id" title="var">sub'</span> = <span class="id" title="var">Some</span> <span class="id" title="var">x</span>}.<br/>
@@ -463,7 +462,7 @@ Lemma 3
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">sep</span> : <span class="id" title="var">separable</span> <span class="id" title="var">Q</span> <span class="id" title="var">T</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">finQ</span> : <span class="id" title="var">finite</span> <span class="id" title="var">Q</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">finT</span> : <span class="id" title="var">finite</span> <span class="id" title="var">T</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id" title="var">Q'</span> : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span> &amp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id" title="var">Q'</span> : <span class="id" title="var">str</span> → <span class="id" title="var">bool</span> &amp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">closed</span> <span class="id" title="var">Q'</span> <span class="id" title="var">T</span> ×<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">separable</span> <span class="id" title="var">Q'</span> <span class="id" title="var">T</span> ×<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">finite</span> <span class="id" title="var">Q'</span> ×<br/>
@@ -483,24 +482,26 @@ The main L<sup>*</sup> implementation that uses Lemmas 2 and 3 to iteratively
 <div class="code">
 
 <br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">num_states_of_fin</span> {<span class="id" title="var">f</span>} (<span class="id" title="var">H</span> : <span class="id" title="var">finite</span> <span class="id" title="var">f</span>) : <span class="id" title="var">nat</span>.<br/>
-<span class="id" title="keyword">Defined</span>.<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">num_states_of_fin</span> {<span class="id" title="var">f</span>} (<span class="id" title="var">H</span> : <span class="id" title="var">finite</span> <span class="id" title="var">f</span>) : <span class="id" title="var">nat</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">H</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">exist</span> <span class="id" title="var">_</span> <span class="id" title="var">x</span> <span class="id" title="var">_</span> ⇒ <span class="id" title="var">List.length</span> <span class="id" title="var">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">num_states</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>) : <span class="id" title="var">nat</span>.<br/>
-<span class="id" title="keyword">Defined</span>.<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">num_states</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>) : <span class="id" title="var">nat</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">num_states_of_fin</span> <span class="id" title="var">H</span>.(<span class="id" title="var">fin_Q</span>).<br/>
 
 <br/>
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">finite_subset_is_smaller</span> : <span class="id" title="keyword">∀</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">f</span> <span class="id" title="var">g</span> : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">f</span> <span class="id" title="var">g</span> : <span class="id" title="var">str</span> → <span class="id" title="var">bool</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FinF</span> : <span class="id" title="var">finite</span> <span class="id" title="var">f</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FinG</span> : <span class="id" title="var">finite</span> <span class="id" title="var">g</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FsubG</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">x</span> : <span class="id" title="var">string</span>), <span class="id" title="var">f</span> <span class="id" title="var">x</span> = <span class="id" title="var">true</span> → <span class="id" title="var">g</span> <span class="id" title="var">x</span> = <span class="id" title="var">true</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FsubG</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">x</span> : <span class="id" title="var">str</span>), <span class="id" title="var">f</span> <span class="id" title="var">x</span> = <span class="id" title="var">true</span> → <span class="id" title="var">g</span> <span class="id" title="var">x</span> = <span class="id" title="var">true</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">num_states_of_fin</span> <span class="id" title="var">FinF</span> ≤ <span class="id" title="var">num_states_of_fin</span> <span class="id" title="var">FinG</span>.<br/>
 
 <br/>
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">finite_update_impl_finite</span> : <span class="id" title="keyword">∀</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">f</span> : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span>) <span class="id" title="var">k</span> <span class="id" title="var">v</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">f</span> : <span class="id" title="var">str</span> → <span class="id" title="var">bool</span>) <span class="id" title="var">k</span> <span class="id" title="var">v</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FinUpdF</span> : <span class="id" title="var">finite</span> <span class="id" title="var">f</span>[<span class="id" title="var">k</span> := <span class="id" title="var">v</span>]),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">finite</span> <span class="id" title="var">f</span>.<br/>
 
@@ -558,7 +559,7 @@ The total L* implementation
 </div>
 <div class="code">
 <span class="id" title="keyword">Definition</span> <span class="id" title="var">lstar</span> (<span class="id" title="var">_</span> : <span class="id" title="var">unit</span>) : { <span class="id" title="var">T</span> : <span class="id" title="keyword">Type</span> &amp; {<span class="id" title="var">d</span> : <span class="id" title="var">D.t</span> <span class="id" title="var">T</span> | <span class="id" title="var">minimal</span> <span class="id" title="var">d</span>} }.<br/>
-<span class="id" title="keyword">Qed</span>.<br/>
+<span class="id" title="keyword">Defined</span>.<br/>
 
 <br/>
 <span class="id" title="keyword">End</span> <span class="id" title="var">Lstar</span>.<br/>

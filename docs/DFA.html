@@ -65,17 +65,7 @@ Alphabet is finite
 List of symbols 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">string</span> := <span class="id" title="var">list</span> <span class="id" title="var">t</span>.<br/>
-
-<br/>
-</div>
-
-<div class="doc">
-String equality is decidable
-</div>
-<div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">str_eq</span> (<span class="id" title="var">x</span> <span class="id" title="var">y</span> : <span class="id" title="var">string</span>) {<span class="id" title="keyword">struct</span> <span class="id" title="var">x</span>} : {<span class="id" title="var">x</span> = <span class="id" title="var">y</span>} + {<span class="id" title="var">x</span> ≠ <span class="id" title="var">y</span>}.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Defined</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">str</span> := <span class="id" title="var">list</span> <span class="id" title="var">t</span>.<br/>
 
 <br/>
 </div>
@@ -108,7 +98,8 @@ DFA type
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">transition</span> : <span class="id" title="var">state</span> → <span class="id" title="var">s.t</span> → <span class="id" title="var">state</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">initial</span> : <span class="id" title="var">state</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">accept</span> : <span class="id" title="var">state</span> → <span class="id" title="var">bool</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">states</span> : <span class="id" title="var">list</span> <span class="id" title="var">state</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">states</span> : <span class="id" title="var">list</span> <span class="id" title="var">state</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">states_complete</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">w</span>, <span class="id" title="var">In</span> (<span class="id" title="var">fold_left</span> <span class="id" title="var">transition</span> <span class="id" title="var">w</span> <span class="id" title="var">initial</span>) (<span class="id" title="var">states</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
 
 <br/>
@@ -118,7 +109,7 @@ DFA type
 Run a DFA on a string and get the resulting state 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">run</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">dfa</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">s</span> : <span class="id" title="var">string</span>) : <span class="id" title="var">state</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">run</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">dfa</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">s</span> : <span class="id" title="var">str</span>) : <span class="id" title="var">state</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">fold_left</span> <span class="id" title="var">dfa</span>.(<span class="id" title="var">transition</span> <span class="id" title="var">state</span>) <span class="id" title="var">s</span> <span class="id" title="var">dfa</span>.(<span class="id" title="var">initial</span> <span class="id" title="var">state</span>).<br/>
 
 <br/>
@@ -128,7 +119,7 @@ Run a DFA on a string and get the resulting state
 Check whether a DFA reaches an accepting state after processing a string 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">accept_string</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">dfa</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">s</span> : <span class="id" title="var">string</span>) : <span class="id" title="var">bool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">accept_string</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">dfa</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">s</span> : <span class="id" title="var">str</span>) : <span class="id" title="var">bool</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">dfa</span>.(<span class="id" title="var">accept</span> <span class="id" title="var">state</span>) (<span class="id" title="var">run</span> <span class="id" title="var">dfa</span> <span class="id" title="var">s</span>).<br/>
 
 <br/>
@@ -138,8 +129,18 @@ Check whether a DFA reaches an accepting state after processing a string
 Every reachable state is listed in <span class="inlinecode"><span class="id" title="var">states</span></span> 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">run_in_states</span> : <span class="id" title="keyword">∀</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">d</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">w</span> : <span class="id" title="var">string</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <span class="id" title="var">run_in_states</span> : <span class="id" title="keyword">∀</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">d</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">w</span> : <span class="id" title="var">str</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">In</span> (<span class="id" title="var">run</span> <span class="id" title="var">d</span> <span class="id" title="var">w</span>) (<span class="id" title="var">states</span> <span class="id" title="var">state</span> <span class="id" title="var">d</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+String equality is decidable
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">str_eq</span> (<span class="id" title="var">x</span> <span class="id" title="var">y</span> : <span class="id" title="var">str</span>) {<span class="id" title="keyword">struct</span> <span class="id" title="var">x</span>} : {<span class="id" title="var">x</span> = <span class="id" title="var">y</span>} + {<span class="id" title="var">x</span> ≠ <span class="id" title="var">y</span>}.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Defined</span>.<br/>
 <span class="id" title="keyword">End</span> <span class="id" title="var">DFA</span>.<br/>
 
 <br/>
@@ -160,7 +161,7 @@ Language
 Language membership 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">member</span> : <span class="id" title="var">string</span> → <span class="id" title="var">bool</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">member</span> : <span class="id" title="var">str</span> → <span class="id" title="var">bool</span>.<br/>
 
 <br/>
 </div>
@@ -170,7 +171,7 @@ Whether a DFA encodes the language L
 </div>
 <div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">encodes</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">dfa</span> : <span class="id" title="var">D.t</span> <span class="id" title="var">state</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">s</span> : <span class="id" title="var">string</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">s</span> : <span class="id" title="var">str</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">member</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span> ↔ <span class="id" title="var">D.accept_string</span> <span class="id" title="var">dfa</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span>.<br/>
 
 <br/>
