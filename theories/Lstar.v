@@ -1,4 +1,5 @@
- (** https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.pdf *)
+(** Rivest-Schapire-style automata learning
+    https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.pdf *)
 
 From lstar Require Import DFA ListLemmas RS.
 From Stdlib Require Import Classes.RelationClasses.

@@ -19,7 +19,6 @@ module S = struct
   let string_of_str s = String.concat "" (List.map string_of_t s)
 end
 
-(** Teacher: owns S and D, defines member and equiv_query against its own D *)
 module Teacher : TEACHER with module S = S = struct
   module S = S
   module D = DFA (S)

@@ -251,3 +251,15 @@ Proof.
         now left.
     right. auto.
 Qed.
+
+Definition mem {A} (eqdec : forall (x y : A), {x=y}+{x<>y})
+        (q : A) (l : list A) : bool :=
+    existsb (fun y => if eqdec y q then true else false) l.
+
+Lemma mem_In : forall {A} eqdec q (l : list A),
+    mem eqdec q l = true <-> In q l.
+Proof.
+    intros A eqdec q l. unfold mem. rewrite existsb_exists. split.
+    - intros (y & Hy & Heq). destruct (eqdec y q); now subst.
+    - intro Hin. exists q. split; now destruct (eqdec q q).
+Qed.
