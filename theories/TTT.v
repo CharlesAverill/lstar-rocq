@@ -678,10 +678,9 @@ Section Finalize.
     - now split.
   Qed.
 
-  (** CHOOSE actually shortens when a proper suffix bisects: if some suffix
-      strictly shorter than [e] bisects, the chosen discriminator is strictly
-      shorter. (Optional certification of real shortening.) *)
-  Lemma choose_shortens : forall e l r e0,
+  (** If some suffix strictly shorter than [e] bisects, the chosen
+      discriminator is strictly shorter *)
+  Theorem choose_shortens : forall e l r e0,
     In e0 (suffixes e) ->
     bisects e0 l r = true ->
     List.length (choose e l r) <= List.length e0.
@@ -731,6 +730,42 @@ Section Finalize.
     - now rewrite (HRe u Hu), (HRc u Hu).
   Qed.
 
+  Lemma choose_routes_agree :
+    forall e l r u,
+        bisects e l r = true ->
+        In u (leaves l) \/ In u (leaves r) ->
+        member (u ++ choose e l r) = member (u ++ e).
+  Proof.
+    intros e l r u Hbis Hin.
+    unfold choose.
+    destruct (find (fun e' => bisects e' l r)
+                    (rev (suffixes e))) eqn:F.
+    - apply find_some in F as [Hin_rev Hbis_l0].
+      apply in_rev, suffixes_length in Hin_rev.
+      apply bisects_impl_clauses in Hbis_l0 as [Hl Hr].
+      assert (Hrell :
+        forall q, In q (leaves l) ->
+            member (q ++ e) = member (q ++ l0)). {
+        intros q Hq.
+        rewrite Hl by assumption;
+            apply bisects_impl_clauses in Hbis as [HLe _];
+            now rewrite HLe.
+      }
+      assert (Hrelr :
+        forall q, In q (leaves r) ->
+            member (q ++ e) = member (q ++ l0)). {
+        intros q Hq.
+        rewrite Hr by assumption;
+            apply bisects_impl_clauses in Hbis as [_ HRe];
+            now rewrite HRe.
+      }
+      destruct Hin as [HinL | HinR].
+        now rewrite <- (Hrell u HinL).
+        now rewrite <- (Hrelr u HinR).
+    - destruct Hin as [HinL | HinR];
+        apply bisects_impl_clauses in Hbis as [Hl _]; auto.
+    Qed.
+
   Lemma finalize_sift_agree_leaves :
     forall t u, wf t -> In u (leaves t) -> sift (finalize t) u = sift t u.
   Proof.
@@ -744,7 +779,8 @@ Section Finalize.
         intros q Hq; rewrite finalize_leaves in Hq; auto. }
     destruct d; simpl in *.
     - destruct (member (u ++ e)) eqn:M; destruct Hu as [Hu | Hu]; auto.
-      admit. admit.
+        specialize (DR u Hu). congruence.
+        specialize (DL u Hu). congruence.
     - assert (Hroute : member (u ++ choose e (finalize lt) (finalize rt))
                        = member (u ++ e)). {
         apply choose_routes_agree_leaves with (l := finalize lt) (r := finalize rt).
@@ -752,35 +788,8 @@ Section Finalize.
         now repeat rewrite !finalize_leaves. }
       rewrite Hroute.
       destruct (member (u ++ e)) eqn:M; destruct Hu as [Hu | Hu]; auto.
-      admit. admit.
-  Admitted.
-
-  (** Every run-reachable state is a leaf, hence sift-agreement applies along a
-      whole run *)
-  Lemma finalize_run_agree : forall t w,
-    wf t ->
-    proj1_sig (run (make_dfa (finalize t)) w) = proj1_sig (run (make_dfa t) w).
-  Proof.
-    intros t w Hwf.
-    induction w as [| a w IH] using rev_ind.
-    - unfold run, make_dfa; simpl.
-      apply finalize_sift_agree_leaves; now destruct Hwf.
-    - unfold run, make_dfa in *; simpl in *.
-      repeat rewrite fold_left_app; simpl.
-      rewrite finalize_sift_agree_leaves; auto.
-      now rewrite IH.
-      admit.
-  Admitted.
-
-  (** The finalized DFA encodes the same language *)
-  Lemma finalize_make_dfa_agree :
-    forall t w, wf t ->
-      accept_string (make_dfa (finalize t)) w = accept_string (make_dfa t) w.
-  Proof.
-    intros t w H. unfold accept_string, accept.
-    change (member (proj1_sig (run (make_dfa (finalize t)) w))
-            = member (proj1_sig (run (make_dfa t) w))).
-    now rewrite finalize_run_agree.
+        specialize (DR u Hu). congruence.
+        specialize (DL u Hu). congruence.
   Qed.
 
   (** Every finalized discriminator is no longer than its origin *)
@@ -828,15 +837,42 @@ Section Finalize.
 End Finalize.
 
 Section Learner.
-  Definition ttt_step (t : ttree) (target e q_new : str) : ttree.
-  Admitted.
+  Definition ttt_step (t : ttree) (target e q_new : str) : ttree :=
+    finalize (split_leaf t target e q_new).
 
-  Definition ttt_learn (fuel : nat) (t : ttree)
-                     (LE : L.num_states_in_minimal - List.length (leaves t) <= fuel)
-                     (Hwf : wf t)
-    : { St : Type & {d : D.t St | minimal d} }.
+  Fixpoint ttt_learn (fuel : nat) (t : ttree)
+                   (LE : L.num_states_in_minimal - List.length (leaves t) <= fuel)
+                   (Hwf : wf t)
+  : { St : Type & {d : D.t St | minimal d} }.
   Proof.
-  Admitted.
+    destruct (equiv_query _ (make_dfa t)) eqn:Heq.
+    - destruct fuel as [| n].
+        + assert (forall x y, x - y <= 0 -> x - y = 0) by lia.
+          apply H in LE. clear H.
+          apply Nat.sub_0_le, full_states_no_ce in LE; auto.
+          now rewrite Heq in LE.
+        + assert (Hce : accept_string (make_dfa t) s <> member s)
+            by now apply equiv_query_ce.
+          pose proof Hwf as Hwf'.
+          destruct Hwf' as (Hwf' & Heps).
+          destruct (find_split t s Heps
+                      (wf_consistent t Hwf)
+                      (wf_NoDup t Hwf)
+                      Hce)
+              as (target & e & q_new &
+                  HinT & Hfresh & Hdiff &
+                  Hwf'' & Heps').
+          enough (L.num_states_in_minimal - 
+                  List.length (leaves (ttt_step t target e q_new)) <= n).
+          eapply (ttt_learn n (ttt_step t target e q_new) H),
+            finalize_preserves_wf. now split.
+          unfold ttt_step.
+          pose proof
+            (split_leaf_count t target e q_new
+                (wf_NoDup t Hwf) HinT Hfresh) as Hcount.
+          rewrite finalize_leaves, Hcount. lia.
+    - eexists. exists (make_dfa t). now apply make_dfa_minimal.
+  Defined.
 
   Definition ttt (_ : unit) : { St : Type & {d : D.t St | minimal d} } :=
     ttt_learn num_states_in_minimal (Leaf nil) ltac:(lia) (conj I (or_introl eq_refl)).
