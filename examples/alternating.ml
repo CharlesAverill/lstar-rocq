@@ -60,8 +60,11 @@ end
 (** L* implementation *)
 module Lstar = LstarLearner (Teacher)
 
-(** Kearns-Vazirani (discrimination-tree) implementation *)
+(** Kearns-Vazirani implementation *)
 module KV = KVLearner (Teacher)
+
+(** TTT implementation *)
+module TTT = TTTLearner (Teacher)
 
 (** Generate all bit strings of length [n] *)
 let rec enumerate (n : int) : S.str list =
@@ -108,4 +111,5 @@ let print_results name dfa n =
 
 let () =
   (match Lstar.lstar () with Coq_existT (_, d) -> print_results "L*" d 3) ;
-  match KV.kv () with Coq_existT (_, d) -> print_results "KV" d 3
+  (match KV.kv () with Coq_existT (_, d) -> print_results "KV" d 3) ;
+  match TTT.ttt () with Coq_existT (_, d) -> print_results "TTT" d 3

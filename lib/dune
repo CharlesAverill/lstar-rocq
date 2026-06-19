@@ -11,7 +11,8 @@
   ListDef
   PeanoNat
   Nat
-  RS)
+  RS
+  TTT)
  (theories Stdlib lstar))
 
 (library

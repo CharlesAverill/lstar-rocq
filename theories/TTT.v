@@ -685,17 +685,31 @@ Section Finalize.
     bisects e0 l r = true ->
     List.length (choose e l r) <= List.length e0.
   Proof.
-    intros e l r e0 Hin Hbis. unfold choose.
-    destruct (find (fun e' => bisects e' l r) (rev (suffixes e))) eqn:F.
-    - apply find_some in F as [Hin' _].
-      apply in_rev in Hin'.
-      admit.
-    - exfalso.
-      assert (Hin_rev : In e0 (rev (suffixes e))) by
-        now apply -> in_rev.
-      pose proof (find_none _ _ F e0 Hin_rev) as Hf. simpl in Hf.
-      congruence.
-  Admitted.
+    induction e as [| a e IH]; intros l r e0 Hin Hbis.
+    - simpl in Hin. destruct Hin as [<- | []].
+      unfold choose. simpl. now rewrite Hbis.
+    - unfold choose.
+      simpl (suffixes (a :: e)). simpl.
+      rewrite list_find.
+      destruct (find (fun e' => bisects e' l r) (rev (suffixes e))) eqn:F.
+      + assert (Hs_in : In l0 (suffixes e))
+          by (apply find_some in F as [Hi _]; now apply in_rev in Hi).
+        assert (Hs_len : List.length l0 <= List.length e)
+          by now apply suffixes_length.
+        destruct Hin as [<- | Hin0].
+            simpl. lia.
+        assert (Hchoose_e : choose e l r = l0) by
+            (unfold choose; now rewrite F).
+        pose proof (IH l r e0 Hin0 Hbis) as Hle.
+        now rewrite Hchoose_e in Hle.
+      + simpl in *. destruct Hin as [<- | Hin0].
+            now destruct (bisects _ _ _).
+        exfalso.
+        assert (Hin_rev : In e0 (rev (suffixes e))) by
+            now rewrite <- in_rev.
+        pose proof (find_none _ _ F e0 Hin_rev) as Hf.
+        simpl in Hf. congruence.
+  Qed.
 
   (** Finalization preserves well-formedness *)
   Lemma finalize_preserves_wf :

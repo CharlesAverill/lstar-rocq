@@ -1,5 +1,6 @@
 open Lstar
 open KV
+open TTT
 open DFA
 open Stdlib
 
@@ -221,6 +222,25 @@ end
 module KVLearner (T : TEACHER) = struct
   module Impl =
     KV
+      (T.S)
+      (struct
+        module D = T.D
+
+        let member = T.member
+
+        let num_states_in_minimal = T.fuel
+      end)
+      (struct
+        let equiv_query = T.equiv_query
+      end)
+
+  include Impl
+  include DFAPrinter (T)
+end
+
+module TTTLearner (T : TEACHER) = struct
+  module Impl =
+    TTT
       (T.S)
       (struct
         module D = T.D

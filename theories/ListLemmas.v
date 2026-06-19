@@ -263,3 +263,17 @@ Proof.
     - intros (y & Hy & Heq). destruct (eqdec y q); now subst.
     - intro Hin. exists q. split; now destruct (eqdec q q).
 Qed.
+
+Lemma list_find : forall {A} (l1 l2 : list A) (f : A -> bool),
+    find f (l1 ++ l2) =
+        match find f l1 with
+        | None => find f l2
+        | Some x => Some x
+        end.
+Proof.
+    induction l1; intros; simpl.
+        reflexivity.
+    destruct (f a) eqn:E.
+        reflexivity.
+    apply IHl1.
+Qed.

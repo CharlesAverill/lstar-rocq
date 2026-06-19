@@ -58,9 +58,8 @@ module Teacher : TEACHER with module S = S = struct
 end
 
 module Lstar = LstarLearner (Teacher)
-
-(** Kearns-Vazirani (discrimination-tree) implementation *)
 module KV = KVLearner (Teacher)
+module TTT = TTTLearner (Teacher)
 
 let rec enumerate n =
   if n <= 0 then
@@ -103,4 +102,5 @@ let print_results name dfa n =
 
 let () =
   (match Lstar.lstar () with Coq_existT (_, d) -> print_results "L*" d 4) ;
-  match KV.kv () with Coq_existT (_, d) -> print_results "KV" d 4
+  (match KV.kv () with Coq_existT (_, d) -> print_results "KV" d 4) ;
+  match TTT.ttt () with Coq_existT (_, d) -> print_results "TTT" d 4

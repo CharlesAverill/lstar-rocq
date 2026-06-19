@@ -101,9 +101,8 @@ module Teacher : TEACHER with module S = S = struct
 end
 
 module Lstar = LstarLearner (Teacher)
-
-(** Kearns-Vazirani (discrimination-tree) implementation *)
 module KV = KVLearner (Teacher)
+module TTT = TTTLearner (Teacher)
 
 (** All digit strings of exactly length [n] *)
 let rec enumerate_exact n =
@@ -183,4 +182,5 @@ let print_results name dfa =
 
 let () =
   (match Lstar.lstar () with Coq_existT (_, d) -> print_results "L*" d) ;
-  match KV.kv () with Coq_existT (_, d) -> print_results "KV" d
+  (match KV.kv () with Coq_existT (_, d) -> print_results "KV" d) ;
+  match TTT.ttt () with Coq_existT (_, d) -> print_results "TTT" d
