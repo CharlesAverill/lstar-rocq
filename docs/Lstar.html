@@ -22,18 +22,19 @@
 </div>
 
 <div class="doc">
-https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.pdf 
+Rivest-Schapire-style automata learning
+    https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.pdf 
 </div>
 <div class="code">
 
 <br/>
-<span class="id" title="keyword">From</span> <span class="id" title="var">lstar</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">DFA</span> <span class="id" title="var">ListLemmas</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">lstar</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">DFA</span> <span class="id" title="var">ListLemmas</span> <span class="id" title="var">RS</span>.<br/>
 <span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Classes.RelationClasses</span>.<br/>
 <span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Setoids.Setoid</span>.<br/>
 <span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">List</span>.<br/>
 <span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Lia</span>.<br/>
 <span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Recdef</span>.<br/>
-<span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">PeanoNat</span>. <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Nat</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">PeanoNat</span>.<br/>
 <span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Eqdep_dec</span>.<br/>
 <span class="id" title="keyword">Import</span> <span class="id" title="var">ListNotations</span>.<br/>
 <span class="id" title="keyword">From</span> <span class="id" title="var">lstar</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Teacher</span>.<br/>
@@ -298,48 +299,28 @@ Updating sets of strings
 <div class="doc">
 Given a counter-example, we can always find q_new and t
     to add to Q, T such that Q' and T' are finite and Q' is
-    separable wrt T' 
-<div class="paragraph"> </div>
-
- Define pi_i = delta∗(ε, w1w2 ... wi) 
+    separable wrt T' (see RS.v for linear and binary searches) 
 </div>
 <div class="code">
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">pi</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>) (<span class="id" title="var">w</span> : <span class="id" title="var">str</span>) (<span class="id" title="var">i</span> : <span class="id" title="var">nat</span>) :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">run</span> (<span class="id" title="var">make_dfa</span> <span class="id" title="var">H</span>) (<span class="id" title="var">firstn</span> <span class="id" title="var">i</span> <span class="id" title="var">w</span>).<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-We say a state pi_i is correct if pi_i w(i+1) ... w_m ∈ L ⇐⇒ w ∈ L. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">correct</span> (<span class="id" title="var">H</span> : <span class="id" title="var">HypothesisDFA</span>) (<span class="id" title="var">w</span> : <span class="id" title="var">str</span>) (<span class="id" title="var">i</span> : <span class="id" title="var">nat</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">L.member</span> (<span class="id" title="var">proj1_sig</span> (<span class="id" title="var">pi</span> <span class="id" title="var">H</span> <span class="id" title="var">w</span> <span class="id" title="var">i</span>) ++ <span class="id" title="var">skipn</span> <span class="id" title="var">i</span> <span class="id" title="var">w</span>) = <span class="id" title="var">L.member</span> <span class="id" title="var">w</span>.<br/>
+<span class="id" title="keyword">Module</span> <span class="id" title="var">RSS</span> &lt;: <span class="id" title="var">RS_Setup</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span> <span class="id" title="var">T</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">obt</span> := <span class="id" title="var">HypothesisDFA</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">P</span> (<span class="id" title="var">o</span> : <span class="id" title="var">obt</span>) (<span class="id" title="var">q</span> : <span class="id" title="var">str</span>) : <span class="id" title="keyword">Prop</span> := <span class="id" title="var">o</span>.(<span class="id" title="var">Q</span>) <span class="id" title="var">q</span> = <span class="id" title="var">true</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">make_dfa</span> (<span class="id" title="var">o</span> : <span class="id" title="var">obt</span>) : <span class="id" title="var">D.t</span> { <span class="id" title="var">q</span> | <span class="id" title="var">P</span> <span class="id" title="var">o</span> <span class="id" title="var">q</span> } := <span class="id" title="var">make_dfa</span> <span class="id" title="var">o</span>.<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-Now, ε is correct trivially, and p_m is not correct since w is a counterexample. 
-</div>
-<div class="code">
-<span class="id" title="keyword">Example</span> <span class="id" title="var">eps_correct</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">H</span> <span class="id" title="var">w</span>, <span class="id" title="var">correct</span> <span class="id" title="var">H</span> <span class="id" title="var">w</span> 0.<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <span class="id" title="var">eps_in_H</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">o</span> : <span class="id" title="var">obt</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">proj1_sig</span> (<span class="id" title="var">make_dfa</span> <span class="id" title="var">o</span>).(<span class="id" title="var">initial</span> <span class="id" title="var">_</span>) = [].<br/>
 
 <br/>
-<span class="id" title="keyword">Example</span> <span class="id" title="var">full_not_correct</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">H</span> <span class="id" title="var">w</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">Hce</span> : <span class="id" title="var">accept_string</span> (<span class="id" title="var">make_dfa</span> <span class="id" title="var">H</span>) <span class="id" title="var">w</span> ≠ <span class="id" title="var">member</span> <span class="id" title="var">w</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;¬ <span class="id" title="var">correct</span> <span class="id" title="var">H</span> <span class="id" title="var">w</span> (<span class="id" title="var">length</span> <span class="id" title="var">w</span>).<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <span class="id" title="var">acc_correct</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">o</span> : <span class="id" title="var">obt</span>) <span class="id" title="var">q</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">accept</span> <span class="id" title="var">_</span> (<span class="id" title="var">make_dfa</span> <span class="id" title="var">o</span>) <span class="id" title="var">q</span> = <span class="id" title="var">member</span> (<span class="id" title="var">proj1_sig</span> <span class="id" title="var">q</span>).<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">RSS</span>.<br/>
 
 <br/>
-</div>
-
-<div class="doc">
-Correctness is decidable 
-</div>
-<div class="code">
-<span class="id" title="keyword">Lemma</span> <span class="id" title="var">correct_dec</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">H</span> <span class="id" title="var">w</span> <span class="id" title="var">i</span>, {<span class="id" title="var">correct</span> <span class="id" title="var">H</span> <span class="id" title="var">w</span> <span class="id" title="var">i</span>} + {~ <span class="id" title="var">correct</span> <span class="id" title="var">H</span> <span class="id" title="var">w</span> <span class="id" title="var">i</span>}.<br/>
+<span class="id" title="keyword">Module</span> <span class="id" title="var">RSan</span> := <span class="id" title="var">RS</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span> <span class="id" title="var">T</span> <span class="id" title="var">RSS</span>.<br/>
+<span class="id" title="keyword">Import</span> <span class="id" title="var">RSan</span>.<br/>
 
 <br/>
 <span class="id" title="keyword">Theorem</span> <span class="id" title="var">find_separable</span> :<br/>
@@ -355,7 +336,7 @@ Correctness is decidable
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">separable</span> <span class="id" title="var">Q'</span> <span class="id" title="var">T'</span> ×<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">finite</span> <span class="id" title="var">Q'</span> ×<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">finite</span> <span class="id" title="var">T'</span> }}.<br/>
-   
+  
 <br/>
 </div>
 

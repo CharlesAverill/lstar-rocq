@@ -22,22 +22,8 @@
 </div>
 
 <div class="doc">
-The Kearns-Vazirani active learner (discrimination-tree variant)
-
-<div class="paragraph"> </div>
-
-    Where L<sup>*</sup> maintains a flat set of representatives Q and a flat
-    set of distinguishing suffixes T, the Kearns-Vazirani learner stores its
-    knowledge in a binary <i>discrimination tree</i>: internal nodes carry a
-    <i>discriminator</i> (a distinguishing suffix), and leaves carry an <i>access
-    string</i> (a state representative).
-
-<div class="paragraph"> </div>
-
-    A string is classified by <i>sifting</i> it down the tree: at each internal node
-    with discriminator e, we ask the membership query <span class="inlinecode"><span class="id" title="var">member</span></span> <span class="inlinecode">(<span class="id" title="var">u</span></span> <span class="inlinecode">++</span> <span class="inlinecode"><span class="id" title="var">e</span>)</span> and
-    descend left when it holds and right otherwise; the leaf reached names the
-    state of u 
+Kearns-Vazirani automata learning
+    https://doi.org/10.7551/mitpress
 </div>
 <div class="code">
 
@@ -150,11 +136,7 @@ A tree is <i>well-formed</i> when each node's discriminator bisects the behavior
 <span class="id" title="keyword">Definition</span> <span class="id" title="keyword">wf</span> <span class="id" title="var">t</span> := <span class="id" title="var">wf'</span> <span class="id" title="var">t</span> ∧ <span class="id" title="var">In</span> <span class="id" title="var">nil</span> (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>).<br/>
 
 <br/>
-<span class="id" title="keyword">Definition</span> <span class="id" title="var">mem</span> (<span class="id" title="var">q</span> : <span class="id" title="var">str</span>) (<span class="id" title="var">l</span> : <span class="id" title="var">list</span> <span class="id" title="var">str</span>) : <span class="id" title="var">bool</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">existsb</span> (<span class="id" title="keyword">fun</span> <span class="id" title="var">y</span> ⇒ <span class="id" title="keyword">if</span> <span class="id" title="var">str_eq</span> <span class="id" title="var">y</span> <span class="id" title="var">q</span> <span class="id" title="keyword">then</span> <span class="id" title="var">true</span> <span class="id" title="keyword">else</span> <span class="id" title="var">false</span>) <span class="id" title="var">l</span>.<br/>
-
-<br/>
-<span class="id" title="keyword">Lemma</span> <span class="id" title="var">mem_In</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">q</span> <span class="id" title="var">l</span>, <span class="id" title="var">mem</span> <span class="id" title="var">q</span> <span class="id" title="var">l</span> = <span class="id" title="var">true</span> ↔ <span class="id" title="var">In</span> <span class="id" title="var">q</span> <span class="id" title="var">l</span>.<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">mem</span> := <span class="id" title="var">mem</span> <span class="id" title="var">str_eq</span>.<br/>
 
 <br/>
 <span class="id" title="keyword">Lemma</span> <span class="id" title="var">sift_mem</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">t</span> <span class="id" title="var">u</span>, <span class="id" title="var">mem</span> (<span class="id" title="var">sift</span> <span class="id" title="var">t</span> <span class="id" title="var">u</span>) (<span class="id" title="var">leaves</span> <span class="id" title="var">t</span>) = <span class="id" title="var">true</span>.<br/>
