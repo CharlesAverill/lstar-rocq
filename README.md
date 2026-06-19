@@ -12,6 +12,14 @@ A collection of formally-verified implementations of [automata learning](https:/
 
 Functions return sigma types, so each sub-component of each algorithm provides a proof of correctness alongside its computational outputs.
 
+## Layout
+
+- [DFA.v](theories/DFA.v) - definitions for alphabets, regular languages, and DFAs, including the correctness properties of language encoding and minimality
+- [Teacher.v](theories/DFA.v) - definitions for the Minimum Adequate Teacher model
+- [ListLemmas.v](theories/ListLemmas.v) - miscellaneous lemmas about lists
+- [RS.v](theories/RS.v) - a general-purpose implementation of Rivest-Schapire counterexample analysis, used in the implementations of L*, KV, and TTT
+- [Teacher.ml](lib/Teacher.ml) - OCaml entrypoint for using the extracted library, provides a single module interface to instantiate all of the learning algorithms
+
 ## Installation
 
 ```bash
