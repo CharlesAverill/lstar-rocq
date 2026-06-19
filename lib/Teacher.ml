@@ -26,7 +26,8 @@ module DFAPrinter (Teacher : TEACHER) = struct
     let next = ref 0 in
     let id_of s =
       match H.find_opt ids s with
-      | Some i -> i
+      | Some i ->
+          i
       | None ->
           let i = !next in
           incr next ;
@@ -35,9 +36,11 @@ module DFAPrinter (Teacher : TEACHER) = struct
           i
     in
     let rec explore = function
-      | [] -> ()
+      | [] ->
+          ()
       | s :: rest ->
-          if H.mem ids s then explore rest
+          if H.mem ids s then
+            explore rest
           else begin
             ignore (id_of s) ;
             let succs = List.map (fun c -> Teacher.D.transition d s c) S.enum in
@@ -54,8 +57,18 @@ module DFAPrinter (Teacher : TEACHER) = struct
     List.iter
       (fun s ->
         let i = id_of s in
-        let acc = if Teacher.D.accept d s then "accept" else "reject" in
-        let mark = if i = init_id then " <- initial" else "" in
+        let acc =
+          if Teacher.D.accept d s then
+            "accept"
+          else
+            "reject"
+        in
+        let mark =
+          if i = init_id then
+            " <- initial"
+          else
+            ""
+        in
         Printf.printf "  q%-3d  %s%s\n" i acc mark )
       states ;
     Printf.printf "Transitions:\n" ;
@@ -65,7 +78,8 @@ module DFAPrinter (Teacher : TEACHER) = struct
         List.iter
           (fun c ->
             let dst = Teacher.D.transition d s c in
-            Printf.printf "  q%-3d --%s--> q%d\n" i (S.string_of_t c) (id_of dst) )
+            Printf.printf "  q%-3d --%s--> q%d\n" i (S.string_of_t c)
+              (id_of dst) )
           S.enum )
       states
 
@@ -88,11 +102,16 @@ module DFAPrinter (Teacher : TEACHER) = struct
           String.iter
             (fun ch ->
               match ch with
-              | '"' -> Buffer.add_string buf "\\\""
-              | '\\' -> Buffer.add_string buf "\\\\"
-              | '\n' -> Buffer.add_string buf "\\n"
-              | '_' -> Buffer.add_string buf " - "
-              | c -> Buffer.add_char buf c )
+              | '"' ->
+                  Buffer.add_string buf "\\\""
+              | '\\' ->
+                  Buffer.add_string buf "\\\\"
+              | '\n' ->
+                  Buffer.add_string buf "\\n"
+              | '_' ->
+                  Buffer.add_string buf " - "
+              | c ->
+                  Buffer.add_char buf c )
             s ;
           Buffer.contents buf
         in
@@ -109,11 +128,13 @@ module DFAPrinter (Teacher : TEACHER) = struct
         p "  fontname=\"Helvetica Neue, Helvetica, Arial, sans-serif\";\n" ;
         p "  fontcolor=\"#1d1d1f\";\n" ;
         (* ---- shared node + edge defaults ---- *)
-        p "  node [fontname=\"Helvetica Neue, Helvetica, Arial, sans-serif\", \
-             fontsize=13, penwidth=1.4, style=filled];\n" ;
-        p "  edge [fontname=\"Menlo, Consolas, monospace\", fontsize=11, \
-             color=\"#8a8a8e\", fontcolor=\"#3a3a3c\", arrowsize=0.8, \
-             penwidth=1.1];\n" ;
+        p
+          "  node [fontname=\"Helvetica Neue, Helvetica, Arial, sans-serif\", \
+           fontsize=13, penwidth=1.4, style=filled];\n" ;
+        p
+          "  edge [fontname=\"Menlo, Consolas, monospace\", fontsize=11, \
+           color=\"#8a8a8e\", fontcolor=\"#3a3a3c\", arrowsize=0.8, \
+           penwidth=1.1];\n" ;
         (* ---- start marker ---- *)
         p "  __start [shape=point, width=0.12, color=\"#1d1d1f\"];\n" ;
         (* ---- states ---- *)
@@ -122,12 +143,14 @@ module DFAPrinter (Teacher : TEACHER) = struct
             let i = id_of s in
             let shape, fill, line =
               if Teacher.D.accept d s then
-                ("doublecircle", "#d6f0dd", "#349a57")   (* accept: green *)
+                ("doublecircle", "#d6f0dd", "#349a57")
+              (* accept: green *)
               else
-                ("circle", "#eef1f6", "#9aa0aa")         (* reject: grey-blue *)
+                ("circle", "#eef1f6", "#9aa0aa")
+              (* reject: grey-blue *)
             in
-            p "  q%d [shape=%s, label=\"q%d\", fillcolor=\"%s\", \
-                 color=\"%s\"];\n"
+            p
+              "  q%d [shape=%s, label=\"q%d\", fillcolor=\"%s\", color=\"%s\"];\n"
               i shape i fill line )
           states ;
         (* ---- start arrow ---- *)
@@ -144,7 +167,8 @@ module DFAPrinter (Teacher : TEACHER) = struct
                 let dst = id_of (Teacher.D.transition d s c) in
                 let buf, cnt =
                   match Hashtbl.find_opt tbl dst with
-                  | Some bc -> bc
+                  | Some bc ->
+                      bc
                   | None ->
                       let bc = (Buffer.create 16, ref 0) in
                       Hashtbl.add tbl dst bc ;
@@ -158,12 +182,17 @@ module DFAPrinter (Teacher : TEACHER) = struct
             List.iter
               (fun dst ->
                 let buf, cnt = Hashtbl.find tbl dst in
-                let self = if i = dst then " dir=back" else "" in
+                let self =
+                  if i = dst then
+                    " dir=back"
+                  else
+                    ""
+                in
                 if !cnt = alphabet_size then
                   p "  q%d -> q%d [color=\"#c6c6cc\"%s];\n" i dst self
                 else
-                  p "  q%d -> q%d [label=\" %s \"%s];\n"
-                    i dst (Buffer.contents buf) self )
+                  p "  q%d -> q%d [label=\" %s \"%s];\n" i dst
+                    (Buffer.contents buf) self )
               (List.rev !dst_order) )
           states ;
         p "}\n" ) ;

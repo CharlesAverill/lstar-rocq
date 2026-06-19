@@ -146,10 +146,10 @@ let interesting_cases =
     nums
 
 let print_results name dfa =
-Printf.printf "\n=== %s ===\n" name ;
+  Printf.printf "\n=== %s ===\n" name ;
   print_endline "DFA found" ;
   Lstar.print_dfa dfa ;
-  Printf.printf "DOT file at %s\n" (Lstar.to_dot ~name:(name ^ "_div7") dfa);
+  Printf.printf "DOT file at %s\n" (Lstar.to_dot ~name:(name ^ "_div7") dfa) ;
   let multiples = interesting_cases @ [[S.D0; S.D7]] in
   let non_multiples =
     List.filteri
