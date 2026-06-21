@@ -234,8 +234,8 @@ module KVLearner (T : TEACHER) = struct
         let equiv_query = T.equiv_query
       end)
 
-  include Impl
   include DFAPrinter (T)
+  include Impl
 end
 
 module TTTLearner (T : TEACHER) = struct
