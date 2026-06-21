@@ -100,9 +100,16 @@ module Teacher : TEACHER with module S = S = struct
   let fuel = Int.max_int
 end
 
+(** L* implementation *)
 module Lstar = LstarLearner (Teacher)
+
+(** Kearns-Vazirani implementation *)
 module KV = KVLearner (Teacher)
+
+(** TTT implementation *)
 module TTT = TTTLearner (Teacher)
+
+module DP = DFAPrinter (Teacher)
 
 (** All digit strings of exactly length [n] *)
 let rec enumerate_exact n =
@@ -147,8 +154,8 @@ let interesting_cases =
 let print_results name dfa =
   Printf.printf "\n=== %s ===\n" name ;
   print_endline "DFA found" ;
-  Lstar.print_dfa dfa ;
-  Printf.printf "DOT file at %s\n" (Lstar.to_dot ~name:(name ^ "_div7") dfa) ;
+  DP.print_dfa dfa ;
+  Printf.printf "DOT file at %s\n" (DP.to_dot ~name:(name ^ "_div7") dfa) ;
   let multiples = interesting_cases @ [[S.D0; S.D7]] in
   let non_multiples =
     List.filteri

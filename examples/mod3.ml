@@ -57,9 +57,16 @@ module Teacher : TEACHER with module S = S = struct
   let fuel : int = Int.max_int
 end
 
+(** L* implementation *)
 module Lstar = LstarLearner (Teacher)
+
+(** Kearns-Vazirani implementation *)
 module KV = KVLearner (Teacher)
+
+(** TTT implementation *)
 module TTT = TTTLearner (Teacher)
+
+module DP = DFAPrinter (Teacher)
 
 let rec enumerate n =
   if n <= 0 then
@@ -71,8 +78,8 @@ let rec enumerate n =
 let print_results name dfa n =
   Printf.printf "\n=== %s ===\n" name ;
   print_endline "DFA found" ;
-  Lstar.print_dfa dfa ;
-  Printf.printf "DOT file at %s\n" (Lstar.to_dot ~name:(name ^ "_mod3") dfa) ;
+  DP.print_dfa dfa ;
+  Printf.printf "DOT file at %s\n" (DP.to_dot ~name:(name ^ "_mod3") dfa) ;
   let strings = enumerate n in
   let col_w = max 10 (n + 2) in
   let header =

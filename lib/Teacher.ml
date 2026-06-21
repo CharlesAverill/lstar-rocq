@@ -216,7 +216,6 @@ module LstarLearner (T : TEACHER) = struct
       end)
 
   include Impl
-  include DFAPrinter (T)
 end
 
 module KVLearner (T : TEACHER) = struct
@@ -235,7 +234,6 @@ module KVLearner (T : TEACHER) = struct
       end)
 
   include Impl
-  include DFAPrinter (T)
 end
 
 module TTTLearner (T : TEACHER) = struct
@@ -254,5 +252,4 @@ module TTTLearner (T : TEACHER) = struct
       end)
 
   include Impl
-  include DFAPrinter (T)
 end

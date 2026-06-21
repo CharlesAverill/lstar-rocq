@@ -66,6 +66,8 @@ module KV = KVLearner (Teacher)
 (** TTT implementation *)
 module TTT = TTTLearner (Teacher)
 
+module DP = DFAPrinter (Teacher)
+
 (** Generate all bit strings of length [n] *)
 let rec enumerate (n : int) : S.str list =
   if n <= 0 then
@@ -79,9 +81,8 @@ let rec enumerate (n : int) : S.str list =
 let print_results name dfa n =
   Printf.printf "\n=== %s ===\n" name ;
   print_endline "DFA found" ;
-  Lstar.print_dfa dfa ;
-  Printf.printf "DOT file at %s\n"
-    (Lstar.to_dot ~name:(name ^ "_alternating") dfa) ;
+  DP.print_dfa dfa ;
+  Printf.printf "DOT file at %s\n" (DP.to_dot ~name:(name ^ "_alternating") dfa) ;
   let strings = enumerate n in
   let col_w = max 10 (n + 2) in
   let header =
