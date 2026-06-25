@@ -290,17 +290,18 @@ Proof.
     - right. intro. apply n. intros. apply H. now apply Hv.
 Defined.
 
-Definition closed (T V : str -> bool) (Ul : list str) : Prop :=
-    forall u, In u (USigma Ul) -> closed_row T V Ul u.
+Definition closed (T V : str -> bool) {U} (Ul : finite U) : Prop :=
+    forall u, In u (USigma (proj1_sig Ul)) -> closed_row T V (proj1_sig Ul) u.
 
-Lemma closed_dec : forall T V Ul,
+Lemma closed_dec : forall T V U
+    (fin_U : finite U),
     finite V ->
-    closed T V Ul + {u : str | In u (USigma Ul) /\ ~ closed_row T V Ul u}.
+    closed T V fin_U + {u : str | In u (USigma (proj1_sig fin_U)) /\ ~ closed_row T V (proj1_sig fin_U) u}.
 Proof.
-    intros T V Ul finV. unfold closed.
-    induction (USigma Ul).
+    intros T V U fin_U finV. unfold closed.
+    induction (USigma _).
         left. intros. destruct H.
-    destruct (closed_row_dec T V Ul a finV).
+    destruct (closed_row_dec T V (proj1_sig fin_U) a finV).
     - destruct IHl.
         left. intros. destruct H; auto; now subst.
       right. destruct s. exists x. split; [now right | intuition].
@@ -309,9 +310,9 @@ Defined.
 
 (* Definition 9 *)
 (** A table is RFSA-consistent if covering is preserved by one-letter extension *)
-Definition rfsa_consistent (T V : str -> bool) (Ul : list str) : Prop :=
+Definition rfsa_consistent (T V : str -> bool) {U} (Ul : finite U) : Prop :=
     forall u u' a,
-        In u Ul -> In u' Ul -> In a enum ->
+        In u (row_index (proj1_sig Ul)) -> In u' (row_index (proj1_sig Ul)) -> In a enum ->
         covered T V u u' -> covered T V (u ++ [a]) (u' ++ [a]).
 
 Lemma consistent_triple_dec : forall T V u u' a,
@@ -370,14 +371,15 @@ Proof.
     - right. destruct s, x. exists (a, s, t0). intuition.
 Defined.
 
-Lemma rfsa_consistent_dec : forall T V Ul,
+Lemma rfsa_consistent_dec : forall T V {U} (Ul : finite U),
     finite V ->
     rfsa_consistent T V Ul
     + {p : str * str * s.t | let '(u, u', a) := p in
-        In u Ul /\ In u' Ul /\ In a enum /\ ~ (covered T V u u' -> covered T V (u ++ [a]) (u' ++ [a]))}.
+        In u (row_index (proj1_sig Ul)) /\ In u' (row_index (proj1_sig Ul)) /\ In a enum
+        /\ ~ (covered T V u u' -> covered T V (u ++ [a]) (u' ++ [a]))}.
 Proof.
-    intros T V Ul finV. unfold rfsa_consistent.
-    destruct (consistent_outer_dec T V Ul Ul finV); auto.
+    intros T V U Ul finV. unfold rfsa_consistent.
+    destruct (consistent_outer_dec T V (row_index (proj1_sig Ul)) (row_index (proj1_sig Ul)) finV); auto.
 Defined.
 
 (* Definition 10 *)
@@ -389,8 +391,12 @@ Record HypothesisRFSA : Type := {
   V    : str -> bool;
   fin_U : finite U;
   fin_V : finite V;
-  clos : closed T V (proj1_sig fin_U);
-  cons : rfsa_consistent T V (proj1_sig fin_U)
+  clos : closed T V fin_U;
+  cons : rfsa_consistent T V fin_U;
+  (** U is prefix-closed *)
+  pref : forall w w', U (w ++ w') = true -> U w = true;
+  (** V is suffix-closed *)
+  suff : forall w w', V (w ++ w') = true -> V w' = true
 }.
 
 Definition Ul (H : HypothesisRFSA) : list str := proj1_sig H.(fin_U).
@@ -435,5 +441,49 @@ Definition make_rfsa (H : HypothesisRFSA) : N.t { q | memr H q = true }.
     apply (list_with_proof_complete Pr (fun q => memr H q = true)).
     intros. apply UIP_dec, Bool.bool_dec.
 Defined.
+
+Lemma covered_trans : forall T V a b c,
+    covered T V a b -> covered T V b c -> covered T V a c.
+Proof.
+    unfold covered. intros. apply H0; auto.
+Qed.
+
+Lemma state_row_index : forall H (q : { q | memr H q = true }),
+    In (proj1_sig q) (row_index (Ul H)).
+Proof.
+    intros. eapply prime_reps_index, mem_In. destruct q. eauto.
+Qed.
+
+(* Lemma 1 *)
+Lemma run_covered : forall H u r,
+    H.(U) u = true ->
+    In r (run (make_rfsa H) u) ->
+    covered H.(T) H.(V) (proj1_sig r) u.
+Proof.
+    intros H u. induction u using rev_ind; intros r Hu Hr.
+    - unfold run, run_from in Hr. simpl in Hr.
+      unfold make_rfsa in Hr. simpl in Hr.
+      apply in_list_with_proof in Hr.
+      apply filter_In in Hr. destruct Hr as (_ & Hcov).
+      now destruct (covered_dec H.(T) H.(V) (proj1_sig r) [] H.(fin_V)).
+    - unfold run in Hr. unfold run_from in Hr.
+      rewrite fold_left_app in Hr. simpl in Hr.
+      unfold step in Hr. apply in_flat_map in Hr.
+      destruct Hr as (q & Hq & Hr).
+      assert (HUu : H.(U) u = true) by (now apply (H.(pref) u [x])).
+      assert (Hqu : covered H.(T) H.(V) (proj1_sig q) u) by auto.
+      unfold make_rfsa in Hr. simpl in Hr.
+      apply in_list_with_proof in Hr.
+      apply filter_In in Hr. destruct Hr as (_ & Hcovr).
+      assert (Hrq : covered H.(T) H.(V) (proj1_sig r) (proj1_sig q ++ [x]))
+        by now destruct (covered_dec H.(T) H.(V) (proj1_sig r) (proj1_sig q ++ [x]) H.(fin_V)).
+      assert (Hqx : covered H.(T) H.(V) (proj1_sig q ++ [x]) (u ++ [x])). {
+          apply (H.(cons)); auto.
+            apply state_row_index.
+            unfold row_index. apply in_or_app. left.
+              now apply (proj1 (proj2 (proj2_sig H.(fin_U)) u)).
+            apply t_enumerable. }
+      now apply (covered_trans _ _ _ _ _ Hrq Hqx).
+Qed.
 
 End NLstar.

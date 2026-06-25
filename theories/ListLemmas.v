@@ -223,6 +223,16 @@ Proof.
                        ((fun s H => In_proof s (or_intror H)) x Hin)).
 Qed.
 
+Lemma in_list_with_proof : forall {A} (l : list A) (P : A -> Prop) pf r,
+    In r (list_with_proof l P pf) -> In (proj1_sig r) l.
+Proof.
+    induction l; intros P pf r Hin.
+        destruct Hin.
+    simpl in Hin. destruct Hin.
+        subst. now left.
+    right. eauto.
+Qed.
+
 Fixpoint InS {A : Type} (a : A) (l : list A) : Type :=
     match l with
     | nil => Empty_set
