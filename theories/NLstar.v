@@ -486,4 +486,13 @@ Proof.
       now apply (covered_trans _ _ _ _ _ Hrq Hqx).
 Qed.
 
+(* Lemma 2 *)
+(** (1) the row of state r at column v is + iff v is in the language of r
+    (2) the epsilon-row at column v is + iff v is in the language of R_T *)
+Lemma row_state_lang : forall H (r : { q | memr H q = true }) v,
+    H.(V) v = true ->
+    (cell H.(T) (proj1_sig r) v = true <-> N.L_state (make_rfsa H) r v = true) /\
+    (cell H.(T) [] v = true <-> N.L_aut (make_rfsa H) v = true).
+Abort.
+
 End NLstar.
