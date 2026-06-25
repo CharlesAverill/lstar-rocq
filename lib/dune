@@ -4,11 +4,13 @@
   Lstar
   KV
   Datatypes
+  Bool
   Automata
   Specif
   ListLemmas
   List
   ListDef
+  NLstar
   PeanoNat
   Nat
   RS
