@@ -912,6 +912,6 @@ Definition lstar (_ : unit) : { T : Type & {d : D.t T | minimal d} }.
       intros. destruct (str_eq s nil). subst.
         split; auto. now intros.
       split; intro. discriminate. inversion H0.
-Defined. 
+Defined.
 
 End Lstar.
