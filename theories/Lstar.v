@@ -1,18 +1,17 @@
 (** Rivest-Schapire-style automata learning
     https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.pdf *)
 
-From lstar Require Import DFA ListLemmas RS.
+From lstar Require Import Automata ListLemmas SetLemmas RS.
 From Stdlib Require Import Classes.RelationClasses.
 From Stdlib Require Import Setoids.Setoid.
 From Stdlib Require Import List.
 From Stdlib Require Import Lia.
-From Stdlib Require Import Recdef.
 From Stdlib Require Import PeanoNat.
 From Stdlib Require Import Eqdep_dec.
 Import ListNotations.
 From lstar Require Import Teacher.
 
-Module Lstar (s : Symbol) (L : RegularLanguage s) (T : Teacher s L).
+Module Lstar (s : Symbol) (L : RegularLanguage s) (T : DFATeacher s L).
 Import s L T D.
 
 (** T-equivalent
@@ -95,10 +94,9 @@ Proof.
 Qed.
 
 (** The states Q and T that we maintain will be finite *)
-
-Definition finite (f : str -> bool) :=
-    {l : list str | NoDup l /\
-        forall (s : str), f s = true <-> In s l}.
+Definition finite := SetLemmas.finite str.
+Notation update := (SetLemmas.update str str_eq).
+Notation "s [ k := v ]" := (update s k v).
 
 (** T-equivalence is decidable for finite sets *)
 Definition T_equiv_dec : forall T (u v : str),
@@ -255,27 +253,6 @@ Definition make_dfa (H : HypothesisDFA) : D.t {q | H.(Q) q = true}.
     intros. apply UIP_dec, Bool.bool_dec.
 Defined.
 
-(** Updating sets of strings *)
-Definition update (S : str -> bool) k b :=
-    fun s => if str_eq s k then b else S s.
-
-Notation "s [ k := v ]" := (update s k v).
-
-Lemma update_neq : forall S x y k,
-    x <> y ->
-    S[x := k] y = S y.
-Proof.
-    intros. unfold update.
-    destruct str_eq; now subst.
-Qed.
-
-Lemma update_eq : forall S x k,
-    S[x := k] x = k.
-Proof.
-    intros. unfold update.
-    destruct str_eq; now subst.
-Qed.
-
 (** Given a counter-example, we can always find q_new and t
     to add to Q, T such that Q' and T' are finite and Q' is
     separable wrt T' (see RS.v for linear and binary searches) *)
@@ -377,30 +354,30 @@ Theorem find_separable :
       } subst.
       now rewrite <- H1, skipn_len_app, skipn_Slen_cons_app, <- app_assoc.
     - intros u v Qu Qv Neq Contra.
-      unfold update in Qu, Qv.
+      unfold update, SetLemmas.update in Qu, Qv.
       destruct (str_eq u (pi H w k ++ [wk])),
                (str_eq v (pi H w k ++ [wk])); try subst u; try subst v; auto.
       + apply (H.(sep) (pi H w (S k)) v H0 Qv).
           intro Contra'. subst v. unfold T_equiv in Contra.
           apply Dist.
-          specialize (Contra (skipn (S k) w) (update_eq _ _ _)).
+          specialize (Contra (skipn (S k) w) (update_eq _ _ _ _ _)).
           now erewrite <- Contra, <- app_assoc, skipn_S_wk.
         transitivity (pi H w k ++ [wk]).
           now symmetry.
         eapply refined_distinguish; [| apply Contra].
-        intros. unfold update. now destruct str_eq.
+        intros. unfold update, SetLemmas.update. now destruct str_eq.
       + apply (H.(sep) (pi H w (S k)) u H0 Qu).
           intro Contra'. subst u. unfold T_equiv in Contra.
           apply Dist.
-          specialize (Contra (skipn (S k) w) (update_eq _ _ _)).
+          specialize (Contra (skipn (S k) w) (update_eq _ _ _ _ _)).
           now erewrite Contra, <- app_assoc, skipn_S_wk.
         transitivity (pi H w k ++ [wk]).
           now symmetry.
         eapply refined_distinguish; [| symmetry; apply Contra].
-        intros. unfold update. now destruct str_eq.
+        intros. unfold update, SetLemmas.update. now destruct str_eq.
       + apply (H.(sep) u v Qu Qv Neq).
         eapply refined_distinguish; [|apply Contra].
-        intros t Ht. unfold update.
+        intros t Ht. unfold update, SetLemmas.update.
         now destruct (str_eq t (skipn (S k) w)).
     - unfold finite. destruct H.(fin_Q) as (l & ND & X).
       eexists. split.
@@ -415,7 +392,7 @@ Theorem find_separable :
         + split; intros.
         -- destruct (str_eq s ((pi H w k) ++ [wk])).
             subst. now constructor.
-            apply in_cons, X. now rewrite update_neq in H1.
+            apply in_cons, X. now rewrite (update_neq _ _) in H1.
         -- destruct H1. subst.
             apply update_eq.
             destruct (str_eq s (pi H w k ++ [wk])). subst.
@@ -499,7 +476,7 @@ Proof with try easy.
     - exists Q. repeat split; auto.
     - exists (update Q (q ++ [a]) true). repeat split; eauto.
       + intros u v Qu Qv Neq.
-        unfold update in *.
+        unfold update, SetLemmas.update in *.
         destruct (str_eq u (q ++ [a])) eqn:Hu,
                  (str_eq v (q ++ [a])) eqn:Hv; subst; auto.
         intro Contra. symmetry in Contra. now apply norep in Contra.
@@ -509,14 +486,14 @@ Proof with try easy.
             apply HQl in Contra.
             eapply norep; eauto. reflexivity.
         intro s. split.
-        * intro Hs. unfold update in Hs.
+        * intro Hs. unfold update, SetLemmas.update in Hs.
           destruct (str_eq s (q ++ [a])); subst.
             now left.
           right. now apply HQl.
-        * intro HIn. unfold update.
+        * intro HIn. unfold update, SetLemmas.update.
           destruct (str_eq s (q ++ [a]))...
           apply HQl. destruct HIn; subst...
-      + intros s Hs. unfold update.
+      + intros s Hs. unfold update, SetLemmas.update.
         now destruct (str_eq s (q ++ [a])).
       + exists (q ++ [a]). split...
         apply update_eq.
@@ -696,72 +673,8 @@ Defined.
 
     If fuel runs out, we return the in-progress DFA *)
 
-Definition num_states_of_fin {f} (H : finite f) : nat :=
-    match H with
-    | exist _ x _ => List.length x
-    end.
-
 Definition num_states (H : HypothesisDFA) : nat :=
-    num_states_of_fin H.(fin_Q).
-
-Lemma finite_subset_is_smaller : forall
-    (f g : str -> bool)
-    (FinF : finite f)
-    (FinG : finite g)
-    (FsubG : forall (x : str), f x = true -> g x = true),
-    num_states_of_fin FinF <= num_states_of_fin FinG.
-Proof.
-    intros. destruct FinF as (fl & NDF & InF),
-                     FinG as (gl & NDG & InG).
-    simpl.
-    apply NoDup_incl_length.
-        assumption.
-    unfold incl. intros x Hx.
-    now apply (proj1 (InG x)), FsubG, (proj2 (InF x)).
-Qed.
-
-Lemma finite_update_impl_finite : forall
-    (f : str -> bool) k v
-    (FinUpdF : finite f[k := v]),
-    finite f.
-Proof.
-    intros. destruct FinUpdF as (fl' & NDfl' & Infl).
-    unfold finite, update in *.
-    destruct v, (f k) eqn:Hfk.
-    - exists fl'. split. assumption.
-        intro s. specialize (Infl s). destruct (str_eq s k).
-            subst. now rewrite Hfk.
-        assumption.
-    - exists (filter f fl'). split.
-        + clear Infl. induction fl' as [| h t IH].
-            constructor.
-          inversion NDfl'; subst. simpl. destruct (f h) eqn:Hfh.
-            constructor.
-                intro C. apply filter_In in C.
-                now destruct C.
-            now apply IH.
-          now apply IH.
-        + intro s. specialize (Infl s). rewrite filter_In. 
-            destruct (str_eq s k) as [e|n].
-                subst. rewrite Hfk. now split; intro H.
-            split; intro H.
-                split; [now apply Infl | assumption].
-            now destruct H.
-    - exists (k :: fl'). split.
-        + constructor; auto.
-          intro C. specialize (Infl k). destruct (str_eq k k).
-            now rewrite <- Infl in C.
-          contradiction.
-        + intro s. specialize (Infl s). simpl. destruct (str_eq s k).
-            subst. rewrite Hfk. split; auto.
-            split; intro H.
-                right. now apply Infl.
-            destruct H as [e2 | Hfl]; intuition.
-    - exists fl'. split; auto.
-        intro s. specialize (Infl s). destruct (str_eq s k).
-            subst. now rewrite Hfk.
-            assumption.
-Defined.
+    num_states_of_fin _ H.(fin_Q).
 
 (** A hypothesis DFA must be smaller than the number of states in the
     minimal DFA. This follows from separability of Q *)
@@ -889,8 +802,8 @@ Proof.
   (* num_states_le_min caps the extended DFA *)
   pose proof (num_states_le_min H'') as Hcap.
   (* The extension has strictly more states than H *)
-  pose proof (finite_subset_is_smaller _ _ finQ' finQ'' sub'') as Hmono.
-  assert (H_step : S (num_states H) <= num_states_of_fin finQ'). {
+  pose proof (finite_subset_is_smaller _ _ _ finQ' finQ'' sub'') as Hmono.
+  assert (H_step : S (num_states H) <= num_states_of_fin _ finQ'). {
       unfold num_states, num_states_of_fin.
       destruct (fin_Q H) as (fl & NDF & InF),
                finQ' as (fl' & NDF' & InF'),
@@ -900,11 +813,11 @@ Proof.
           intro C. apply (proj2 (InF q_new)) in C. now rewrite C in HQnew.
       unfold incl. intros y Hy.
       apply (proj1 (InF' y)).
-      unfold update. destruct Hy.
+      unfold update, SetLemmas.update. destruct Hy.
           subst y. now destruct (str_eq q_new q_new).
       apply (proj2 (InF y)) in H.
       now destruct (str_eq y q_new). }
-  assert (HH'' : num_states H'' = num_states_of_fin finQ''). {
+  assert (HH'' : num_states H'' = num_states_of_fin _ finQ''). {
     now unfold H'', num_states. }
   unfold num_states in Hge, Hcap.
   destruct H''.
@@ -951,8 +864,8 @@ Fixpoint lstar_fuel (H : HypothesisDFA) (fuel : nat)
       | [|- context[_ - num_states ?Dh]] =>
           enough (H_strict : S (num_states H) <= num_states Dh)
       end. lia.
-      pose proof (finite_subset_is_smaller _ _ finQ' finQ'' sub'').
-      assert (H_step : S (num_states H) <= num_states_of_fin finQ'). {
+      pose proof (finite_subset_is_smaller _ _ _ finQ' finQ'' sub'').
+      assert (H_step : S (num_states H) <= num_states_of_fin _ finQ'). {
           unfold num_states, num_states_of_fin.
           destruct (fin_Q H) as (fl & NDF & InF).
           destruct finQ' as (fl' & NDF' & InF').
@@ -963,7 +876,7 @@ Fixpoint lstar_fuel (H : HypothesisDFA) (fuel : nat)
               intro C. apply (proj2 (InF q_new)) in C. now rewrite C in HQnew.
           unfold incl. intros y Hy.
           apply (proj1 (InF' y)).
-          unfold update. destruct Hy as [Eq | Iny].
+          unfold update, SetLemmas.update. destruct Hy as [Eq | Iny].
               subst y. now destruct (str_eq q_new q_new) as [e|n'].
           apply (proj2 (InF y)) in Iny.
           now destruct (str_eq y q_new) as [e|n']. }

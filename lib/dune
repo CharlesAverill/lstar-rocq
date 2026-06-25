@@ -4,7 +4,7 @@
   Lstar
   KV
   Datatypes
-  DFA
+  Automata
   Specif
   ListLemmas
   List
@@ -12,6 +12,7 @@
   PeanoNat
   Nat
   RS
+  SetLemmas
   TTT)
  (theories Stdlib lstar))
 

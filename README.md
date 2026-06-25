@@ -5,6 +5,7 @@ A collection of formally-verified implementations of [automata learning](https:/
 | Algorithm | Resources | Proofs |
 | --- | --- | --- |
 | L* | [Angluin, 1987](https://doi.org/10.1016/0890-5401(87)90052-6), [Lecture Notes](https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.pdf) | [Lstar.v](theories/Lstar.v) |
+| NL* **(WIP)** | [Bollig et al., 2008](https://lsv.ens-paris-saclay.fr/Publis/RAPPORTS_LSV/PDF/rr-lsv-2008-28.pdf) | [NLstar.v](theories/NLstar.v) |
 | Kearns-Vazirani | [Kearns-Vazirani, 1994](https://doi.org/10.7551/mitpress/3897.003.0009), [Balle, 2010](https://borjaballe.github.io/papers/zulu10.pdf) | [KV.v](theories/KV.v) |
 | TTT | [Isberner et al., 2014](https://doi.org/10.1007/978-3-319-11164-3) | [TTT.v](theories/TTT.v) |
 
@@ -14,8 +15,8 @@ Functions return sigma types, so each sub-component of each algorithm provides a
 
 ## Layout
 
-- [DFA.v](theories/DFA.v) - definitions for alphabets, regular languages, and DFAs, including the correctness properties of language encoding and minimality
-- [Teacher.v](theories/DFA.v) - definitions for the Minimum Adequate Teacher model
+- [Automata.v](theories/Automata.v) - definitions for alphabets, regular languages, and automata, including the correctness properties of language encoding and minimality
+- [Teacher.v](theories/Teacher.v) - definitions for the Minimum Adequate Teacher model
 - [ListLemmas.v](theories/ListLemmas.v) - miscellaneous lemmas about lists
 - [RS.v](theories/RS.v) - a general-purpose implementation of Rivest-Schapire counterexample analysis, used in the implementations of L*, KV, and TTT
 - [Teacher.ml](lib/Teacher.ml) - OCaml entrypoint for using the extracted library, provides a single module interface to instantiate all of the learning algorithms

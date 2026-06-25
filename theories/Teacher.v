@@ -1,6 +1,6 @@
-From lstar Require Import DFA.
+From lstar Require Import Automata.
 
-Module Type Teacher (s : Symbol) (L : RegularLanguage s).
+Module Type DFATeacher (s : Symbol) (L : RegularLanguage s).
     Import s L.
 
     (** The teacher answers equivalence queries: whether the given
@@ -17,4 +17,23 @@ Module Type Teacher (s : Symbol) (L : RegularLanguage s).
     Parameter equiv_query_ce : forall (state : Type) d w,
         equiv_query state d = Some w ->
         D.accept_string d w <> member w.
-End Teacher.
+End DFATeacher.
+
+Module Type RFSATeacher (s : Symbol) (L : ResidualLanguage s).
+    Import s L.
+
+    (** The teacher answers equivalence queries: whether the given
+        RFSA encodes L or not *)
+    Parameter equiv_query : 
+        forall (state : Type),
+        R.t state -> option str.
+    (** If the equivalence query returns [None], the RFSA encodes L *)
+    Parameter equiv_query_correct : forall (state : Type) r,
+        equiv_query state r = None <-> encodes r.
+    (** If the equivalence query returns [Some x], the RFSA does not
+        encode L, and [x] is a counter-example on which the RFSA
+        mis-predicts *)
+    Parameter equiv_query_ce : forall (state : Type) (r : R.t state) w,
+        equiv_query state r = Some w ->
+        N.accept_string r.(R.nfa state) w <> member w.
+End RFSATeacher.

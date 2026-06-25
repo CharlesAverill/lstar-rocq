@@ -1,7 +1,7 @@
 open Lstar
 open KV
 open TTT
-open DFA
+open Automata
 open Stdlib
 
 module type TEACHER = sig

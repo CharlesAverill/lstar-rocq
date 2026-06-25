@@ -1,7 +1,7 @@
 (** Kearns-Vazirani automata learning
     https://doi.org/10.7551/mitpress%2F3897.001.0001 *)
 
-From lstar Require Import DFA ListLemmas Teacher RS.
+From lstar Require Import Automata ListLemmas Teacher RS.
 From Stdlib Require Import List.
 From Stdlib Require Import Lia.
 From Stdlib Require Import PeanoNat.
@@ -9,7 +9,7 @@ From Stdlib Require Import Setoids.Setoid.
 From Stdlib Require Import Eqdep_dec.
 Import ListNotations.
 
-Module KV (s : Symbol) (L : RegularLanguage s) (Tch : Teacher s L).
+Module KV (s : Symbol) (L : RegularLanguage s) (Tch : DFATeacher s L).
 Import s L Tch D.
 
 (** A discrimination tree is a binary tree whose internal nodes hold a

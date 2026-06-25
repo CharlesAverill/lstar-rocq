@@ -1,9 +1,9 @@
 (** Rivest-Schapire counterexample analysis: https://doi.org/10.1006/inco.1993.1021*)
 
 From Stdlib Require Import Lia PeanoNat.
-From lstar Require Import DFA Teacher.
+From lstar Require Import Automata Teacher.
 
-Module Type RS_Setup (s : Symbol) (L : RegularLanguage s) (Tch : Teacher s L).
+Module Type RS_Setup (s : Symbol) (L : RegularLanguage s) (Tch : DFATeacher s L).
 Import s L Tch D.
 
 (* An algorithm's internal representation of an observation table *)
@@ -22,7 +22,7 @@ Parameter acc_correct : forall (o : obt),
     forall q, accept _ (make_dfa o) q = member (proj1_sig q).
 End RS_Setup.
 
-Module RS (s : Symbol) (L : RegularLanguage s) (Tch : Teacher s L) (Setup : RS_Setup s L Tch).
+Module RS (s : Symbol) (L : RegularLanguage s) (Tch : DFATeacher s L) (Setup : RS_Setup s L Tch).
 Import s L Tch D Setup.
 
 (** [pi t w i] is the access string of the state that the hypothesis reaches

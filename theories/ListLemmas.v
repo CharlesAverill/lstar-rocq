@@ -277,3 +277,10 @@ Proof.
         reflexivity.
     apply IHl1.
 Qed.
+
+Fixpoint list_eqb {X} (eqb : X -> X -> bool) (l1 l2 : list X) : bool :=
+    match l1, l2 with
+    | h1 :: t1, h2 :: t2 => eqb h1 h2 && list_eqb eqb t1 t2
+    | nil, nil => true
+    | _, _ => false
+    end.
