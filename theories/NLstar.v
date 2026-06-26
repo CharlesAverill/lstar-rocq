@@ -18,31 +18,39 @@ Import s L Tch N R.
 Definition mem := mem str_eq.
 Definition finite := SetLemmas.finite str.
 
-(** The value of the row of u at column v *)
+(* row(u)(v) = T(uv) *)
 Definition cell (T : str -> bool) (u v : str) : bool := T (u ++ v).
 
-(** The strings indexing rows: U together with its one-letter extensions *)
+(* Access strings together with their one-letter extensions *)
 Definition USigma (Ul : list str) : list str :=
     flat_map (fun u => map (fun a => u ++ [a]) enum) Ul.
 
 Definition row_index (Ul : list str) : list str :=
     Ul ++ USigma Ul.
 
-(** Two rows are equal when they agree on every column of V *)
+(* Rows are equal when they agree on every v \in V *)
 Definition row_eq (T V : str -> bool) (u1 u2 : str) : Prop :=
     forall v, V v = true -> cell T u1 v = cell T u2 v.
 
-(* Definition 5 *)
-(** The join of rows u1 u2 at column v *)
+(* Definition 5: the join of two rows at a column *)
 Definition join (T : str -> bool) (u1 u2 v : str) : bool :=
     cell T u1 v || cell T u2 v.
 
-(* Definition 7 *)
-(** Row u1 is covered by row u2 when, on every column, a + in u1 forces a + in u2 *)
+(* Definition 6: r is composed if there are r1,...,rn \in Rows(T) \ {r} such that r = r1 \sqcup ... \sqcup rn *)
+Definition composed (T V : str -> bool) (Ul : list str) (u : str) : Prop :=
+    forall v, V v = true ->
+        cell T u v = true <->
+        exists u', In u' (row_index Ul) /\ ~ row_eq T V u' u /\ cell T u' v = true.
+
+(* Otherwise, r is called prime *)
+Definition prime (T V : str -> bool) (Ul : list str) (u : str) : Prop :=
+    In u (row_index Ul) /\ ~ composed T V Ul u.
+
+(* Definition 7: r is covered by r', r \sqsubseteq r', if for all v \in V, r(v)=+ implies r'(v)=+ *)
 Definition covered (T V : str -> bool) (u1 u2 : str) : Prop :=
     forall v, V v = true -> cell T u1 v = true -> cell T u2 v = true.
 
-(** Row u1 is strictly covered by row u2 when it is covered and they differ *)
+(* Definition 7: if, moreover, r \neq r', then r is strictly covered by r', r \sqsubset r' *)
 Definition strictly_covered (T V : str -> bool) (u1 u2 : str) : Prop :=
     covered T V u1 u2 /\ ~ row_eq T V u1 u2.
 
@@ -50,18 +58,7 @@ Lemma strict_impl_covered : forall T V u1 u2,
     strictly_covered T V u1 u2 -> covered T V u1 u2.
 Proof. intros. now destruct H. Qed.
 
-(* Definition 6 *)
-(** A row r is composed when on every column its value is the join of rows
-    distinct from r among the row indices *)
-Definition composed (T V : str -> bool) (Ul : list str) (u : str) : Prop :=
-    forall v, V v = true ->
-        cell T u v = true <->
-        exists u', In u' (row_index Ul) /\ ~ row_eq T V u' u /\ cell T u' v = true.
-
-Definition prime (T V : str -> bool) (Ul : list str) (u : str) : Prop :=
-    In u (row_index Ul) /\ ~ composed T V Ul u.
-
-(** Covering decided relative to an arbitrary column list *)
+(* Covering is decidable relative to an arbitrary column list *)
 Lemma covered_on_dec : forall T u1 u2 (vl : list str),
     {forall v, In v vl -> cell T u1 v = true -> cell T u2 v = true}
   + {~ forall v, In v vl -> cell T u1 v = true -> cell T u2 v = true}.
@@ -79,6 +76,7 @@ Proof.
       right. intro. apply n0. intros. apply H; auto. now right.
 Defined.
 
+(* Covering is decidable for finite V *)
 Lemma covered_dec : forall T V u1 u2,
     finite V -> {covered T V u1 u2} + {~ covered T V u1 u2}.
 Proof.
@@ -89,6 +87,7 @@ Proof.
     - right. intro. apply n. intros. apply H; auto. now apply Hv.
 Defined.
 
+(* Row equality is decidable relative to an arbitrary column list *)
 Lemma row_eq_on_dec : forall T u1 u2 (vl : list str),
     {forall v, In v vl -> cell T u1 v = cell T u2 v}
   + {~ forall v, In v vl -> cell T u1 v = cell T u2 v}.
@@ -102,6 +101,7 @@ Proof.
     - right. intro. apply n, H. now left.
 Defined.
 
+(* Row equality is decidable for finite V *)
 Lemma row_eq_dec : forall T V u1 u2,
     finite V -> {row_eq T V u1 u2} + {~ row_eq T V u1 u2}.
 Proof.
@@ -112,6 +112,7 @@ Proof.
     - right. intro. apply n. intros. apply H. now apply Hv.
 Defined.
 
+(* Strict covering is decidable for finite V *)
 Lemma strictly_covered_dec : forall T V u1 u2,
     finite V -> {strictly_covered T V u1 u2} + {~ strictly_covered T V u1 u2}.
 Proof.
@@ -123,28 +124,30 @@ Proof.
     - right. now intros.
 Defined.
 
+(* Composedness is decidable over an arbitrary row list *)
 Lemma composed_witness_dec : forall T V u v (rl : list str),
     finite V ->
-    {exists u', In u' rl /\ ~ row_eq T V u' u /\ cell T u' v = true}
+    {u' | In u' rl /\ ~ row_eq T V u' u /\ cell T u' v = true}
   + {~ exists u', In u' rl /\ ~ row_eq T V u' u /\ cell T u' v = true}.
 Proof.
     intros T V u v rl finV. induction rl.
         right. intro Contra. destruct Contra, H. inversion H.
     destruct (row_eq_dec T V a u finV).
     - destruct IHrl.
-        left. destruct e. exists x. intuition.
+        left. destruct s. exists x. intuition.
       right. intro Contra. destruct Contra, H, H0. destruct H.
         now subst.
       apply n. exists x. auto.
     - destruct (Bool.bool_dec (cell T a v) true).
         left. exists a. split; [now left | now split].
       destruct IHrl.
-        left. destruct e. exists x. split; [now right | intuition].
+        left. destruct s. exists x. split; [now right | intuition].
       right. intro Contra. destruct Contra, H, H0. destruct H.
         now subst.
       apply n1. exists x. auto.
 Defined.
 
+(* Composedness is decidable on an arbitrary column list *)
 Lemma composed_on_dec : forall T V Ul u (vl : list str),
     finite V ->
     {forall v, In v vl ->
@@ -159,9 +162,11 @@ Proof.
     destruct (composed_witness_dec T V u a (row_index Ul) finV).
     - destruct (Bool.bool_dec (cell T u a) true).
       + destruct IHvl.
-            left. intros. destruct H; [subst; now split | auto].
+            destruct s, a0, H0.
+            left. intros. destruct H2; [subst; split; eauto | auto].
         right. intro. apply n. intros. apply H. now right.
-      + right. intro. apply n. exfalso. specialize (H a (or_introl eq_refl)). intuition.
+      + right. intro. apply n. exfalso. specialize (H a (or_introl eq_refl)).
+        destruct s, a0, H1. apply n, H. eauto.
     - destruct (Bool.bool_dec (cell T u a) true).
         right. intro. apply n. exfalso. specialize (H a (or_introl eq_refl)). intuition.
       destruct IHvl.
@@ -171,6 +176,7 @@ Proof.
       right. intro. apply n1. intros. apply H. now right.
 Defined.
 
+(* Composedness is decidable for finite V *)
 Lemma composed_dec : forall T V Ul u,
     finite V -> {composed T V Ul u} + {~ composed T V Ul u}.
 Proof.
@@ -181,6 +187,7 @@ Proof.
     - right. intro. apply n. intros. apply H. now apply Hv.
 Defined.
 
+(* Primeness is decidable for finite V *)
 Lemma prime_dec : forall T V Ul u,
     finite V -> {prime T V Ul u} + {~ prime T V Ul u}.
 Proof.
@@ -192,21 +199,25 @@ Proof.
     - right. now intros (? & _).
 Defined.
 
+(* Primes_upp(T) = Primes(T) \cap Rows_upp(T) *)
 Definition prime_reps (T V : str -> bool) (Ul : list str) (finV : finite V) : list str :=
     filter (fun u => if prime_dec T V Ul u finV then true else false) Ul.
 
+(* Prime representatives lie in the upper part U *)
 Lemma prime_reps_upper : forall T V Ul finV u,
     In u (prime_reps T V Ul finV) -> In u Ul.
 Proof.
     intros. apply filter_In in H. now destruct H.
 Qed.
 
+(* Prime representatives are prime rows *)
 Lemma prime_reps_prime : forall T V Ul finV u,
     In u (prime_reps T V Ul finV) -> prime T V Ul u.
 Proof.
     intros. apply filter_In in H. destruct H. now destruct (prime_dec T V Ul u finV).
 Qed.
 
+(* Prime representatives are row indices *)
 Lemma prime_reps_index : forall T V Ul finV u,
     In u (prime_reps T V Ul finV) -> In u (row_index Ul).
 Proof.
@@ -215,28 +226,29 @@ Proof.
     unfold row_index. apply in_or_app. now left.
 Qed.
 
+(* Definition 10: \delta(row(u),a) = {r \in Q | r \sqsubseteq row(ua)} *)
 Definition cover_set (T V : str -> bool) (Ul : list str) (finV : finite V) (u : str)
     : list str :=
     filter (fun p => if covered_dec T V p u finV then true else false)
            (prime_reps T V Ul finV).
 
+(* Members of a cover set are prime representatives *)
 Lemma cover_set_prime_reps : forall T V Ul finV u p,
     In p (cover_set T V Ul finV u) -> In p (prime_reps T V Ul finV).
 Proof.
     intros. apply filter_In in H. now destruct H.
 Qed.
 
-(* Definition 8 *)
-(** The closedness condition for a single lower row u: on every column, u's
-    value is the join of the prime upper rows covered by it *)
+(* Definition 8: r = \sqcup {r' \in Primes_upp(T) | r' \sqsubseteq r} *)
 Definition closed_row (T V : str -> bool) (Ul : list str) (u : str) : Prop :=
     forall v, V v = true ->
         cell T u v = true <->
         exists u', In u' Ul /\ prime T V Ul u' /\ covered T V u' u /\ cell T u' v = true.
 
+(* Closedness at a column is decidable over an arbitrary upper list *)
 Lemma closed_witness_dec : forall T V Ul u v (ul : list str),
     finite V ->
-    {exists u', In u' ul /\ prime T V Ul u' /\ covered T V u' u /\ cell T u' v = true}
+    {u' | In u' ul /\ prime T V Ul u' /\ covered T V u' u /\ cell T u' v = true}
   + {~ exists u', In u' ul /\ prime T V Ul u' /\ covered T V u' u /\ cell T u' v = true}.
 Proof.
     intros T V Ul u v ul finV. induction ul.
@@ -246,22 +258,23 @@ Proof.
       + destruct (Bool.bool_dec (cell T a v) true).
           left. exists a. intuition.
         destruct IHul.
-          left. destruct e. exists x. split; [now right | intuition].
+          left. destruct s. exists x. split; [now right | intuition].
         right. intro Contra. destruct Contra, H, H0, H1, H.
           now subst.
         apply n0. eauto.
       + destruct IHul.
-          left. destruct e. exists x. split; [now right | intuition].
+          left. destruct s. exists x. split; [now right | intuition].
         right. intro Contra. destruct Contra, H, H0, H1, H.
           now subst.
         apply n0. eauto.
     - destruct IHul.
-        left. destruct e. exists x. split; [now right | intuition].
+        left. destruct s. exists x. split; [now right | intuition].
       right. intro Contra. destruct Contra, H, H0, H.
         now subst.
       apply n0. eauto.
 Defined.
 
+(* Closedness of one row on an arbitrary column list is decidable *)
 Lemma closed_row_on_dec : forall T V Ul u (vl : list str),
     finite V ->
     {forall v, In v vl ->
@@ -276,9 +289,11 @@ Proof.
     destruct (closed_witness_dec T V Ul u a Ul finV).
     - destruct (Bool.bool_dec (cell T u a) true).
       + destruct IHvl.
-            left. intros. destruct H; [subst; now split | auto].
+            left. intros. destruct H; [subst; split; eauto | auto].
+            destruct s, a, H0, H1. eauto.
         right. intro. apply n. intros. apply H. now right.
-      + right. intro. apply n. exfalso. specialize (H a (or_introl eq_refl)). intuition.
+      + right. intro. apply n. exfalso. specialize (H a (or_introl eq_refl)).
+        destruct s, a0, H1, H2. apply n, H. eauto.
     - destruct (Bool.bool_dec (cell T u a) true).
         right. intro. apply n. exfalso. specialize (H a (or_introl eq_refl)). intuition.
       destruct IHvl.
@@ -288,6 +303,7 @@ Proof.
       right. intro. apply n1. intros. apply H. now right.
 Defined.
 
+(* Closedness of one row is decidable for finite V *)
 Lemma closed_row_dec : forall T V Ul u,
     finite V -> {closed_row T V Ul u} + {~ closed_row T V Ul u}.
 Proof.
@@ -298,9 +314,11 @@ Proof.
     - right. intro. apply n. intros. apply H. now apply Hv.
 Defined.
 
+(* Definition 8: T is RFSA-closed if, for each r \in Rows_low(T), r = \sqcup {r' \in Primes_upp(T) | r' \sqsubseteq r} *)
 Definition closed (T V : str -> bool) {U} (Ul : finite U) : Prop :=
     forall u, In u (row_index (proj1_sig Ul)) -> closed_row T V (proj1_sig Ul) u.
 
+(* RFSA-closedness is decidable, returning a witness row when it fails *)
 Lemma closed_dec : forall T V U
     (fin_U : finite U),
     finite V ->
@@ -316,13 +334,13 @@ Proof.
     - right. exists a. split; [now left | assumption].
 Defined.
 
-(* Definition 9 *)
-(** A table is RFSA-consistent if covering is preserved by one-letter extension *)
+(* Definition 9: for all u,u' \in U and a \in \Sigma, row(u') \sqsubseteq row(u) implies row(u'a) \sqsubseteq row(ua) *)
 Definition rfsa_consistent (T V : str -> bool) {U} (Ul : finite U) : Prop :=
     forall u u' a,
         In u (row_index (proj1_sig Ul)) -> In u' (row_index (proj1_sig Ul)) -> In a enum ->
         covered T V u u' -> covered T V (u ++ [a]) (u' ++ [a]).
 
+(* One consistency triple is decidable *)
 Lemma consistent_triple_dec : forall T V u u' a,
     finite V ->
     {covered T V u u' -> covered T V (u ++ [a]) (u' ++ [a])} +
@@ -335,6 +353,7 @@ Proof.
     - left. now intros.
 Defined.
 
+(* Consistency is decidable for over an arbitrary list *)
 Lemma consistent_row_a_dec : forall T V u a (us : list str),
     finite V ->
     (forall u', In u' us -> covered T V u u' -> covered T V (u ++ [a]) (u' ++ [a]))
@@ -349,6 +368,7 @@ Proof.
     - right. exists a0. intuition.
 Defined.
 
+(* Consistency is decidable for an arbitrary list and all letters *)
 Lemma consistent_row_dec : forall T V u (us : list str),
     finite V ->
     (forall u' a, In u' us -> In a enum -> covered T V u u' -> covered T V (u ++ [a]) (u' ++ [a]))
@@ -364,6 +384,7 @@ Proof.
     - right. destruct s, a0. exists (x, a). intuition.
 Defined.
 
+(* Consistency over an arbitrary list is decidable *)
 Lemma consistent_outer_dec : forall T V Ul (us : list str),
     finite V ->
     (forall u u' a, In u us -> In u' Ul -> In a enum -> covered T V u u' -> covered T V (u ++ [a]) (u' ++ [a]))
@@ -379,6 +400,7 @@ Proof.
     - right. destruct s, x. exists (a, s, t0). intuition.
 Defined.
 
+(* RFSA-consistency is decidable, returning a violating triple when it fails *)
 Lemma rfsa_consistent_dec : forall T V {U} (Ul : finite U),
     finite V ->
     rfsa_consistent T V Ul
@@ -390,9 +412,8 @@ Proof.
     destruct (consistent_outer_dec T V (row_index (proj1_sig Ul)) (row_index (proj1_sig Ul)) finV); auto.
 Defined.
 
-(* Definition 10 *)
-(** A hypothesis RFSA bundles the table with its finiteness, closedness, and
-    consistency invariants, after Lstar's HypothesisDFA *)
+(* Definition 10: a table T=(T,U,V) with prefix-closed U and suffix-closed V that is
+   RFSA-closed and RFSA-consistent, after Lstar's HypothesisDFA *)
 Record HypothesisRFSA : Type := {
   T    : str -> bool;
   U    : str -> bool;
@@ -401,26 +422,31 @@ Record HypothesisRFSA : Type := {
   fin_V : finite V;
   clos : closed T V fin_U;
   cons : rfsa_consistent T V fin_U;
-  (* U is prefix-closed *)
+  (* "U prefix-closed" *)
   pref : forall w w', U (w ++ w') = true -> U w = true;
-  (* V is suffix-closed *)
+  (* "V is always suffix-closed" *)
   suff : forall w w', V (w ++ w') = true -> V w' = true;
-  (* epsilon is in U and V *)
+  (* "U and V are both initialized to {\epsilon}" *)
   eps_U : U [] = true;
   eps_V : V [] = true;
 }.
 
+(* Upper access strings of the table *)
 Definition Ul (H : HypothesisRFSA) : list str := proj1_sig H.(fin_U).
 
+(* Q = Primes_upp(T) *)
 Definition memr (H : HypothesisRFSA) (q : str) : bool :=
     mem q (prime_reps H.(T) H.(V) (Ul H) H.(fin_V)).
 
+(* Cover-set elements are states *)
 Lemma cover_set_memr : forall H u p,
     In p (cover_set H.(T) H.(V) (Ul H) H.(fin_V) u) -> memr H p = true.
 Proof.
     intros. apply mem_In. now apply (cover_set_prime_reps _ _ _ _ u).
 Qed.
 
+(* RT = (Q,Q0,F,\delta) with Q = Primes_upp(T), Q0 = {r \in Q | r \sqsubseteq row(\epsilon)},
+   F = {r \in Q | r(\epsilon)=+}, \delta(row(u),a) = {r \in Q | r \sqsubseteq row(ua)} *)
 Definition make_rfsa (H : HypothesisRFSA) : N.t { q | memr H q = true }.
     set (state := { q | memr H q = true }).
     set (Pr := prime_reps H.(T) H.(V) (Ul H) H.(fin_V)).
@@ -453,19 +479,25 @@ Definition make_rfsa (H : HypothesisRFSA) : N.t { q | memr H q = true }.
     intros. apply UIP_dec, Bool.bool_dec.
 Defined.
 
+(* Covering is reflexive *)
+Lemma covered_refl : forall T V u, covered T V u u.
+Proof. unfold covered. auto. Qed.
+
+(* Covering is transitive *)
 Lemma covered_trans : forall T V a b c,
     covered T V a b -> covered T V b c -> covered T V a c.
 Proof.
     unfold covered. intros. apply H0; auto.
 Qed.
 
+(* Access strings are row indices *)
 Lemma state_row_index : forall H (q : { q | memr H q = true }),
     In (proj1_sig q) (row_index (Ul H)).
 Proof.
     intros. eapply prime_reps_index, mem_In. destruct q. eauto.
 Qed.
 
-(* Lemma 1 *)
+(* Lemma 1: "For all u \in U and r \in \delta(Q0,u), we have r \sqsubseteq row(u)" *)
 Lemma run_covered : forall H u r,
     H.(U) u = true ->
     In r (run (make_rfsa H) u) ->
@@ -497,14 +529,17 @@ Proof.
       now apply (covered_trans _ _ _ _ _ Hrq Hqx).
 Qed.
 
+(* Cell distributes over a leading column symbol *)
 Lemma cell_app : forall T u a v,
     cell T u (a :: v) = cell T (u ++ [a]) v.
 Proof. intros. unfold cell. now rewrite <- app_assoc. Qed.
 
+(* F = {r \in Q | r(\epsilon)=+} *)
 Lemma accept_cell : forall H q,
     accept _ (make_rfsa H) q = cell H.(T) (proj1_sig q) [].
 Proof. intros. unfold cell. now rewrite app_nil_r. Qed.
 
+(* Pointwise closedness *)
 Lemma cover_set_cell : forall H w v,
     In w (row_index (Ul H)) ->
     H.(V) v = true ->
@@ -524,6 +559,7 @@ Proof.
         now destruct (covered_dec H.(T) H.(V) u' w H.(fin_V)).
 Qed.
 
+(* Access strings lie in the upper part *)
 Lemma state_upper : forall H (q : { q | memr H q = true }),
     In (proj1_sig q) (Ul H).
 Proof.
@@ -531,6 +567,7 @@ Proof.
     apply (mem_In str_eq). now destruct q.
 Qed.
 
+(* Running v from a set accepts iff cell(q)(v) = true for some start state q *)
 Lemma run_from_set_accept : forall H v qs,
     H.(V) v = true ->
     (forall q, In q qs -> In (proj1_sig q) (Ul H)) ->
@@ -583,7 +620,7 @@ Proof.
         now apply (cover_set_prime_reps _ _ _ _ (proj1_sig q ++ [a])).
 Qed.
 
-(* Lemma 2 *)
+(* Lemma 2: "(1) r(v)=+ iff v \in Lr, and (2) row(\epsilon)(v)=+ iff v \in L(RT)" *)
 Lemma row_state_lang : forall H (r : { q | memr H q = true }) v,
     H.(V) v = true ->
     (cell H.(T) (proj1_sig r) v = true <-> N.L_state (make_rfsa H) r v = true) /\
@@ -616,5 +653,88 @@ Proof.
         apply (prime_reps_upper H.(T) H.(V) (Ul H) H.(fin_V)).
         now apply (cover_set_prime_reps _ _ _ _ []).
 Qed.
+
+(* Covering of start sets is preserved by running *)
+Lemma run_from_mono : forall H w qs1 qs2,
+    (forall q1, In q1 qs1 -> In (proj1_sig q1) (Ul H)) ->
+    (forall q2, In q2 qs2 -> In (proj1_sig q2) (Ul H)) ->
+    (forall q1, In q1 qs1 ->
+        exists q2, In q2 qs2 /\ covered H.(T) H.(V) (proj1_sig q1) (proj1_sig q2)) ->
+    existsb (accept _ (make_rfsa H)) (run_from (make_rfsa H) qs1 w) = true ->
+    existsb (accept _ (make_rfsa H)) (run_from (make_rfsa H) qs2 w) = true.
+Proof.
+    intros H w. induction w; intros qs1 qs2 Hup1 Hup2 Hmono Hacc.
+    - simpl in *. rewrite existsb_exists in *.
+      destruct Hacc as (q1 & Hq1 & Ha1).
+      destruct (Hmono q1 Hq1) as (q2 & Hq2 & Hcov).
+      exists q2. split; [assumption |].
+      unfold covered, cell in Hcov.
+      specialize (Hcov [] H.(eps_V)). repeat rewrite app_nil_r in Hcov. auto.
+    - unfold run_from in *. simpl in *.
+      fold (run_from (make_rfsa H) (step (transition _ (make_rfsa H)) qs1 a) w) in Hacc.
+      fold (run_from (make_rfsa H) (step (transition _ (make_rfsa H)) qs2 a) w).
+      apply (IHw (step (transition _ (make_rfsa H)) qs1 a)
+                 (step (transition _ (make_rfsa H)) qs2 a)); auto.
+      + intros p Hp. unfold step in Hp. apply in_flat_map in Hp.
+        destruct Hp as (q & Hq & Hp). apply in_list_with_proof in Hp.
+        eapply prime_reps_upper, cover_set_prime_reps. eassumption.
+      + intros p Hp. unfold step in Hp. apply in_flat_map in Hp.
+        destruct Hp as (q & Hq & Hp). apply in_list_with_proof in Hp.
+        eapply prime_reps_upper, cover_set_prime_reps. eassumption.
+      + intros p1 Hp1. unfold step in Hp1. apply in_flat_map in Hp1.
+        destruct Hp1 as (q1 & Hq1 & Hp1).
+        apply in_list_with_proof in Hp1.
+        apply filter_In in Hp1. destruct Hp1 as (Hp1pr & Hp1cov).
+        destruct (covered_dec H.(T) H.(V) (proj1_sig p1) (proj1_sig q1 ++ [a]) H.(fin_V))
+          as [Hcov1 |]; [| discriminate].
+        destruct (Hmono q1 Hq1) as (q2 & Hq2 & Hcovq).
+        assert (Hq1U : In (proj1_sig q1) (row_index (Ul H)))
+          by (unfold row_index; apply in_or_app; left; now apply Hup1).
+        assert (Hq2U : In (proj1_sig q2) (row_index (Ul H)))
+          by (unfold row_index; apply in_or_app; left; now apply Hup2).
+        assert (Hlift : covered H.(T) H.(V) (proj1_sig q1 ++ [a]) (proj1_sig q2 ++ [a]))
+          by (apply (H.(cons)); auto using t_enumerable).
+        assert (Hp1cov2 : covered H.(T) H.(V) (proj1_sig p1) (proj1_sig q2 ++ [a]))
+          by (apply (covered_trans _ _ _ _ _ Hcov1 Hlift)).
+        assert (Hp1mem : In (proj1_sig p1)
+                  (cover_set H.(T) H.(V) (Ul H) H.(fin_V) (proj1_sig q2 ++ [a]))).
+        { apply filter_In. split.
+            assumption.
+          now destruct (covered_dec H.(T) H.(V) (proj1_sig p1) (proj1_sig q2 ++ [a]) H.(fin_V)). }
+        exists p1. split; [| apply covered_refl].
+        unfold step. apply in_flat_map. exists q2. split; [assumption |].
+        replace p1 with (exist (fun q => memr H q = true) (proj1_sig p1)
+                           (cover_set_memr H (proj1_sig q2 ++ [a]) (proj1_sig p1) Hp1mem)).
+        apply list_with_proof_complete. intros. apply UIP_dec, Bool.bool_dec.
+        destruct p1 as (p1v & p1pf). simpl.
+        f_equal. apply UIP_dec, Bool.bool_dec.
+Qed.
+
+(* Lemma 3: "For every r1,r2 \in Q, r1 \sqsubseteq r2 iff Lr1 \subseteq Lr2" *)
+Lemma covered_iff_lang_incl : forall H u1 u2
+    (p1 : memr H u1 = true) (p2 : memr H u2 = true),
+    covered H.(T) H.(V) u1 u2
+    <-> (forall w, N.L_state (make_rfsa H) (exist _ u1 p1) w = true ->
+                   N.L_state (make_rfsa H) (exist _ u2 p2) w = true).
+Proof.
+    intros. split.
+    - intros Hcov w Hw. eapply run_from_mono; eauto;
+        intros q [<- | []]; eauto using state_upper.
+      exists (exist _ u2 p2). split. now left. assumption.
+    - repeat intro.
+      destruct (row_state_lang H (exist _ u1 p1) v H1) as ((Hf1 & _) & _).
+      destruct (row_state_lang H (exist _ u2 p2) v H1) as ((_ & Hb2) & _). auto.
+Qed.
+
+(* Definition 11: "RT is consistent with T if, for all w \in (U \cup U\Sigma)V, T(w)=+ iff w \in L(RT)" *)
+Definition consistent (H : HypothesisRFSA) : Prop :=
+    forall u v, In u (row_index (Ul H)) -> H.(V) v = true ->
+        cell H.(T) u v = true <-> N.L_aut (make_rfsa H) (u ++ v) = true.
+
+(* running uv is running v from the states reached after u *)
+Lemma run_from_app : forall H u v qs,
+    run_from (make_rfsa H) qs (u ++ v)
+    = run_from (make_rfsa H) (run_from (make_rfsa H) qs u) v.
+Proof. intros. unfold run_from. now rewrite fold_left_app. Qed.
 
 End NLstar.
