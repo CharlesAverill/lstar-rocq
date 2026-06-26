@@ -294,3 +294,14 @@ Fixpoint list_eqb {X} (eqb : X -> X -> bool) (l1 l2 : list X) : bool :=
     | nil, nil => true
     | _, _ => false
     end.
+
+Lemma existsb_flat_map : forall {A B} (f : A -> list B) (g : B -> bool) l,
+    existsb g (flat_map f l) = true <->
+    exists x, In x l /\ existsb g (f x) = true.
+Proof.
+    intros. rewrite existsb_exists. split.
+    - intros (y & Hy & Hg). apply in_flat_map in Hy. destruct Hy as (x & Hx & Hy).
+      exists x. split; auto. rewrite existsb_exists. now exists y.
+    - intros (x & Hx & Hg). rewrite existsb_exists in Hg. destruct Hg as (y & Hy & Hg).
+      exists y. split; auto. apply in_flat_map. now exists x.
+Qed.

@@ -193,7 +193,13 @@ Proof.
 Defined.
 
 Definition prime_reps (T V : str -> bool) (Ul : list str) (finV : finite V) : list str :=
-    filter (fun u => if prime_dec T V Ul u finV then true else false) (row_index Ul).
+    filter (fun u => if prime_dec T V Ul u finV then true else false) Ul.
+
+Lemma prime_reps_upper : forall T V Ul finV u,
+    In u (prime_reps T V Ul finV) -> In u Ul.
+Proof.
+    intros. apply filter_In in H. now destruct H.
+Qed.
 
 Lemma prime_reps_prime : forall T V Ul finV u,
     In u (prime_reps T V Ul finV) -> prime T V Ul u.
@@ -204,7 +210,9 @@ Qed.
 Lemma prime_reps_index : forall T V Ul finV u,
     In u (prime_reps T V Ul finV) -> In u (row_index Ul).
 Proof.
-    intros. apply filter_In in H. now destruct H.
+    intros T V Ul finV u H. unfold prime_reps in H.
+    apply filter_In in H. destruct H.
+    unfold row_index. apply in_or_app. now left.
 Qed.
 
 Definition cover_set (T V : str -> bool) (Ul : list str) (finV : finite V) (u : str)
@@ -291,20 +299,20 @@ Proof.
 Defined.
 
 Definition closed (T V : str -> bool) {U} (Ul : finite U) : Prop :=
-    forall u, In u (USigma (proj1_sig Ul)) -> closed_row T V (proj1_sig Ul) u.
+    forall u, In u (row_index (proj1_sig Ul)) -> closed_row T V (proj1_sig Ul) u.
 
 Lemma closed_dec : forall T V U
     (fin_U : finite U),
     finite V ->
-    closed T V fin_U + {u : str | In u (USigma (proj1_sig fin_U)) /\ ~ closed_row T V (proj1_sig fin_U) u}.
+    closed T V fin_U + {u : str | In u (row_index (proj1_sig fin_U)) /\ ~ closed_row T V (proj1_sig fin_U) u}.
 Proof.
     intros T V U fin_U finV. unfold closed.
-    induction (USigma _).
+    induction (row_index _).
         left. intros. destruct H.
     destruct (closed_row_dec T V (proj1_sig fin_U) a finV).
     - destruct IHl.
         left. intros. destruct H; auto; now subst.
-      right. destruct s. exists x. split; [now right | intuition].
+      right. destruct s, a0. eexists. split. right. eassumption. assumption.
     - right. exists a. split; [now left | assumption].
 Defined.
 
@@ -393,10 +401,13 @@ Record HypothesisRFSA : Type := {
   fin_V : finite V;
   clos : closed T V fin_U;
   cons : rfsa_consistent T V fin_U;
-  (** U is prefix-closed *)
+  (* U is prefix-closed *)
   pref : forall w w', U (w ++ w') = true -> U w = true;
-  (** V is suffix-closed *)
-  suff : forall w w', V (w ++ w') = true -> V w' = true
+  (* V is suffix-closed *)
+  suff : forall w w', V (w ++ w') = true -> V w' = true;
+  (* epsilon is in U and V *)
+  eps_U : U [] = true;
+  eps_V : V [] = true;
 }.
 
 Definition Ul (H : HypothesisRFSA) : list str := proj1_sig H.(fin_U).
@@ -486,13 +497,124 @@ Proof.
       now apply (covered_trans _ _ _ _ _ Hrq Hqx).
 Qed.
 
+Lemma cell_app : forall T u a v,
+    cell T u (a :: v) = cell T (u ++ [a]) v.
+Proof. intros. unfold cell. now rewrite <- app_assoc. Qed.
+
+Lemma accept_cell : forall H q,
+    accept _ (make_rfsa H) q = cell H.(T) (proj1_sig q) [].
+Proof. intros. unfold cell. now rewrite app_nil_r. Qed.
+
+Lemma cover_set_cell : forall H w v,
+    In w (row_index (Ul H)) ->
+    H.(V) v = true ->
+    (exists p, In p (cover_set H.(T) H.(V) (Ul H) H.(fin_V) w) /\ cell H.(T) p v = true) <-> cell H.(T) w v = true.
+Proof.
+    intros H w v Hw Hv. split.
+    - intros (p & Hp & Hpv).
+      apply filter_In in Hp. destruct Hp as (_ & Hcov).
+      destruct (covered_dec H.(T) H.(V) p w H.(fin_V)) as [Hc |]; [| discriminate].
+      now apply (Hc v Hv).
+    - intro Hwv. destruct (H.(clos) w Hw v Hv) as (Hfwd & _).
+      destruct (Hfwd Hwv) as (u' & Hu' & Hprime & Hcovu' & Hu'v).
+      exists u'. split; [| assumption].
+      apply filter_In. split.
+        unfold prime_reps. apply filter_In. split; [assumption |].
+          now destruct (prime_dec H.(T) H.(V) (Ul H) u' H.(fin_V)).
+        now destruct (covered_dec H.(T) H.(V) u' w H.(fin_V)).
+Qed.
+
+Lemma state_upper : forall H (q : { q | memr H q = true }),
+    In (proj1_sig q) (Ul H).
+Proof.
+    intros. apply (prime_reps_upper H.(T) H.(V) (Ul H) H.(fin_V)).
+    apply (mem_In str_eq). now destruct q.
+Qed.
+
+Lemma run_from_set_accept : forall H v qs,
+    H.(V) v = true ->
+    (forall q, In q qs -> In (proj1_sig q) (Ul H)) ->
+    existsb (accept _ (make_rfsa H)) (run_from (make_rfsa H) qs v) = true
+    <-> exists q, In q qs /\ cell H.(T) (proj1_sig q) v = true.
+Proof.
+    intros H v. induction v; intros qs Hv Hup.
+    - simpl. rewrite existsb_exists. split.
+      + intros (q & Hq & Ha). exists q. split; auto.
+        now rewrite <- accept_cell.
+      + intros (q & Hq & Hc). exists q. split; auto.
+        unfold cell in Hc. now rewrite app_nil_r in Hc.
+    - assert (Hv' : H.(V) v = true) by (now apply (H.(suff) [a] v)).
+      unfold run_from in *. simpl.
+      fold (run_from (make_rfsa H) (step (transition _ (make_rfsa H)) qs a) v).
+      rewrite IHv; auto.
+      + split.
+        * intros (p & Hp & Hpv).
+          unfold step in Hp. apply in_flat_map in Hp.
+          destruct Hp as (q & Hq & Hp).
+          exists q. split; auto.
+          rewrite cell_app.
+          apply (cover_set_cell H (proj1_sig q ++ [a]) v); auto.
+            unfold row_index. apply in_or_app. right.
+            unfold USigma. apply in_flat_map. exists (proj1_sig q). split.
+                now apply Hup.
+            change (proj1_sig q ++ [a]) with ((fun a0 => proj1_sig q ++ [a0]) a).
+            apply in_map, t_enumerable.
+          exists (proj1_sig p). split; [| assumption].
+          now apply in_list_with_proof in Hp.
+        * intros (q & Hq & Hqv).
+          rewrite cell_app in Hqv.
+          assert (Hwu : In (proj1_sig q ++ [a]) (USigma (Ul H))).
+          { unfold USigma. apply in_flat_map. exists (proj1_sig q).
+            split.
+                now apply Hup.
+                change (proj1_sig q ++ [a]) with ((fun a0 => proj1_sig q ++ [a0]) a).
+                apply in_map, t_enumerable. }
+          assert (Hwr : In (proj1_sig q ++ [a]) (row_index (Ul H)))
+                by (unfold row_index; apply in_or_app; now right).
+          apply (cover_set_cell H (proj1_sig q ++ [a]) v Hwr Hv') in Hqv.
+          destruct Hqv as (p & Hp & Hpv).
+          exists (exist _ p (cover_set_memr H (proj1_sig q ++ [a]) p Hp)). split; auto.
+            unfold step. apply in_flat_map. exists q. split; [assumption|].
+            apply list_with_proof_complete. intros. apply UIP_dec, Bool.bool_dec.
+      + intros p Hp. unfold step in Hp. apply in_flat_map in Hp.
+        destruct Hp as (q & Hq & Hp).
+        apply in_list_with_proof in Hp.
+        apply (prime_reps_upper H.(T) H.(V) (Ul H) H.(fin_V)).
+        now apply (cover_set_prime_reps _ _ _ _ (proj1_sig q ++ [a])).
+Qed.
+
 (* Lemma 2 *)
-(** (1) the row of state r at column v is + iff v is in the language of r
-    (2) the epsilon-row at column v is + iff v is in the language of R_T *)
 Lemma row_state_lang : forall H (r : { q | memr H q = true }) v,
     H.(V) v = true ->
     (cell H.(T) (proj1_sig r) v = true <-> N.L_state (make_rfsa H) r v = true) /\
     (cell H.(T) [] v = true <-> N.L_aut (make_rfsa H) v = true).
-Abort.
+Proof.
+    intros H r v Hv. split.
+    - unfold N.L_state.
+      rewrite (run_from_set_accept H v [r] Hv).
+      + split.
+          intro Hc. exists r. split. now left. assumption.
+        now intros (q & [<- | []] & Hc).
+      + intros q [<- | []]. apply state_upper.
+    - unfold N.L_aut, N.accept_string, run.
+      rewrite (run_from_set_accept H v (N.initial _ (make_rfsa H)) Hv).
+      + unfold make_rfsa. simpl. rewrite <- cover_set_cell; auto.
+        * split.
+            intros (q & Hq & Hc).
+              exists (exist _ q (cover_set_memr H [] q Hq)). split.
+                apply list_with_proof_complete.
+                    intros. apply UIP_dec, Bool.bool_dec.
+                assumption.
+            intros (q & Hq & Hc).
+              apply in_list_with_proof in Hq.
+              now exists (proj1_sig q).
+        * unfold row_index, Ul. apply in_or_app. left.
+          destruct H, fin_U0, a; simpl in *. now apply i.
+      + intros q Hq.
+        unfold make_rfsa in Hq. cbn [N.initial] in Hq.
+        apply in_list_with_proof in Hq.
+        apply (prime_reps_upper H.(T) H.(V) (Ul H) H.(fin_V)).
+        now apply (cover_set_prime_reps _ _ _ _ []).
+Qed.
 
 End NLstar.
