@@ -956,4 +956,20 @@ Proof.
     now apply state_lang_residual.
 Defined.
 
+Definition num_states (H : HypothesisRFSA) : nat :=
+    List.length (make_nfa H).(states _).
+
+Fixpoint nlstar_fuel (H : HypothesisRFSA) (fuel : nat)
+    (LE : L.num_states_in_canonical - num_states H <= fuel)
+    : { T : Type & {r : R.t T | minimal r} }.
+    pose proof (make_nfa_canonical H).
+    enough (consistent H). specialize (X H0).
+    destruct (equiv_query _ X) eqn:E.
+        admit. (* handle counterexample *)
+    exists _, X. split. now apply equiv_query_correct.
+        admit. (* show minimality *)
+    (* consistency *)
+    admit.
+Admitted.
+
 End NLstar.

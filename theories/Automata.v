@@ -217,9 +217,16 @@ Module Type ResidualLanguage (s : Symbol).
         forall q, In q (N.states state (R.nfa state rfsa)) ->
             prime (N.L_state (R.nfa state rfsa) q).
 
+    (** RFSA state minimality *)
+    Definition minimal {state : Type} (rfsa : R.t state) : Prop :=
+        encodes rfsa /\
+        forall (state' : Type) (rfsa' : R.t state'),
+            encodes rfsa' -> 
+            List.length (N.states state rfsa.(R.nfa _)) <= List.length (N.states state' rfsa'.(R.nfa _)).
+
     (** For every regular language there is a unique minimal canonical RFSA *)
     Parameter num_states_in_canonical : nat.
     Parameter exists_rfsa : exists state (r : R.t state),
-        canonical r /\
+        canonical r /\ minimal r /\
         List.length (N.states state (R.nfa state r)) <= num_states_in_canonical.
 End ResidualLanguage.
