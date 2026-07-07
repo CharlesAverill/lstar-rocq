@@ -724,7 +724,7 @@ Qed.
 (** If [make_dfa] has no counterexample then it is minimal. By separability,
     all q : Q reach distinct states in any encoding DFA, so none can have fewer states *)
 Lemma make_dfa_minimal : forall (H : HypothesisDFA),
-    equiv_query _ (make_dfa H) = None ->
+    equiv_query (make_dfa H) = None ->
     minimal (make_dfa H).
 Proof.
   intros H Heq.
@@ -775,10 +775,10 @@ Qed.
 (** Once Q has the full minimal state count there is no counterexample left *)
 Lemma full_states_no_ce : forall (H : HypothesisDFA),
     L.num_states_in_minimal <= num_states H ->
-    equiv_query _ (make_dfa H) = None.
+    equiv_query (make_dfa H) = None.
 Proof.
   intros H Hge.
-  destruct (equiv_query _ (make_dfa H)) eqn:Heq; [exfalso | reflexivity].
+  destruct (equiv_query (make_dfa H)) eqn:Heq; [exfalso | reflexivity].
   assert (Hce : accept_string (make_dfa H) s <> member s)
     by now apply equiv_query_ce.
   destruct (find_separable H s Hce) as
@@ -830,7 +830,7 @@ Qed.
 Fixpoint lstar_fuel (H : HypothesisDFA) (fuel : nat)
     (LE : L.num_states_in_minimal - num_states H <= fuel)
     : { T : Type & {d : D.t T | minimal d} }.
-  destruct (equiv_query _ (make_dfa H)) eqn:Heq.
+  destruct (equiv_query (make_dfa H)) eqn:Heq.
   - (* counterexample s - only reachable with fuel = S n *)
     destruct fuel as [| n].
     + (* fuel = 0: impossible.

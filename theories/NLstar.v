@@ -429,6 +429,8 @@ Record HypothesisRFSA : Type := {
   (* "U and V are both initialized to {\epsilon}" *)
   eps_U : U [] = true;
   eps_V : V [] = true;
+  (* T is always consistent with L *)
+  tbl : forall w, T w = member w
 }.
 
 (* Upper access strings of the table *)
@@ -956,20 +958,64 @@ Proof.
     now apply state_lang_residual.
 Defined.
 
+Lemma nfa_encodes_consistent : forall H,
+    encodes (make_nfa H) ->
+    consistent H.
+Proof.
+    intros. repeat intro. unfold cell.
+    rewrite H.(tbl). unfold N.L_aut. unfold encodes in H0. now rewrite H0.
+Qed.
+
+Lemma make_nfa_canonical_of_encodes : forall H,
+    encodes (make_nfa H) ->
+    { r : R.t { q | memr H q = true } | R.nfa _ r = make_nfa H /\ canonical r }.
+Proof.
+    intros. exists (make_nfa_canonical H (nfa_encodes_consistent H H0)).
+    unfold make_nfa_canonical. simpl.
+    split.
+        reflexivity.
+    split.
+        unfold encodes in *. intros. simpl. split; intro.
+            now rewrite <- H0.
+            now rewrite H0.
+    intros. simpl in *. apply in_list_with_proof in H1. destruct q. simpl in *.
+Admitted.
+
+Lemma state_lang_member : forall H q,
+    encodes (make_nfa H) ->
+    Res.lang_eq (N.L_state (make_nfa H) q) (Res.inverse member (proj1_sig q)).
+Proof.
+    intros. intro w. unfold Res.inverse.
+    rewrite (state_lang_residual H q (nfa_encodes_consistent _ H0)).
+    unfold N.L_aut. destruct (N.accept_string _ _) eqn:E.
+        apply H0 in E. now rewrite E.
+    destruct (member _) eqn:E0.
+        apply H0 in E0. congruence.
+    reflexivity.
+Qed.
+
+Lemma state_residual : forall H q,
+    encodes (make_nfa H) ->
+    residual (N.L_state (make_nfa H) q).
+Proof.
+    intros. exists (proj1_sig q). now apply state_lang_member.
+Qed.
+
 Definition num_states (H : HypothesisRFSA) : nat :=
     List.length (make_nfa H).(states _).
 
 Fixpoint nlstar_fuel (H : HypothesisRFSA) (fuel : nat)
     (LE : L.num_states_in_canonical - num_states H <= fuel)
     : { T : Type & {r : R.t T | minimal r} }.
-    pose proof (make_nfa_canonical H).
-    enough (consistent H). specialize (X H0).
-    destruct (equiv_query _ X) eqn:E.
+    destruct (equiv_query (make_nfa H)) eqn:E.
         admit. (* handle counterexample *)
-    exists _, X. split. now apply equiv_query_correct.
+    pose proof (proj1 (equiv_query_correct (make_nfa H)) E).
+    pose proof (make_nfa_canonical_of_encodes H H0).
+    destruct X as (RFSA & Eq & Canonical).
+    exists _, RFSA. unfold minimal. split.
+        now rewrite Eq.
+    intros.
         admit. (* show minimality *)
-    (* consistency *)
-    admit.
 Admitted.
 
 End NLstar.

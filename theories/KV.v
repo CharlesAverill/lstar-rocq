@@ -480,7 +480,7 @@ Qed.
 
 Lemma make_dfa_minimal : forall t,
     wf t ->
-    equiv_query _ (make_dfa t) = None ->
+    equiv_query (make_dfa t) = None ->
     minimal (make_dfa t).
 Proof.
   intros t Hwf Heq.
@@ -583,10 +583,10 @@ Qed.
 Lemma full_states_no_ce : forall (t : dtree),
     wf t ->
     L.num_states_in_minimal <= List.length (leaves t) ->
-    equiv_query _ (make_dfa t) = None.
+    equiv_query (make_dfa t) = None.
 Proof.
     intros t Hwf Contra.
-    destruct (equiv_query _ (make_dfa t)) eqn:Heq; [exfalso | reflexivity].
+    destruct (equiv_query (make_dfa t)) eqn:Heq; [exfalso | reflexivity].
     assert (Hce : accept_string (make_dfa t) s <> member s)
         by now apply equiv_query_ce.
     pose proof (wf_separated _ Hwf) as Hsep.
@@ -609,7 +609,7 @@ Fixpoint kv_learn (fuel : nat) (t : dtree)
                   (LE : L.num_states_in_minimal - List.length (leaves t) <= fuel)
                   (Hwf : wf t)
     : { St : Type & {d : D.t St | minimal d} }.
-    destruct (equiv_query _ (make_dfa t)) eqn:Heq.
+    destruct (equiv_query (make_dfa t)) eqn:Heq.
     - (* counterexample *)
         destruct fuel as [| n].
         -- assert (forall x y, x - y <= 0 -> x - y = 0) by lia. apply H in LE. clear H.

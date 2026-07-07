@@ -6,16 +6,16 @@ Module Type DFATeacher (s : Symbol) (L : RegularLanguage s).
     (** The teacher answers equivalence queries: whether the given
         DFA encodes L or not *)
     Parameter equiv_query : 
-        forall (state : Type),
+        forall {state},
         D.t state -> option str.
     (** If the equivalence query returns [None], the DFA encodes L *)
-    Parameter equiv_query_correct : forall (state : Type) d,
-        equiv_query state d = None <-> encodes d.
+    Parameter equiv_query_correct : forall {state} (d : D.t state),
+        equiv_query d = None <-> encodes d.
     (** If the equivalence query returns [Some x], the DFA does not
         encode L, and [x] is a counter-example on which the DFA
         mis-predicts *)
-    Parameter equiv_query_ce : forall (state : Type) d w,
-        equiv_query state d = Some w ->
+    Parameter equiv_query_ce : forall {state} (d : D.t state) w,
+        equiv_query d = Some w ->
         D.accept_string d w <> member w.
 End DFATeacher.
 
@@ -25,15 +25,15 @@ Module Type RFSATeacher (s : Symbol) (L : ResidualLanguage s).
     (** The teacher answers equivalence queries: whether the given
         RFSA encodes L or not *)
     Parameter equiv_query : 
-        forall (state : Type),
-        R.t state -> option str.
+        forall {state},
+        N.t state -> option str.
     (** If the equivalence query returns [None], the RFSA encodes L *)
-    Parameter equiv_query_correct : forall (state : Type) r,
-        equiv_query state r = None <-> encodes r.
+    Parameter equiv_query_correct : forall {state : Type} (n : N.t state),
+        equiv_query n = None <-> encodes n.
     (** If the equivalence query returns [Some x], the RFSA does not
         encode L, and [x] is a counter-example on which the RFSA
         mis-predicts *)
-    Parameter equiv_query_ce : forall (state : Type) (r : R.t state) w,
-        equiv_query state r = Some w ->
-        N.accept_string r.(R.nfa state) w <> member w.
+    Parameter equiv_query_ce : forall {state : Type} (nfa : N.t state) w,
+        equiv_query nfa = Some w ->
+        N.accept_string nfa w <> member w.
 End RFSATeacher.

@@ -205,23 +205,23 @@ Module Type ResidualLanguage (s : Symbol).
     Definition prime (r : Res.lang) : Prop :=
         residual r /\ ~ composed r.
 
-    (** Whether an RFSA encodes the target language L *)
-    Definition encodes {state : Type} (rfsa : R.t state) : Prop :=
+    (** Whether an NFA encodes the target language L *)
+    Definition encodes {state : Type} (nfa : N.t state) : Prop :=
         forall (w : str),
-            member w = true <-> N.accept_string (R.nfa state rfsa) w = true.
+            member w = true <-> N.accept_string nfa w = true.
 
     (** An RFSA is _canonical_ when it encodes L and its states denote exactly
         the prime residuals of L *)
     Definition canonical {state : Type} (rfsa : R.t state) : Prop :=
-        encodes rfsa /\
+        encodes rfsa.(R.nfa _) /\
         forall q, In q (N.states state (R.nfa state rfsa)) ->
             prime (N.L_state (R.nfa state rfsa) q).
 
     (** RFSA state minimality *)
     Definition minimal {state : Type} (rfsa : R.t state) : Prop :=
-        encodes rfsa /\
+        encodes rfsa.(R.nfa _) /\
         forall (state' : Type) (rfsa' : R.t state'),
-            encodes rfsa' -> 
+            encodes rfsa'.(R.nfa _) -> 
             List.length (N.states state rfsa.(R.nfa _)) <= List.length (N.states state' rfsa'.(R.nfa _)).
 
     (** For every regular language there is a unique minimal canonical RFSA *)
