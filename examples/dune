@@ -1,5 +1,11 @@
 (executables
- (names alternating mod3 div7)
- (public_names lstar.alternating lstar.mod3 lstar.div7)
- (libraries lstar)
+ (names alternating mod3 div7 alternating_socket)
+ (public_names
+  lstar.alternating
+  lstar.mod3
+  lstar.div7
+  lstar.alternating_socket)
+ (libraries lstar unix threads str)
+ (flags
+  (:standard -w -26))
  (package lstar))

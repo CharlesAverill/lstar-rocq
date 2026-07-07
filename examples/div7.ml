@@ -32,27 +32,38 @@ module S = struct
     | D9 ->
         9
 
-  let string_of_t = function
-    | D0 ->
-        "0"
-    | D1 ->
-        "1"
-    | D2 ->
-        "2"
-    | D3 ->
-        "3"
-    | D4 ->
-        "4"
-    | D5 ->
-        "5"
-    | D6 ->
-        "6"
-    | D7 ->
-        "7"
-    | D8 ->
-        "8"
-    | D9 ->
-        "9"
+  let of_int : int -> (t, string) Datatypes.result = function
+    | 0 ->
+        Ok D0
+    | 1 ->
+        Ok D1
+    | 2 ->
+        Ok D2
+    | 3 ->
+        Ok D3
+    | 4 ->
+        Ok D4
+    | 5 ->
+        Ok D5
+    | 6 ->
+        Ok D6
+    | 7 ->
+        Ok D7
+    | 8 ->
+        Ok D8
+    | 9 ->
+        Ok D9
+    | _ ->
+        Error "of_int"
+
+  let string_of_t t = string_of_int (to_int t)
+
+  let t_of_string s : (t, string) Datatypes.result =
+    match int_of_string_opt s with
+    | None ->
+        Error "t_of_string"
+    | Some d ->
+        of_int d
 
   let eq_dec x y = x = y
 

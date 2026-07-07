@@ -17,8 +17,9 @@ Module Type Symbol.
     (** List of symbols *)
     Definition str := list t.
 
-    (** For debugging *)
+    (** Serialization *)
     Parameter string_of_t : t -> String.string.
+    Parameter t_of_string : String.string -> result t string.
 End Symbol.
 
 (** Deterministic Finite Automaton *)

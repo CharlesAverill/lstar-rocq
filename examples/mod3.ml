@@ -9,6 +9,14 @@ module S = struct
 
   let string_of_t = function Zero -> "0" | One -> "1"
 
+  let t_of_string : string -> (t, string) Datatypes.result = function
+    | "0" ->
+        Ok Zero
+    | "1" ->
+        Ok One
+    | _ ->
+        Error "t_of_string"
+
   let eq_dec x y = x = y
 
   let enum = [Zero; One]

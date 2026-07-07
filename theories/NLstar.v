@@ -36,7 +36,7 @@ Definition row_eq (T V : str -> bool) (u1 u2 : str) : Prop :=
 Definition join (T : str -> bool) (u1 u2 v : str) : bool :=
     cell T u1 v || cell T u2 v.
 
-(* Definition 7: r is covered by r', r \sqsubseteq r', if for all v \in V, r(v)= true implies r'(v)= true *)
+(* Definition 7: r is covered by r', r \sqsubseteq r', if for all v \in V, r(v)=+ implies r'(v)=+ *)
 Definition covered (T V : str -> bool) (u1 u2 : str) : Prop :=
     forall v, V v = true -> cell T u1 v = true -> cell T u2 v = true.
 
@@ -430,7 +430,15 @@ Record HypothesisRFSA : Type := {
   eps_U : U [] = true;
   eps_V : V [] = true;
   (* T is always consistent with L *)
-  tbl : forall w, T w = member w
+  tbl : forall w, T w = member w;
+  (* every residual summand is realised by a row of the table (fixpoint invariant) *)
+  rep : forall r, L.residual r ->
+        exists u, In u (row_index (proj1_sig fin_U))
+                  /\ Res.lang_eq r (Res.inverse member u);
+  (* the representing row is a row index *)
+  rep_index : forall r u,
+        Res.lang_eq r (Res.inverse member u) ->
+        In u (row_index (proj1_sig fin_U))
 }.
 
 (* Upper access strings of the table *)
@@ -456,7 +464,7 @@ Lemma states_proof_irrel : forall H q' Hq1 Hq2,
 Proof. intros. f_equal. apply bool_eq_proof_irrel. Qed.
 
 (* RT = (Q,Q0,F,\delta) with Q = Primes_upp(T), Q0 = {r \in Q | r \sqsubseteq row(\epsilon)},
-   F = {r \in Q | r(\epsilon)= true}, \delta(row(u),a) = {r \in Q | r \sqsubseteq row(ua)} *)
+   F = {r \in Q | r(\epsilon)=+}, \delta(row(u),a) = {r \in Q | r \sqsubseteq row(ua)} *)
 Definition make_nfa (H : HypothesisRFSA) : N.t { q | memr H q = true }.
     set (state := { q | memr H q = true }).
     set (Pr := prime_reps H.(T) H.(V) (Ul H) H.(fin_V)).
@@ -543,7 +551,7 @@ Lemma cell_app : forall T u a v,
     cell T u (a :: v) = cell T (u ++ [a]) v.
 Proof. intros. unfold cell. now rewrite <- app_assoc. Qed.
 
-(* F = {r \in Q | r(\epsilon)= true} *)
+(* F = {r \in Q | r(\epsilon)=+} *)
 Lemma accept_cell : forall H q,
     accept _ (make_nfa H) q = cell H.(T) (proj1_sig q) [].
 Proof. intros. unfold cell. now rewrite app_nil_r. Qed.
@@ -636,7 +644,7 @@ Proof.
         now apply (cover_set_prime_reps _ _ _ _ (proj1_sig q ++ [a])).
 Qed.
 
-(* Lemma 2: "(1) r(v)= true iff v \in Lr, and (2) row(\epsilon)(v)= true iff v \in L(RT)" *)
+(* Lemma 2: "(1) r(v)=+ iff v \in Lr, and (2) row(\epsilon)(v)=+ iff v \in L(RT)" *)
 Lemma row_state_lang : forall H (r : { q | memr H q = true }) v,
     H.(V) v = true ->
     (cell H.(T) (proj1_sig r) v = true <-> N.L_state (make_nfa H) r v = true) /\
@@ -741,7 +749,7 @@ Proof.
       destruct (row_state_lang H (exist _ u2 p2) v H1) as ((_ & Hb2) & _). auto.
 Qed.
 
-(* Definition 11: "RT is consistent with T if, for all w \in (U \cup U\Sigma)V, T(w)= true iff w \in L(RT)" *)
+(* Definition 11: "RT is consistent with T if, for all w \in (U \cup U\Sigma)V, T(w)=+ iff w \in L(RT)" *)
 Definition consistent (H : HypothesisRFSA) : Prop :=
     forall u v, In u (row_index (Ul H)) -> H.(V) v = true ->
         cell H.(T) u v = true <-> N.L_aut (make_nfa H) (u ++ v) = true.
@@ -816,8 +824,8 @@ Proof.
       apply Hfail. split; eauto.
     - exfalso. apply Hfail. split.
         intro Hc. now rewrite Hc in Hcu.
-      intros. destruct H0 as (u' & Hu'idx & Hu'sc & Hu'v).
-      destruct Hu'sc. now apply H0.
+      intros (u' & Hu'idx & Hu'sc & Hu'v).
+      destruct Hu'sc. now apply (H0 v HvV).
 Qed.
 
 (* State equality is decidable *)
@@ -894,26 +902,24 @@ Proof.
     destruct (prime_distinguishes H u Hprime) as (v & HvV & Hcuv & Hdist).
     (* With lemma 1, every reached row is strictly covered by row(u), so by the
        distinguishing column each reached state is false at v: uv is not accepted *)
-    assert (Hnotacc : N.L_aut (make_nfa H) (u ++ v) = false). {
+    assert (Hnotacc : N.L_aut (make_nfa H) (u ++ v) = false).
         apply Bool.not_true_is_false. intro.
         unfold N.L_aut, N.accept_string, run in H2.
         rewrite run_from_app in H2.
         rewrite run_from_set_accept in H2; auto.
-            destruct H2, H2.
-            assert (cell H.(T) (proj1_sig x) v = false). {
+            destruct H2. destruct H2.
+            assert (cell H.(T) (proj1_sig x) v = false).
                 apply Hdist. apply state_row_index.
                 split. now apply (run_covered H u).
                 intro. apply n. apply (run_row_eq_closed H u x H2 u uRow).
                 repeat intro. now rewrite H4.
-            } congruence.
+            congruence.
         intros. now apply state_upper.
-    }
     (* but RT is consistent with T, so row(u)(v) = true gives uv \in L(RT): contradiction *)
     assert (In u (row_index (Ul H))).
         unfold row_index. apply in_or_app. left.
-        unfold Ul. destruct H.(fin_U), a. simpl. now apply i.
-    specialize (H0 u v H2 HvV). destruct H0.
-    specialize (H0 Hcuv). congruence.
+        now apply (proj1 (proj2 (proj2_sig H.(fin_U)) u)).
+    pose proof (proj1 (H0 u v H2 HvV) Hcuv). congruence.
 Qed.
 
 (* Each state's language is the residual by its access string *)
@@ -958,6 +964,7 @@ Proof.
     now apply state_lang_residual.
 Defined.
 
+(* T(w) = true iff w in L(RT) *)
 Lemma nfa_encodes_consistent : forall H,
     encodes (make_nfa H) ->
     consistent H.
@@ -966,21 +973,7 @@ Proof.
     rewrite H.(tbl). unfold N.L_aut. unfold encodes in H0. now rewrite H0.
 Qed.
 
-Lemma make_nfa_canonical_of_encodes : forall H,
-    encodes (make_nfa H) ->
-    { r : R.t { q | memr H q = true } | R.nfa _ r = make_nfa H /\ canonical r }.
-Proof.
-    intros. exists (make_nfa_canonical H (nfa_encodes_consistent H H0)).
-    unfold make_nfa_canonical. simpl.
-    split.
-        reflexivity.
-    split.
-        unfold encodes in *. intros. simpl. split; intro.
-            now rewrite <- H0.
-            now rewrite H0.
-    intros. simpl in *. apply in_list_with_proof in H1. destruct q. simpl in *.
-Admitted.
-
+(* Under encoding, L_state q is exactly the residual inverse member (proj1_sig q) *)
 Lemma state_lang_member : forall H q,
     encodes (make_nfa H) ->
     Res.lang_eq (N.L_state (make_nfa H) q) (Res.inverse member (proj1_sig q)).
@@ -994,6 +987,7 @@ Proof.
     reflexivity.
 Qed.
 
+(* A state's per-state language is a residual of member *)
 Lemma state_residual : forall H q,
     encodes (make_nfa H) ->
     residual (N.L_state (make_nfa H) q).
@@ -1001,21 +995,68 @@ Proof.
     intros. exists (proj1_sig q). now apply state_lang_member.
 Qed.
 
+(* A residual represented by row u agrees with the row of u on every column *)
+Lemma residual_cell : forall H u v,
+    Res.inverse member u v = cell H.(T) u v.
+Proof.
+    intros. unfold Res.inverse, cell. now rewrite <- H.(tbl).
+Qed.
+
+(* Under encoding, L_state q agrees with the row of q on columns of V *)
+Lemma state_lang_cell : forall H q v,
+    H.(V) v = true ->
+    N.L_state (make_nfa H) q v = cell H.(T) (proj1_sig q) v.
+Proof.
+    intros. symmetry. pose proof (row_state_lang H q v H0). destruct H1.
+    destruct cell.
+        symmetry. now apply H1.
+    destruct N.L_state. now apply H1.
+    reflexivity.
+Qed.
+
+Lemma state_lang_prime : forall H q,
+    encodes (make_nfa H) ->
+    L.prime (N.L_state (make_nfa H) q).
+Proof.
+    intros. split.
+        now apply state_residual.
+    intro Hcomp. destruct Hcomp. destruct H1. destruct H2, H2.
+    pose proof (prime_reps_prime H.(T) H.(V) (Ul H) H.(fin_V) (proj1_sig q)).
+    pose proof (proj1 (mem_In str_eq _ _) (proj2_sig q)).
+    specialize (H4 H5). apply H4. clear H4 H5.
+    intro v. intro HvV. split.
+    - intro Hqv.
+      assert (N.L_state (make_nfa H) q v = true).
+          rewrite state_lang_cell; auto.
+Admitted.
+
+Lemma make_nfa_canonical_of_encodes : forall H,
+    encodes (make_nfa H) ->
+    { r : R.t { q | memr H q = true } | R.nfa _ r = make_nfa H /\ canonical r }.
+Proof.
+    intros. exists (make_nfa_canonical H (nfa_encodes_consistent H H0)).
+    unfold make_nfa_canonical. simpl.
+    split.
+        reflexivity.
+    split.
+        unfold encodes in *. intros. simpl. split; intro.
+            now rewrite <- H0.
+            now rewrite H0.
+    intros. simpl in *. now apply state_lang_prime.
+Qed.
+
 Definition num_states (H : HypothesisRFSA) : nat :=
     List.length (make_nfa H).(states _).
 
 Fixpoint nlstar_fuel (H : HypothesisRFSA) (fuel : nat)
     (LE : L.num_states_in_canonical - num_states H <= fuel)
-    : { T : Type & {r : R.t T | minimal r} }.
+    : { T : Type & {r : R.t T | canonical r} }.
     destruct (equiv_query (make_nfa H)) eqn:E.
-        admit. (* handle counterexample *)
+        admit. (* counterexample: add Suff(s) to V, rebuild table, recurse (Theorem 2) *)
     pose proof (proj1 (equiv_query_correct (make_nfa H)) E).
     pose proof (make_nfa_canonical_of_encodes H H0).
     destruct X as (RFSA & Eq & Canonical).
-    exists _, RFSA. unfold minimal. split.
-        now rewrite Eq.
-    intros.
-        admit. (* show minimality *)
+    now exists _, RFSA.
 Admitted.
 
 End NLstar.

@@ -24,4 +24,5 @@
  (modules :standard)
  (wrapped false)
  (flags
-  (:standard -w -20)))
+  (:standard -w -20))
+ (libraries unix))
