@@ -431,9 +431,9 @@ Record HypothesisRFSA : Type := {
   eps_V : V [] = true;
   (* T is always consistent with L *)
   tbl : forall w, T w = member w;
-  (* every residual summand is realised by a row of the table (fixpoint invariant) *)
+  (* every residual summand is realised by a prime row of the table (fixpoint invariant) *)
   rep : forall r, L.residual r ->
-        exists u, In u (row_index (proj1_sig fin_U))
+        exists u, In u (prime_reps T V (proj1_sig fin_U) fin_V)
                   /\ Res.lang_eq r (Res.inverse member u);
   (* the representing row is a row index *)
   rep_index : forall r u,
@@ -1014,6 +1014,17 @@ Proof.
     reflexivity.
 Qed.
 
+Lemma row_eq_lang_eq : forall H (q1 q2 : { q | memr H q = true }),
+    row_eq H.(T) H.(V) (proj1_sig q1) (proj1_sig q2) ->
+    Res.lang_eq (N.L_state (make_nfa H) q1) (N.L_state (make_nfa H) q2).
+Proof.
+    intros. unfold Res.lang_eq. intros. apply Bool.eq_true_iff_eq. split; intro;
+        destruct q1, q2; (eapply covered_iff_lang_incl; [|eassumption]);
+        unfold covered; intros; simpl in *.
+    now rewrite <- H0.
+    now rewrite H0.
+Qed.
+
 Lemma state_lang_prime : forall H q,
     encodes (make_nfa H) ->
     L.prime (N.L_state (make_nfa H) q).
@@ -1028,7 +1039,25 @@ Proof.
     - intro Hqv.
       assert (N.L_state (make_nfa H) q v = true).
           rewrite state_lang_cell; auto.
-Admitted.
+      rewrite H3 in H4. unfold union in H4. apply existsb_exists in H4.
+      destruct H4. destruct H4. destruct (H2 x1 H4). destruct (H.(rep) x1 H6). destruct H8.
+      exists x2. split.
+        eapply prime_reps_index. eassumption.
+      split.
+        split.
+          repeat intro.
+            rewrite <- residual_cell, <- state_lang_member, H3 by assumption.
+            unfold union. apply existsb_exists.
+            exists x1. split. assumption.
+            erewrite H9, residual_cell. eauto.
+      intro Contra.
+        apply H7. intro w.
+        assert (memr H x2 = true) by (now apply mem_In). rewrite H9.
+        pose proof (state_lang_member H (exist _ x2 H10) H0 w). simpl in H11.
+        rewrite <- H11. now apply row_eq_lang_eq.
+      erewrite H9, residual_cell in H5. eassumption.
+    - intros. destruct H4, H4, H5. now apply H5.
+Qed.
 
 Lemma make_nfa_canonical_of_encodes : forall H,
     encodes (make_nfa H) ->
@@ -1048,15 +1077,138 @@ Qed.
 Definition num_states (H : HypothesisRFSA) : nat :=
     List.length (make_nfa H).(states _).
 
+Fixpoint suffixes {A : Type} (l : list A) : list (list A) :=
+  match l with
+  | [] => [[]]
+  | x :: xs => l :: suffixes xs
+  end.
+
+Lemma l_neq_cons_l : forall {A} (l : list A) a,
+    l <> a :: l.
+Proof.
+    induction l; intros.
+        discriminate.
+    intro Contra. inversion Contra; subst; clear Contra.
+    eapply IHl, H1.
+Qed.
+
+Lemma in_cons_suffixes_impl_in_suffixes : forall {A} (l l' : list A) (x : A),
+    In (x :: l) (suffixes l') ->
+    In l (suffixes l').
+Proof.
+    induction l'; intros; simpl in *.
+        intuition. inversion H0.
+    right. destruct H.
+        inversion H; subst; clear H.
+        destruct l; now left.
+    eauto.
+Qed.
+
+Lemma NoDup_suffixes : forall {A} (l : list A),
+    NoDup (suffixes l).
+Proof.
+    induction l.
+        simpl. constructor. now intro. constructor.
+    simpl. constructor; [|assumption]. clear.
+    revert a. induction l; intros; simpl in *.
+        intro. intuition. inversion H0.
+    intro Contra. destruct Contra.
+        inversion H; subst; clear H.
+        now apply l_neq_cons_l in H2.
+    eapply IHl.
+    apply in_cons_suffixes_impl_in_suffixes in H. eassumption.
+Qed.
+
+Definition extend_table_ce : forall (H : HypothesisRFSA) (w : str),
+    N.accept_string (make_nfa H) w <> member w -> HypothesisRFSA.
+Proof.
+    intros.
+    (* suffixes of w that are not already in V *)
+    set (suffixes := filter (fun s => negb (H.(V) s)) (suffixes w)).
+    set (V' :=
+        fun s =>
+            match find (fun s' => if str_eq s s' then true else false) suffixes with
+            | None => H.(V) s
+            | Some _ => true
+            end
+    ). destruct H; simpl in *. eapply Build_HypothesisRFSA with (V := V'); eauto. Unshelve.
+    - unfold closed. intros. destruct fin_U0, a. simpl in *.
+      unfold closed_row, cell. intros. unfold V' in H1. admit.
+    - unfold rfsa_consistent in *. intros.
+      pose proof (cons0 u u' a H H1 H2).
+      destruct (covered_dec T0 V0 u u' fin_V0).
+        specialize (H4 c). clear c. unfold covered in *. intros.
+        unfold V' in H5. destruct find eqn:E in H5.
+            apply find_some in E. destruct E. unfold suffixes in H7.
+            apply filter_In in H7. destruct H7. destruct (str_eq v s); [subst|discriminate].
+            admit.
+        now apply H4.
+      clear H4. unfold covered in n, H3 |- *. intros. unfold V' in H4.
+      destruct find eqn:E. apply find_some in E. destruct E, (str_eq v s); [subst|discriminate].
+        apply filter_In in H6. destruct H6.
+        admit.
+      admit.
+    - intros. unfold V' in *. destruct find eqn:E.
+      + apply find_some in E. destruct E. unfold suffixes in *.
+        apply filter_In in H1. destruct H1, (str_eq (w0 ++ w') s); [|discriminate].
+        subst s. destruct find eqn:E. reflexivity.
+        destruct fin_V0, a. admit.
+      + destruct find in |- *. reflexivity.
+        admit.
+    - unfold V'. destruct find. reflexivity. apply eps_V0.
+    - intros. admit.
+    - destruct fin_V0, a. exists (x ++ suffixes). split.
+        apply NoDup_app. assumption.
+            apply NoDup_filter, NoDup_suffixes.
+        intros. intro Contra.
+        destruct (V' a) eqn:E; unfold V' in E.
+            destruct find eqn:E0 in E.
+                unfold suffixes in E0. apply find_some in E0. destruct E0.
+                destruct (str_eq a s); [|discriminate]. subst.
+                apply filter_In in H1. destruct H1. apply Bool.negb_true_iff in H3.
+                pose proof (i s). destruct (V0 s). discriminate. apply H4 in H. discriminate.
+            eapply find_none in E0; eauto. now destruct (str_eq a a).
+        destruct find eqn:E0 in E. discriminate.
+            pose proof (i a). destruct (V0 a). discriminate. apply H1 in H. discriminate.
+
+        intros. unfold V'. split; intro.
+            apply in_or_app. destruct find eqn:E in H.
+                apply find_some in E. destruct E. unfold suffixes in H1.
+                destruct (str_eq s s0). subst. now right.
+                discriminate.
+            apply i in H. now left.
+        destruct find eqn:E. reflexivity.
+        apply i. apply in_app_or in H. destruct H. assumption.
+        eapply find_none in E; eauto. now destruct (str_eq s s).
+Admitted.
+
+Theorem ce_measure_decreases : forall (H : HypothesisRFSA) (w : str)
+    (Hce : N.accept_string (make_nfa H) w <> member w),
+    L.num_states_in_canonical - num_states (extend_table_ce H w Hce)
+    < L.num_states_in_canonical - num_states H.
+Proof.
+    intros.
+    enough (num_states H < num_states (extend_table_ce H w Hce) <= num_states_in_canonical). lia.
+    split.
+    - admit.
+    - admit.
+Admitted.
+
 Fixpoint nlstar_fuel (H : HypothesisRFSA) (fuel : nat)
     (LE : L.num_states_in_canonical - num_states H <= fuel)
     : { T : Type & {r : R.t T | canonical r} }.
     destruct (equiv_query (make_nfa H)) eqn:E.
-        admit. (* counterexample: add Suff(s) to V, rebuild table, recurse (Theorem 2) *)
-    pose proof (proj1 (equiv_query_correct (make_nfa H)) E).
-    pose proof (make_nfa_canonical_of_encodes H H0).
-    destruct X as (RFSA & Eq & Canonical).
-    now exists _, RFSA.
-Admitted.
+    - (* counterexample *)
+      pose proof (equiv_query_ce (make_nfa H) s E) as Hce.
+      pose proof (ce_measure_decreases H s Hce) as Hlt.
+      destruct fuel as [| fuel'].
+        exfalso. lia.
+      apply (nlstar_fuel (extend_table_ce H s Hce) fuel' ltac:(lia)).
+    - (* success: make_nfa encodes L, so it is a canonical RFSA *)
+      pose proof (proj1 (equiv_query_correct (make_nfa H)) E) as Henc.
+      pose proof (make_nfa_canonical_of_encodes H Henc) as X.
+      destruct X as (RFSA & Eq & Canonical).
+      now exists _, RFSA.
+Defined.
 
 End NLstar.
