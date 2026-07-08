@@ -4,16 +4,24 @@ open TTT
 open Automata
 open Stdlib
 
+(** Minimally Adequate Teacher *)
 module type TEACHER = sig
+  (** Language alphabet *)
   module S : Symbol
 
+  (** DFA *)
   module D : module type of DFA (S)
 
   val member : S.str -> bool
+  (** Membership query *)
 
   val equiv_query : 'a D.t -> S.str option
+  (** Equivalence query *)
 
   val fuel : int
+  (** Maximum number of iterations to take
+      
+      Set to [Int.max_int] unless you know what you're doing *)
 end
 
 module DFAPrinter (Teacher : TEACHER) = struct

@@ -1,4 +1,3 @@
-(* socket_teacher.ml *)
 open Unix
 open Lstar
 open Automata
@@ -66,8 +65,10 @@ module MakeSocketTeacher (S : Symbol) : TEACHER with module S = S = struct
       (fun s ->
         let i = id_of s in
         let is_accept = D.accept d s in
-        if not !first_state then Buffer.add_string buf ","
-        else first_state := false ;
+        if not !first_state then
+          Buffer.add_string buf ","
+        else
+          first_state := false ;
         Printf.bprintf buf "{\"id\":%d,\"accept\":%b}" i is_accept )
       states ;
     Buffer.add_string buf "]," ;
@@ -79,10 +80,13 @@ module MakeSocketTeacher (S : Symbol) : TEACHER with module S = S = struct
         Stdlib.List.iter
           (fun c ->
             let dst = D.transition d s c in
-            if not !first_trans then Buffer.add_string buf ","
-            else first_trans := false ;
+            if not !first_trans then
+              Buffer.add_string buf ","
+            else
+              first_trans := false ;
             Printf.bprintf buf "{\"from\":%d,\"input\":\"%s\",\"to\":%d}" i
-              (String.escaped (S.string_of_t c)) (id_of dst) )
+              (String.escaped (S.string_of_t c))
+              (id_of dst) )
           S.enum )
       states ;
     Buffer.add_string buf "]" ;
