@@ -28,8 +28,6 @@ module S = struct
   let string_of_str s = String.concat "" (Stdlib.List.map string_of_t s)
 end
 
-(* Target language: words whose symbols strictly alternate (no two adjacent
-   symbols equal). The empty word is accepted. *)
 let language_member (s : S.str) : bool =
   let rec alternating = function
     | [] | [_] ->
@@ -39,10 +37,6 @@ let language_member (s : S.str) : bool =
   in
   alternating s
 
-(* --- Mock oracle: answers membership and equivalence queries --------------- *)
-
-(* Breadth-first search for the shortest word on which the submitted DFA and the
-   target language disagree; None if they agree up to [max_len]. *)
 let find_counterexample ~max_len (initial_state : int)
     (transitions : (int * string * int) list) (accepting_states : int list) :
     string option =
@@ -72,8 +66,6 @@ let find_counterexample ~max_len (initial_state : int)
           bfs (rest @ Stdlib.List.map (fun c -> word @ [c]) S.enum)
   in
   bfs [[]]
-
-(* --- JSON parsing for the serialized DFA ----------------------------------- *)
 
 let extract_int_field field json =
   let re = Str.regexp (Printf.sprintf {|"%s"[ \t]*:[ \t]*\([0-9]+\)|} field) in
@@ -133,8 +125,6 @@ let word_of_json line =
       (function "0" -> Some S.Zero | "1" -> Some S.One | _ -> None)
       (String.split_on_char ',' raw)
 
-(* --- Mock server ----------------------------------------------------------- *)
-
 let start_mock_server () =
   let server = socket PF_INET SOCK_STREAM 0 in
   setsockopt server SO_REUSEADDR true ;
@@ -167,8 +157,7 @@ let start_mock_server () =
     done
   with End_of_file -> close_in ic ; close_out oc ; Unix.close server
 
-(* --- Runtime: start the oracle, run L*, report accuracy -------------------- *)
-
+(* Start the oracle server *)
 let () =
   print_endline "Starting mock oracle on port 8888..." ;
   ignore (Thread.create start_mock_server ()) ;

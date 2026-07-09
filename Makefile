@@ -24,6 +24,7 @@ clean:
 
 test: fmt
 	$(OPAM_EXEC) $(DUNE) exec lstar.alternating | grep Accuracy
+	$(OPAM_EXEC) $(DUNE) exec lstar.alternating_socket | grep Accuracy
 	$(OPAM_EXEC) $(DUNE) exec lstar.mod3 | grep Accuracy
 	$(OPAM_EXEC) $(DUNE) exec lstar.div7 | grep Accuracy
 
