@@ -341,28 +341,22 @@ Section AnalyzeDFA.
         existsb (fun s => bad_packet_dec s && D.accept_string learned_dfa s)
                 (all_bitseqs_upto n).
 
-    (* A positive verdict yields a firewall vulnerability *)
-    Theorem checker_sound : forall n,
-        check_upto n = true -> firewall_allows_bad.
-    Proof.
-        intros. unfold check_upto in H.
-        apply existsb_exists in H. destruct H as (x & In & BPD).
-        apply andb_prop in BPD. destruct BPD as (BPD & AS).
-        unfold firewall_allows_bad.
-            exists x. split. now apply bad_packet_dec_correct.
-            now apply learned_encodes.
-    Qed.
-
     (* A firewall vulnerability always yields a positive verdict for large-engouh [n] *)
-    Theorem checker_complete :
-        firewall_allows_bad -> exists n, check_upto n = true.
+    Theorem checker_correct :
+        firewall_allows_bad <-> exists n, check_upto n = true.
     Proof.
-        intros (s & Hbad & Hfw).
-        exists (length s). unfold check_upto.
-        apply existsb_exists. exists s. split.
+        split.
+        - intros (s & Hbad & Hfw).
+          exists (length s). unfold check_upto.
+          apply existsb_exists. exists s. split.
             apply all_bitseqs_upto_complete. lia.
-        apply andb_true_intro. split.
+          apply andb_true_intro. split.
             now apply bad_packet_dec_correct.
-        now apply learned_encodes.
+          now apply learned_encodes.
+        - intros (n & Hbad). unfold check_upto in Hbad.
+          apply existsb_exists in Hbad. destruct Hbad as (s & Ins & BPDs).
+          exists s. apply andb_prop in BPDs. destruct BPDs. split.
+            now apply bad_packet_dec_correct.
+          now apply learned_encodes. 
     Qed.
 End AnalyzeDFA.
