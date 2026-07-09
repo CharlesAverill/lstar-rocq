@@ -19,10 +19,10 @@
 <h1 class="libtitle">Library Teacher</h1>
 
 <div class="code">
-<span class="id" title="keyword">From</span> <span class="id" title="var">lstar</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">DFA</span>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">lstar</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">Automata</span>.<br/>
 
 <br/>
-<span class="id" title="keyword">Module</span> <span class="id" title="keyword">Type</span> <span class="id" title="var">Teacher</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>) (<span class="id" title="var">L</span> : <span class="id" title="var">RegularLanguage</span> <span class="id" title="var">s</span>).<br/>
+<span class="id" title="keyword">Module</span> <span class="id" title="keyword">Type</span> <span class="id" title="var">DFATeacher</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>) (<span class="id" title="var">L</span> : <span class="id" title="var">RegularLanguage</span> <span class="id" title="var">s</span>).<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span>.<br/>
 
 <br/>
@@ -34,7 +34,7 @@ The teacher answers equivalence queries: whether the given
 </div>
 <div class="code">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">equiv_query</span> : <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> {<span class="id" title="var">state</span>},<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">D.t</span> <span class="id" title="var">state</span> → <span class="id" title="var">option</span> <span class="id" title="var">str</span>.<br/>
 </div>
 
@@ -42,8 +42,8 @@ The teacher answers equivalence queries: whether the given
 If the equivalence query returns <span class="inlinecode"><span class="id" title="var">None</span></span>, the DFA encodes L 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">equiv_query_correct</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>) <span class="id" title="var">d</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">equiv_query</span> <span class="id" title="var">state</span> <span class="id" title="var">d</span> = <span class="id" title="var">None</span> ↔ <span class="id" title="var">encodes</span> <span class="id" title="var">d</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">equiv_query_correct</span> : <span class="id" title="keyword">∀</span> {<span class="id" title="var">state</span>} (<span class="id" title="var">d</span> : <span class="id" title="var">D.t</span> <span class="id" title="var">state</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">equiv_query</span> <span class="id" title="var">d</span> = <span class="id" title="var">None</span> ↔ <span class="id" title="var">encodes</span> <span class="id" title="var">d</span>.<br/>
 </div>
 
 <div class="doc">
@@ -52,10 +52,46 @@ If the equivalence query returns <span class="inlinecode"><span class="id" title
         mis-predicts 
 </div>
 <div class="code">
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">equiv_query_ce</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>) <span class="id" title="var">d</span> <span class="id" title="var">w</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">equiv_query</span> <span class="id" title="var">state</span> <span class="id" title="var">d</span> = <span class="id" title="var">Some</span> <span class="id" title="var">w</span> →<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">equiv_query_ce</span> : <span class="id" title="keyword">∀</span> {<span class="id" title="var">state</span>} (<span class="id" title="var">d</span> : <span class="id" title="var">D.t</span> <span class="id" title="var">state</span>) <span class="id" title="var">w</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">equiv_query</span> <span class="id" title="var">d</span> = <span class="id" title="var">Some</span> <span class="id" title="var">w</span> →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">D.accept_string</span> <span class="id" title="var">d</span> <span class="id" title="var">w</span> ≠ <span class="id" title="var">member</span> <span class="id" title="var">w</span>.<br/>
-<span class="id" title="keyword">End</span> <span class="id" title="var">Teacher</span>.<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">DFATeacher</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Module</span> <span class="id" title="keyword">Type</span> <span class="id" title="var">RFSATeacher</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>) (<span class="id" title="var">L</span> : <span class="id" title="var">ResidualLanguage</span> <span class="id" title="var">s</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span> <span class="id" title="var">L</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The teacher answers equivalence queries: whether the given
+        RFSA encodes L or not 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">equiv_query</span> : <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> {<span class="id" title="var">state</span>},<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">N.t</span> <span class="id" title="var">state</span> → <span class="id" title="var">option</span> <span class="id" title="var">str</span>.<br/>
+</div>
+
+<div class="doc">
+If the equivalence query returns <span class="inlinecode"><span class="id" title="var">None</span></span>, the RFSA encodes L 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">equiv_query_correct</span> : <span class="id" title="keyword">∀</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">n</span> : <span class="id" title="var">N.t</span> <span class="id" title="var">state</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">equiv_query</span> <span class="id" title="var">n</span> = <span class="id" title="var">None</span> ↔ <span class="id" title="var">encodes</span> <span class="id" title="var">n</span>.<br/>
+</div>
+
+<div class="doc">
+If the equivalence query returns <span class="inlinecode"><span class="id" title="var">Some</span></span> <span class="inlinecode"><span class="id" title="var">x</span></span>, the RFSA does not
+        encode L, and <span class="inlinecode"><span class="id" title="var">x</span></span> is a counter-example on which the RFSA
+        mis-predicts 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">equiv_query_ce</span> : <span class="id" title="keyword">∀</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">nfa</span> : <span class="id" title="var">N.t</span> <span class="id" title="var">state</span>) <span class="id" title="var">w</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">equiv_query</span> <span class="id" title="var">nfa</span> = <span class="id" title="var">Some</span> <span class="id" title="var">w</span> →<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">N.accept_string</span> <span class="id" title="var">nfa</span> <span class="id" title="var">w</span> ≠ <span class="id" title="var">member</span> <span class="id" title="var">w</span>.<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">RFSATeacher</span>.<br/>
 </div>
 </div>
 

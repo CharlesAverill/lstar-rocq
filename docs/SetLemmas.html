@@ -1,0 +1,92 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<title>SetLemmas</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library SetLemmas</h1>
+
+<div class="code">
+<span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="var">List</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Section</span> <span class="id" title="var">SL</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Variable</span> <span class="id" title="var">X</span> : <span class="id" title="keyword">Type</span>.<br/>
+<span class="id" title="keyword">Variable</span> <span class="id" title="var">eq_dec</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">x</span> <span class="id" title="var">y</span> : <span class="id" title="var">X</span>), {<span class="id" title="var">x</span> = <span class="id" title="var">y</span>} + {<span class="id" title="var">x</span> ≠ <span class="id" title="var">y</span>}.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">finite</span> (<span class="id" title="var">f</span> : <span class="id" title="var">X</span> → <span class="id" title="var">bool</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id" title="var">l</span> : <span class="id" title="var">list</span> <span class="id" title="var">X</span> | <span class="id" title="var">NoDup</span> <span class="id" title="var">l</span> ∧<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">s</span> : <span class="id" title="var">X</span>), <span class="id" title="var">f</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span> ↔ <span class="id" title="var">In</span> <span class="id" title="var">s</span> <span class="id" title="var">l</span>}.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">num_states_of_fin</span> {<span class="id" title="var">f</span> : <span class="id" title="var">X</span> → <span class="id" title="var">bool</span>} (<span class="id" title="var">H</span> : <span class="id" title="var">finite</span> <span class="id" title="var">f</span>) : <span class="id" title="var">nat</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="var">H</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id" title="var">exist</span> <span class="id" title="var">_</span> <span class="id" title="var">x</span> <span class="id" title="var">_</span> ⇒ <span class="id" title="var">List.length</span> <span class="id" title="var">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Updating sets 
+</div>
+<div class="code">
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">update</span> (<span class="id" title="var">S</span> : <span class="id" title="var">X</span> → <span class="id" title="var">bool</span>) <span class="id" title="var">k</span> <span class="id" title="var">b</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">s</span> ⇒ <span class="id" title="keyword">if</span> <span class="id" title="var">eq_dec</span> <span class="id" title="var">s</span> <span class="id" title="var">k</span> <span class="id" title="keyword">then</span> <span class="id" title="var">b</span> <span class="id" title="keyword">else</span> <span class="id" title="var">S</span> <span class="id" title="var">s</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Notation</span> &quot;s [ k := v ]" := (<span class="id" title="var">update</span> <span class="id" title="var">s</span> <span class="id" title="var">k</span> <span class="id" title="var">v</span>).<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <span class="id" title="var">update_neq</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">S</span> <span class="id" title="var">x</span> <span class="id" title="var">y</span> <span class="id" title="var">k</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">x</span> ≠ <span class="id" title="var">y</span> →<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">S</span>[<span class="id" title="var">x</span> := <span class="id" title="var">k</span>] <span class="id" title="var">y</span> = <span class="id" title="var">S</span> <span class="id" title="var">y</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <span class="id" title="var">update_eq</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">S</span> <span class="id" title="var">x</span> <span class="id" title="var">k</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">S</span>[<span class="id" title="var">x</span> := <span class="id" title="var">k</span>] <span class="id" title="var">x</span> = <span class="id" title="var">k</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <span class="id" title="var">finite_subset_is_smaller</span> : <span class="id" title="keyword">∀</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">f</span> <span class="id" title="var">g</span> : <span class="id" title="var">X</span> → <span class="id" title="var">bool</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FinF</span> : <span class="id" title="var">finite</span> <span class="id" title="var">f</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FinG</span> : <span class="id" title="var">finite</span> <span class="id" title="var">g</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FsubG</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">x</span> : <span class="id" title="var">X</span>), <span class="id" title="var">f</span> <span class="id" title="var">x</span> = <span class="id" title="var">true</span> → <span class="id" title="var">g</span> <span class="id" title="var">x</span> = <span class="id" title="var">true</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">num_states_of_fin</span> <span class="id" title="var">FinF</span> ≤ <span class="id" title="var">num_states_of_fin</span> <span class="id" title="var">FinG</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <span class="id" title="var">finite_update_impl_finite</span> : <span class="id" title="keyword">∀</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">f</span> : <span class="id" title="var">X</span> → <span class="id" title="var">bool</span>) <span class="id" title="var">k</span> <span class="id" title="var">v</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">FinUpdF</span> : <span class="id" title="var">finite</span> <span class="id" title="var">f</span>[<span class="id" title="var">k</span> := <span class="id" title="var">v</span>]),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">finite</span> <span class="id" title="var">f</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">SL</span>.<br/>
+
+<br/>
+</div>
+</div>
+
+<div id="footer">
+<hr/><a href="index.html">Index</a><hr/>This page has been generated by <a href="http://rocq-prover.org/">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>

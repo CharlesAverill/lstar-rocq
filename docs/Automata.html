@@ -1,0 +1,484 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<title>Automata</title>
+</head>
+
+<body>
+
+<div id="page">
+
+<div id="header">
+</div>
+
+<div id="main">
+
+<h1 class="libtitle">Library Automata</h1>
+
+<div class="code">
+<span class="id" title="keyword">From</span> <span class="id" title="var">Stdlib</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Export</span> <span class="id" title="var">List</span> <span class="id" title="var">String</span>.<br/>
+<span class="id" title="keyword">Export</span> <span class="id" title="var">ListNotations</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Symbol type 
+</div>
+<div class="code">
+<span class="id" title="keyword">Module</span> <span class="id" title="keyword">Type</span> <span class="id" title="var">Symbol</span>.<br/>
+</div>
+
+<div class="doc">
+Alphabet 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">t</span> : <span class="id" title="keyword">Type</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Symbol equality is decidable 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">eq_dec</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">x</span> <span class="id" title="var">y</span> : <span class="id" title="var">t</span>), {<span class="id" title="var">x</span> = <span class="id" title="var">y</span>} + {<span class="id" title="var">x</span> ≠ <span class="id" title="var">y</span>}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Alphabet is finite 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">enum</span> : <span class="id" title="var">list</span> <span class="id" title="var">t</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">t_enumerable</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">x</span> : <span class="id" title="var">t</span>), <span class="id" title="var">In</span> <span class="id" title="var">x</span> <span class="id" title="var">enum</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+List of symbols 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">str</span> := <span class="id" title="var">list</span> <span class="id" title="var">t</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Serialization 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">string_of_t</span> : <span class="id" title="var">t</span> → <span class="id" title="var">String.string</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">t_of_string</span> : <span class="id" title="var">String.string</span> → <span class="id" title="var">result</span> <span class="id" title="var">t</span> <span class="id" title="var">string</span>.<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">Symbol</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Deterministic Finite Automaton 
+</div>
+<div class="code">
+<span class="id" title="keyword">Module</span> <span class="id" title="var">DFA</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+DFA type 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Record</span> <span class="id" title="var">t</span> (<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> := {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">transition</span> : <span class="id" title="var">state</span> → <span class="id" title="var">s.t</span> → <span class="id" title="var">state</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">initial</span> : <span class="id" title="var">state</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">accept</span> : <span class="id" title="var">state</span> → <span class="id" title="var">bool</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">states</span> : <span class="id" title="var">list</span> <span class="id" title="var">state</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">states_complete</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">w</span>, <span class="id" title="var">In</span> (<span class="id" title="var">fold_left</span> <span class="id" title="var">transition</span> <span class="id" title="var">w</span> <span class="id" title="var">initial</span>) (<span class="id" title="var">states</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Run a DFA on a string and get the resulting state 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">run</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">dfa</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">s</span> : <span class="id" title="var">str</span>) : <span class="id" title="var">state</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">fold_left</span> <span class="id" title="var">dfa</span>.(<span class="id" title="var">transition</span> <span class="id" title="var">state</span>) <span class="id" title="var">s</span> <span class="id" title="var">dfa</span>.(<span class="id" title="var">initial</span> <span class="id" title="var">state</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Check whether a DFA reaches an accepting state after processing a string 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">accept_string</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">dfa</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">s</span> : <span class="id" title="var">str</span>) : <span class="id" title="var">bool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">dfa</span>.(<span class="id" title="var">accept</span> <span class="id" title="var">state</span>) (<span class="id" title="var">run</span> <span class="id" title="var">dfa</span> <span class="id" title="var">s</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Every reachable state is listed in <span class="inlinecode"><span class="id" title="var">states</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <span class="id" title="var">run_in_states</span> : <span class="id" title="keyword">∀</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">d</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">w</span> : <span class="id" title="var">str</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">In</span> (<span class="id" title="var">run</span> <span class="id" title="var">d</span> <span class="id" title="var">w</span>) (<span class="id" title="var">states</span> <span class="id" title="var">state</span> <span class="id" title="var">d</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+String equality is decidable
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">str_eq</span> (<span class="id" title="var">x</span> <span class="id" title="var">y</span> : <span class="id" title="var">str</span>) {<span class="id" title="keyword">struct</span> <span class="id" title="var">x</span>} : {<span class="id" title="var">x</span> = <span class="id" title="var">y</span>} + {<span class="id" title="var">x</span> ≠ <span class="id" title="var">y</span>}.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Defined</span>.<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">DFA</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Arbitrary Language 
+</div>
+<div class="code">
+<span class="id" title="keyword">Module</span> <span class="id" title="keyword">Type</span> <span class="id" title="var">Language</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Language membership 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">member</span> : <span class="id" title="var">str</span> → <span class="id" title="var">bool</span>.<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">Language</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Regular Language 
+</div>
+<div class="code">
+<span class="id" title="keyword">Module</span> <span class="id" title="keyword">Type</span> <span class="id" title="var">RegularLanguage</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Module</span> <span class="id" title="var">D</span> := <span class="id" title="var">DFA</span> <span class="id" title="var">s</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Include</span> <span class="id" title="var">Language</span> <span class="id" title="var">s</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Whether a DFA encodes the language L 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">encodes</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">dfa</span> : <span class="id" title="var">D.t</span> <span class="id" title="var">state</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">s</span> : <span class="id" title="var">str</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">member</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span> ↔ <span class="id" title="var">D.accept_string</span> <span class="id" title="var">dfa</span> <span class="id" title="var">s</span> = <span class="id" title="var">true</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+DFA state minimality 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">minimal</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">dfa</span> : <span class="id" title="var">D.t</span> <span class="id" title="var">state</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">encodes</span> <span class="id" title="var">dfa</span> ∧<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">state'</span> : <span class="id" title="keyword">Type</span>) (<span class="id" title="var">dfa'</span> : <span class="id" title="var">D.t</span> <span class="id" title="var">state'</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">encodes</span> <span class="id" title="var">dfa'</span> → <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">List.length</span> (<span class="id" title="var">D.states</span> <span class="id" title="var">state</span> <span class="id" title="var">dfa</span>) ≤ <span class="id" title="var">List.length</span> (<span class="id" title="var">D.states</span> <span class="id" title="var">state'</span> <span class="id" title="var">dfa'</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+There exists a minimal DFA with number of states <span class="inlinecode"><span class="id" title="var">num_states_in_minimal</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">num_states_in_minimal</span> : <span class="id" title="var">nat</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">exists_dfa</span> : <span class="id" title="tactic">∃</span> <span class="id" title="var">state</span> (<span class="id" title="var">d</span>: <span class="id" title="var">D.t</span> <span class="id" title="var">state</span>), <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">minimal</span> <span class="id" title="var">d</span> ∧ <span class="id" title="var">List.length</span> (<span class="id" title="var">D.states</span> <span class="id" title="var">state</span> <span class="id" title="var">d</span>) ≤ <span class="id" title="var">num_states_in_minimal</span>.<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">RegularLanguage</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Residuals of an arbitrary language 
+</div>
+<div class="code">
+<span class="id" title="keyword">Module</span> <span class="id" title="var">Residuals</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Language membership predicate 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">lang</span> := <span class="id" title="var">str</span> → <span class="id" title="var">bool</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+u^{-1}M : the residual of language <span class="inlinecode"><span class="id" title="var">M</span></span> by word <span class="inlinecode"><span class="id" title="var">u</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">inverse</span> (<span class="id" title="var">M</span> : <span class="id" title="var">lang</span>) (<span class="id" title="var">u</span> : <span class="id" title="var">str</span>) : <span class="id" title="var">lang</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">v</span> ⇒ <span class="id" title="var">M</span> (<span class="id" title="var">u</span> ++ <span class="id" title="var">v</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Extensional equality of languages 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">lang_eq</span> (<span class="id" title="var">M</span> <span class="id" title="var">N</span> : <span class="id" title="var">lang</span>) : <span class="id" title="keyword">Prop</span> := <span class="id" title="keyword">∀</span> <span class="id" title="var">v</span>, <span class="id" title="var">M</span> <span class="id" title="var">v</span> = <span class="id" title="var">N</span> <span class="id" title="var">v</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<span class="inlinecode"><span class="id" title="var">r</span></span> is a residual of <span class="inlinecode"><span class="id" title="var">M</span></span> when some word induces it.
+        Res(M) = { u^{-1}M | u \in S } 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">Res</span> (<span class="id" title="var">M</span> : <span class="id" title="var">lang</span>) (<span class="id" title="var">r</span> : <span class="id" title="var">lang</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">∃</span> <span class="id" title="var">u</span>, <span class="id" title="var">lang_eq</span> <span class="id" title="var">r</span> (<span class="id" title="var">inverse</span> <span class="id" title="var">M</span> <span class="id" title="var">u</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Every language is its own residual (by the empty word) 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <span class="id" title="var">Res_self</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">M</span>, <span class="id" title="var">Res</span> <span class="id" title="var">M</span> <span class="id" title="var">M</span>.<br/>
+ <span class="id" title="keyword">End</span> <span class="id" title="var">Residuals</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Nondeterministic Finite Automaton 
+</div>
+<div class="code">
+<span class="id" title="keyword">Module</span> <span class="id" title="var">NFA</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">step</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="var">transition</span> : <span class="id" title="var">state</span> → <span class="id" title="var">s.t</span> → <span class="id" title="var">list</span> <span class="id" title="var">state</span>) (<span class="id" title="var">qs</span> : <span class="id" title="var">list</span> <span class="id" title="var">state</span>) (<span class="id" title="var">a</span> : <span class="id" title="var">s.t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">list</span> <span class="id" title="var">state</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">flat_map</span> (<span class="id" title="keyword">fun</span> <span class="id" title="var">q</span> ⇒ <span class="id" title="var">transition</span> <span class="id" title="var">q</span> <span class="id" title="var">a</span>) <span class="id" title="var">qs</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Record</span> <span class="id" title="var">t</span> (<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> := {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">transition</span> : <span class="id" title="var">state</span> → <span class="id" title="var">s.t</span> → <span class="id" title="var">list</span> <span class="id" title="var">state</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">initial</span> : <span class="id" title="var">list</span> <span class="id" title="var">state</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">accept</span> : <span class="id" title="var">state</span> → <span class="id" title="var">bool</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">states</span> : <span class="id" title="var">list</span> <span class="id" title="var">state</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">states_complete</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">w</span> <span class="id" title="var">q</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">In</span> <span class="id" title="var">q</span> (<span class="id" title="var">fold_left</span> (<span class="id" title="var">step</span> <span class="id" title="var">transition</span>) <span class="id" title="var">w</span> <span class="id" title="var">initial</span>) → <span class="id" title="var">In</span> <span class="id" title="var">q</span> <span class="id" title="var">states</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Set of states reachable from a given set <span class="inlinecode"><span class="id" title="var">qs</span></span> after reading <span class="inlinecode"><span class="id" title="var">w</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">run_from</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">n</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">qs</span> : <span class="id" title="var">list</span> <span class="id" title="var">state</span>) (<span class="id" title="var">w</span> : <span class="id" title="var">str</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id" title="var">list</span> <span class="id" title="var">state</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">fold_left</span> (<span class="id" title="var">step</span> <span class="id" title="var">n</span>.(<span class="id" title="var">transition</span> <span class="id" title="var">state</span>)) <span class="id" title="var">w</span> <span class="id" title="var">qs</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">run</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">n</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">w</span> : <span class="id" title="var">str</span>) : <span class="id" title="var">list</span> <span class="id" title="var">state</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">run_from</span> <span class="id" title="var">n</span> <span class="id" title="var">n</span>.(<span class="id" title="var">initial</span> <span class="id" title="var">state</span>) <span class="id" title="var">w</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">accept_string</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">n</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">w</span> : <span class="id" title="var">str</span>) : <span class="id" title="var">bool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">existsb</span> <span class="id" title="var">n</span>.(<span class="id" title="var">accept</span> <span class="id" title="var">state</span>) (<span class="id" title="var">run</span> <span class="id" title="var">n</span> <span class="id" title="var">w</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Language recognized starting from a single state <span class="inlinecode"><span class="id" title="var">q</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">L_state</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">n</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">q</span> : <span class="id" title="var">state</span>) : <span class="id" title="var">str</span> → <span class="id" title="var">bool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">w</span> ⇒ <span class="id" title="var">existsb</span> <span class="id" title="var">n</span>.(<span class="id" title="var">accept</span> <span class="id" title="var">state</span>) (<span class="id" title="var">run_from</span> <span class="id" title="var">n</span> [<span class="id" title="var">q</span>] <span class="id" title="var">w</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Language recognized by the whole automaton 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">L_aut</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} := @<span class="id" title="var">accept_string</span> <span class="id" title="var">state</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+String equality is decidable
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">str_eq</span> (<span class="id" title="var">x</span> <span class="id" title="var">y</span> : <span class="id" title="var">str</span>) {<span class="id" title="keyword">struct</span> <span class="id" title="var">x</span>} : {<span class="id" title="var">x</span> = <span class="id" title="var">y</span>} + {<span class="id" title="var">x</span> ≠ <span class="id" title="var">y</span>}.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Defined</span>.<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">NFA</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Residual Finite-State Automaton 
+</div>
+<div class="code">
+<span class="id" title="keyword">Module</span> <span class="id" title="var">RFSA</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Module</span> <span class="id" title="var">N</span> := <span class="id" title="var">NFA</span> <span class="id" title="var">s</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Module</span> <span class="id" title="var">Res</span> := <span class="id" title="var">Residuals</span> <span class="id" title="var">s</span>.<br/>
+
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Record</span> <span class="id" title="var">t</span> (<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> := {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">nfa</span> : <span class="id" title="var">N.t</span> <span class="id" title="var">state</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+
+<div class="doc">
+Every state's per-state language is a residual of L(R) 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">states_are_residuals</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">q</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">In</span> <span class="id" title="var">q</span> (<span class="id" title="var">N.states</span> <span class="id" title="var">state</span> <span class="id" title="var">nfa</span>) →<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Res.Res</span> (<span class="id" title="var">N.L_aut</span> <span class="id" title="var">nfa</span>) (<span class="id" title="var">N.L_state</span> <span class="id" title="var">nfa</span> <span class="id" title="var">q</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">RFSA</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Definition</span> <span class="id" title="var">union</span> {<span class="id" title="var">T</span>} (<span class="id" title="var">rs</span> : <span class="id" title="var">list</span> (<span class="id" title="var">T</span> → <span class="id" title="var">bool</span>)) : <span class="id" title="var">T</span> → <span class="id" title="var">bool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">fun</span> <span class="id" title="var">v</span> ⇒ <span class="id" title="var">existsb</span> (<span class="id" title="keyword">fun</span> <span class="id" title="var">r</span> ⇒ <span class="id" title="var">r</span> <span class="id" title="var">v</span>) <span class="id" title="var">rs</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Residual Language 
+</div>
+<div class="code">
+<span class="id" title="keyword">Module</span> <span class="id" title="keyword">Type</span> <span class="id" title="var">ResidualLanguage</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Module</span> <span class="id" title="var">R</span> := <span class="id" title="var">RFSA</span> <span class="id" title="var">s</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Module</span> <span class="id" title="var">Res</span> := <span class="id" title="var">R.Res</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Module</span> <span class="id" title="var">N</span> := <span class="id" title="var">R.N</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Include</span> <span class="id" title="var">Language</span> <span class="id" title="var">s</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The residuals of the target language are residuals of <span class="inlinecode"><span class="id" title="var">member</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">residual</span> (<span class="id" title="var">r</span> : <span class="id" title="var">Res.lang</span>) : <span class="id" title="keyword">Prop</span> := <span class="id" title="var">Res.Res</span> <span class="id" title="var">member</span> <span class="id" title="var">r</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+A residual is <i>composed</i> when it is a union of residuals 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">composed</span> (<span class="id" title="var">r</span> : <span class="id" title="var">Res.lang</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">residual</span> <span class="id" title="var">r</span> ∧<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">∃</span> <span class="id" title="var">rs</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="keyword">∀</span> <span class="id" title="var">r'</span>, <span class="id" title="var">In</span> <span class="id" title="var">r'</span> <span class="id" title="var">rs</span> → <span class="id" title="var">residual</span> <span class="id" title="var">r'</span> ∧ ¬ <span class="id" title="var">Res.lang_eq</span> <span class="id" title="var">r'</span> <span class="id" title="var">r</span>) ∧<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Res.lang_eq</span> <span class="id" title="var">r</span> (<span class="id" title="var">union</span> <span class="id" title="var">rs</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Otherwise it is <i>prime</i> 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">prime</span> (<span class="id" title="var">r</span> : <span class="id" title="var">Res.lang</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">residual</span> <span class="id" title="var">r</span> ∧ ¬ <span class="id" title="var">composed</span> <span class="id" title="var">r</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Whether an NFA encodes the target language L 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">encodes</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">nfa</span> : <span class="id" title="var">N.t</span> <span class="id" title="var">state</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">w</span> : <span class="id" title="var">str</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">member</span> <span class="id" title="var">w</span> = <span class="id" title="var">true</span> ↔ <span class="id" title="var">N.accept_string</span> <span class="id" title="var">nfa</span> <span class="id" title="var">w</span> = <span class="id" title="var">true</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+An RFSA is <i>canonical</i> when it encodes L and its states denote exactly
+        the prime residuals of L 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">canonical</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">rfsa</span> : <span class="id" title="var">R.t</span> <span class="id" title="var">state</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">encodes</span> <span class="id" title="var">rfsa</span>.(<span class="id" title="var">R.nfa</span> <span class="id" title="var">_</span>) ∧<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> <span class="id" title="var">q</span>, <span class="id" title="var">In</span> <span class="id" title="var">q</span> (<span class="id" title="var">N.states</span> <span class="id" title="var">state</span> (<span class="id" title="var">R.nfa</span> <span class="id" title="var">state</span> <span class="id" title="var">rfsa</span>)) →<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">prime</span> (<span class="id" title="var">N.L_state</span> (<span class="id" title="var">R.nfa</span> <span class="id" title="var">state</span> <span class="id" title="var">rfsa</span>) <span class="id" title="var">q</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+RFSA state minimality 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">minimal</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">rfsa</span> : <span class="id" title="var">R.t</span> <span class="id" title="var">state</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">encodes</span> <span class="id" title="var">rfsa</span>.(<span class="id" title="var">R.nfa</span> <span class="id" title="var">_</span>) ∧<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">state'</span> : <span class="id" title="keyword">Type</span>) (<span class="id" title="var">rfsa'</span> : <span class="id" title="var">R.t</span> <span class="id" title="var">state'</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">encodes</span> <span class="id" title="var">rfsa'</span>.(<span class="id" title="var">R.nfa</span> <span class="id" title="var">_</span>) → <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">List.length</span> (<span class="id" title="var">N.states</span> <span class="id" title="var">state</span> <span class="id" title="var">rfsa</span>.(<span class="id" title="var">R.nfa</span> <span class="id" title="var">_</span>)) ≤ <span class="id" title="var">List.length</span> (<span class="id" title="var">N.states</span> <span class="id" title="var">state'</span> <span class="id" title="var">rfsa'</span>.(<span class="id" title="var">R.nfa</span> <span class="id" title="var">_</span>)).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+For every regular language there is a unique minimal canonical RFSA 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">num_states_in_canonical</span> : <span class="id" title="var">nat</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">exists_rfsa</span> : <span class="id" title="tactic">∃</span> <span class="id" title="var">state</span> (<span class="id" title="var">r</span> : <span class="id" title="var">R.t</span> <span class="id" title="var">state</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">canonical</span> <span class="id" title="var">r</span> ∧ <span class="id" title="var">minimal</span> <span class="id" title="var">r</span> ∧<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">List.length</span> (<span class="id" title="var">N.states</span> <span class="id" title="var">state</span> (<span class="id" title="var">R.nfa</span> <span class="id" title="var">state</span> <span class="id" title="var">r</span>)) ≤ <span class="id" title="var">num_states_in_canonical</span>.<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">ResidualLanguage</span>.<br/>
+</div>
+</div>
+
+<div id="footer">
+<hr/><a href="index.html">Index</a><hr/>This page has been generated by <a href="http://rocq-prover.org/">coqdoc</a>
+</div>
+
+</div>
+
+</body>
+</html>
