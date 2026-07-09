@@ -79,7 +79,7 @@ end
     class mod 7. The transition on reading digit d from state r is:
         r' = (r * 10 + d) mod 7
     which is the standard streaming divisibility DFA. *)
-module Teacher : TEACHER with module S = S = struct
+module Teacher : DFATEACHER with module S = S = struct
   module S = S
   module D = DFA (S)
 

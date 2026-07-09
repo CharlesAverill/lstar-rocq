@@ -180,6 +180,10 @@ Module RFSA (s : Symbol).
     }.
 End RFSA.
 
+(* Union of sets *)
+Definition union {T} (rs : list (T -> bool)) : T -> bool :=
+    fun v => existsb (fun r => r v) rs.
+
 (** Residual Language *)
 Module Type ResidualLanguage (s : Symbol).
     Import s.
@@ -190,10 +194,6 @@ Module Type ResidualLanguage (s : Symbol).
 
     (** The residuals of the target language are residuals of [member] *)
     Definition residual (r : Res.lang) : Prop := Res.Res member r.
-
-    (** Union of a list of residuals, pointwise *)
-    Definition union (rs : list Res.lang) : Res.lang :=
-        fun v => existsb (fun r => r v) rs.
 
     (** A residual is _composed_ when it is a union of residuals *)
     Definition composed (r : Res.lang) : Prop :=

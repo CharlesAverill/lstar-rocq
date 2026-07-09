@@ -3,7 +3,7 @@ open Lstar
 open Automata
 open Teacher
 
-module MakeSocketTeacher (S : Symbol) : TEACHER with module S = S = struct
+module MakeSocketTeacher (S : Symbol) : DFATEACHER with module S = S = struct
   module S = S
   module D = DFA (S)
 

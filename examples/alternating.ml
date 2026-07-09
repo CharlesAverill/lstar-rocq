@@ -27,7 +27,7 @@ module S = struct
   let string_of_str s = String.concat "" (List.map string_of_t s)
 end
 
-module Teacher : TEACHER with module S = S = struct
+module Teacher : DFATEACHER with module S = S = struct
   module S = S
   module D = DFA (S)
 

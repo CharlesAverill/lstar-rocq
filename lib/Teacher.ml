@@ -1,11 +1,14 @@
 open Lstar
 open KV
 open TTT
+open NLstar
 open Automata
 open Stdlib
 
-(** Minimally Adequate Teacher *)
-module type TEACHER = sig
+(** Minimally Adequate Teachers *)
+
+(* Teacher for DFAs *)
+module type DFATEACHER = sig
   (** Language alphabet *)
   module S : Symbol
 
@@ -24,7 +27,27 @@ module type TEACHER = sig
       Set to [Int.max_int] unless you know what you're doing *)
 end
 
-module DFAPrinter (Teacher : TEACHER) = struct
+(* Teacher for NFAs *)
+module type NFATEACHER = sig
+  (** Language alphabet *)
+  module S : Symbol
+
+  (** RFSA *)
+  module R : module type of RFSA (S)
+
+  val member : S.str -> bool
+  (** Membership query *)
+
+  val equiv_query : 'a R.N.t -> S.str option
+  (** Equivalence query *)
+
+  val fuel : int
+  (** Maximum number of iterations to take
+      
+      Set to [Int.max_int] unless you know what you're doing *)
+end
+
+module DFAPrinter (Teacher : DFATEACHER) = struct
   module S = Teacher.S
 
   (* Returns states in discovery order plus an id lookup *)
@@ -208,7 +231,7 @@ module DFAPrinter (Teacher : TEACHER) = struct
     path
 end
 
-module LstarLearner (T : TEACHER) = struct
+module LstarLearner (T : DFATEACHER) = struct
   module Impl =
     Lstar
       (T.S)
@@ -226,7 +249,7 @@ module LstarLearner (T : TEACHER) = struct
   include Impl
 end
 
-module KVLearner (T : TEACHER) = struct
+module KVLearner (T : DFATEACHER) = struct
   module Impl =
     KV
       (T.S)
@@ -244,7 +267,7 @@ module KVLearner (T : TEACHER) = struct
   include Impl
 end
 
-module TTTLearner (T : TEACHER) = struct
+module TTTLearner (T : DFATEACHER) = struct
   module Impl =
     TTT
       (T.S)
@@ -257,6 +280,26 @@ module TTTLearner (T : TEACHER) = struct
       end)
       (struct
         let equiv_query = T.equiv_query
+      end)
+
+  include Impl
+end
+
+module NLstarLearner (T : NFATEACHER) = struct
+  module Impl =
+    NLstar
+      (T.S)
+      (struct
+        module N = T.R.N
+        module R = T.R
+        module Res = R.Res
+
+        let member = T.member
+
+        let num_states_in_canonical = T.fuel
+      end)
+      (struct
+        let equiv_query r_aut = T.equiv_query (T.R.nfa r_aut)
       end)
 
   include Impl

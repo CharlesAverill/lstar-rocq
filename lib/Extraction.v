@@ -9,4 +9,4 @@ Extraction Language OCaml.
 
 Extract Inlined Constant Bool.eqb => "(=)".
 
-Separate Extraction Lstar KV DFA TTT NLstar.
+Separate Extraction Lstar KV DFA NFA RFSA TTT NLstar.

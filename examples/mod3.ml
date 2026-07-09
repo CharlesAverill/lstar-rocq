@@ -29,7 +29,7 @@ end
 (** Language: strings over {0,1} where the number of 1s is divisible by 3.
     The minimal DFA has exactly 3 states (one per residue class mod 3),
     so L* must discover a nontrivial 3-state machine. *)
-module Teacher : TEACHER with module S = S = struct
+module Teacher : DFATEACHER with module S = S = struct
   module S = S
   module D = DFA (S)
 
