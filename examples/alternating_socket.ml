@@ -210,5 +210,5 @@ let print_results name dfa n =
   Printf.printf "Accuracy: %d/%d\n" !correct (Stdlib.List.length strings)
 
 let () =
-  let (Coq_existT (_, dfa)) = NetworkLstar.lstar () in
+  let dfa = NetworkLstar.lstar () in
   print_results "Isolated Network Test L*" dfa 3

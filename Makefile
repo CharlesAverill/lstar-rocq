@@ -11,7 +11,7 @@ fmt: lstar-rocq
 	$(OPAM_EXEC) $(DUNE) build @fmt
 	$(OPAM_EXEC) $(DUNE) promote
 
-lstar-rocq: clean
+lstar-rocq:
 	-$(OPAM_EXEC) $(DUNE) build -p lstar-rocq
 
 lstar: lstar-rocq
@@ -23,9 +23,9 @@ clean:
 	find lib -maxdepth 1 -type f ! -name "Teacher.ml" ! -name "dune" ! -name "*.v" -delete
 
 test: fmt
-	$(OPAM_EXEC) $(DUNE) exec lstar.alternating
-	$(OPAM_EXEC) $(DUNE) exec lstar.mod3
-	$(OPAM_EXEC) $(DUNE) exec lstar.div7
+	$(OPAM_EXEC) $(DUNE) exec lstar.alternating | grep Accuracy
+	$(OPAM_EXEC) $(DUNE) exec lstar.mod3 | grep Accuracy
+	$(OPAM_EXEC) $(DUNE) exec lstar.div7 | grep Accuracy
 
 DOCS_PATH=docs/
 DOCS_NAME=lstar

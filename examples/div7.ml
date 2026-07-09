@@ -199,6 +199,6 @@ let print_results name dfa =
   Printf.printf "Accuracy: %d/%d\n" correct (List.length cases)
 
 let () =
-  (match Lstar.lstar () with Coq_existT (_, d) -> print_results "L*" d) ;
-  (match KV.kv () with Coq_existT (_, d) -> print_results "KV" d) ;
-  match TTT.ttt () with Coq_existT (_, d) -> print_results "TTT" d
+  print_results "L*" (Lstar.lstar ()) ;
+  print_results "KV" (KV.kv ()) ;
+  print_results "TTT" (TTT.ttt ())

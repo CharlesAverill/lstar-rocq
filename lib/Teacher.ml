@@ -247,6 +247,8 @@ module LstarLearner (T : DFATEACHER) = struct
       end)
 
   include Impl
+
+  let lstar () : __ T.D.t = match Impl.lstar () with Coq_existT (_, d) -> d
 end
 
 module KVLearner (T : DFATEACHER) = struct
@@ -265,6 +267,8 @@ module KVLearner (T : DFATEACHER) = struct
       end)
 
   include Impl
+
+  let kv () : __ T.D.t = match Impl.kv () with Coq_existT (_, d) -> d
 end
 
 module TTTLearner (T : DFATEACHER) = struct
@@ -283,6 +287,8 @@ module TTTLearner (T : DFATEACHER) = struct
       end)
 
   include Impl
+
+  let ttt () : __ T.D.t = match Impl.ttt () with Coq_existT (_, d) -> d
 end
 
 module NLstarLearner (T : NFATEACHER) = struct
