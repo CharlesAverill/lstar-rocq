@@ -133,7 +133,8 @@ Module NFA (s : Symbol).
         accept : state -> bool;
         states : list state;
         states_complete : forall w q,
-            In q (fold_left (step transition) w initial) -> In q states
+            In q (fold_left (step transition) w initial) -> 
+            In q states
     }.
 
     (** Set of states reachable from a given set [qs] after reading [w] *)

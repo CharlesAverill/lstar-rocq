@@ -1,6 +1,6 @@
 (* only_http.v
 
-   Uses TTTto build a minimal DFA encoding a black-box packet firewall, then
+   Uses TTT to build a minimal DFA encoding a black-box packet firewall, then
    decides whether the firewall ever forwards a "bad" packet: an HTTP request whose
    destination port is not 80
 
