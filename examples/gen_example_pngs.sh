@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for example in alternating div7 mod3; do
+for example in alternating div7 mod3 traffic; do
     echo "== $example =="
     mapfile -t dot_files < <(dune exec "lstar.$example" | grep -o "/tmp/[^ ]*")
     count=1

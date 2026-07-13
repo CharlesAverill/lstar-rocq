@@ -20,7 +20,6 @@ lstar: lstar-rocq
 clean:
 	$(OPAM_EXEC) $(DUNE) clean
 	git clean -dfXq
-	find lib -maxdepth 1 -type f ! -name "Teacher.ml" ! -name "dune" ! -name "*.v" -delete
 
 test: fmt
 	$(OPAM_EXEC) $(DUNE) exec lstar.alternating | grep Accuracy

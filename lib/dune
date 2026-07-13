@@ -2,6 +2,7 @@
  (prelude Extraction)
  (extracted_modules
   Lstar
+  Lstar_Moore
   KV
   Datatypes
   Bool

@@ -37,3 +37,20 @@ Module Type RFSATeacher (s : Symbol) (L : ResidualLanguage s).
         equiv_query nfa = Some w ->
         N.accept_string nfa w <> member w.
 End RFSATeacher.
+
+(** Teacher for Moore-machine learning. *)
+Module Type MooreTeacher (s : Symbol) (O : Output) (L : MooreLanguage s O).
+    Import s O L.
+
+    (** The teacher answers equivalence queries: whether the given Moore
+        machine encodes the target output function or not. *)
+    Parameter equiv_query :
+        forall {state}, M.t state -> option str.
+    (** If [equiv_query] returns [None], the machine encodes L. *)
+    Parameter equiv_query_correct : forall {state} (m : M.t state),
+        equiv_query m = None <-> encodes m.
+    (** If [equiv_query] returns [Some w], the machine mis-predicts on [w]. *)
+    Parameter equiv_query_ce : forall {state} (m : M.t state) w,
+        equiv_query m = Some w ->
+        M.output_string m w <> output_lang w.
+End MooreTeacher.

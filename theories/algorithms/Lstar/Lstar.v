@@ -257,7 +257,7 @@ Defined.
     to add to Q, T such that Q' and T' are finite and Q' is
     separable wrt T' (see RS.v for linear and binary searches) *)
 
-Module RSS <: RS_Setup s L T.
+Module RSS <: RS_Setup s L.
   Definition obt := HypothesisDFA.
   Definition P (o : obt) (q : str) : Prop := o.(Q) q = true.
   Definition make_dfa (o : obt) : D.t { q | P o q } := make_dfa o.
@@ -277,7 +277,7 @@ Module RSS <: RS_Setup s L T.
   Qed.
 End RSS.
 
-Module RSan := RS s L T RSS.
+Module RSan := RS s L RSS.
 Import RSan.
 
 Theorem find_separable :

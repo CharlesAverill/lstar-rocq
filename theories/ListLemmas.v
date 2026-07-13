@@ -1,6 +1,7 @@
 From Stdlib Require Import List.
 From Stdlib Require Import PeanoNat.
 From Stdlib Require Import Lia.
+Import ListNotations.
 
 Lemma firstn_len_app : forall X (l1 l2 : list X),
     firstn (length l1) (l1 ++ l2) = l1.
@@ -304,4 +305,49 @@ Proof.
       exists x. split; auto. rewrite existsb_exists. now exists y.
     - intros (x & Hx & Hg). rewrite existsb_exists in Hg. destruct Hg as (y & Hy & Hg).
       exists y. split; auto. apply in_flat_map. now exists x.
+Qed.
+
+(** All length-[n] vectors over the alphabet [alpha]. *)
+Fixpoint all_vectors {A} (alpha : list A) (n : nat) : list (list A) :=
+    match n with
+    | 0 => [[]]
+    | S n' => flat_map (fun x => map (cons x) (all_vectors alpha n')) alpha
+    end.
+
+Lemma length_all_vectors : forall {A} n (alpha : list A),
+    length (all_vectors alpha n) = Nat.pow (length alpha) n.
+Proof.
+    induction n; intros; simpl in *.
+        reflexivity.
+    rewrite flat_map_constant_length with (c := length (all_vectors alpha n)).
+        now rewrite IHn.
+    intros. now rewrite length_map.
+Qed.
+
+Lemma in_all_vectors : forall {A} n (alpha : list A) v,
+    length v = n ->
+    (forall x, In x v -> In x alpha) ->
+    In v (all_vectors alpha n).
+Proof.
+    induction n; intros; simpl in *.
+        destruct v; simpl in *. now left. discriminate.
+    destruct v; simpl in *. discriminate.
+    inversion H; subst; clear H. apply in_flat_map.
+    exists a. split.
+        apply H0. now left.
+    apply in_map_iff. eexists. split. reflexivity.
+    apply IHn. reflexivity.
+    intros. apply H0. now right.
+Qed.
+
+Lemma NoDup_finlist_length : forall {A} (alpha : list A) (vecs : list (list A)) (n : nat),
+    NoDup vecs ->
+    (forall v, In v vecs -> length v = n) ->
+    (forall v x, In v vecs -> In x v -> In x alpha) ->
+    length vecs <= Nat.pow (length alpha) n.
+Proof.
+    intros. rewrite <- length_all_vectors.
+    apply NoDup_incl_length. assumption.
+    repeat intro. apply in_all_vectors.
+        now apply H0. eauto.
 Qed.

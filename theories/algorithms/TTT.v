@@ -151,7 +151,7 @@ Proof.
 Qed.
 
 (** Set up Rivest-Schapire counterexample analysis *)
-Module RSS <: RS_Setup s L Tch.
+Module RSS <: RS_Setup s L.
   Definition obt := { o : ttree | wf o }.
   Definition P (o : obt) (q : str) : Prop := mem q (leaves (proj1_sig o)) = true.
   Definition make_dfa (o : obt) : D.t { q | P o q } := make_dfa (proj1_sig o).
@@ -170,7 +170,7 @@ Module RSS <: RS_Setup s L Tch.
   Qed.
 End RSS.
 
-Module RSan := RS s L Tch RSS.
+Module RSan := RS s L RSS.
 Import RSan.
 
 Fixpoint split_leaf (t : ttree) (target e q_new : str) : ttree :=
