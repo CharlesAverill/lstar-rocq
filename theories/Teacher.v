@@ -1,4 +1,4 @@
-From lstar Require Import Automata.
+From lstar Require Import automata.DFA automata.NFA automata.Moore automata.Mealy.
 
 Module Type DFATeacher (s : Symbol) (L : RegularLanguage s).
     Import s L.
@@ -54,3 +54,22 @@ Module Type MooreTeacher (s : Symbol) (O : Output) (L : MooreLanguage s O).
         equiv_query m = Some w ->
         M.output_string m w <> output_lang w.
 End MooreTeacher.
+
+(** Teacher for Mealy-machine learning. *)
+Module Type MealyTeacher (s : Symbol) (O : Output) (L : MealyLanguage s O).
+    Import s O L.
+
+    (** The teacher answers equivalence queries: whether the given Mealy
+        machine reproduces the target's observations on every suffix. *)
+    Parameter equiv_query :
+        forall {state}, M.t state -> option str.
+    (** If [equiv_query] returns [None], the machine encodes L. *)
+    Parameter equiv_query_correct : forall {state} (m : M.t state),
+        equiv_query m = None <-> encodes m.
+    (** If [equiv_query] returns [Some t], the machine mis-predicts on the
+        suffix [t]: its observation from the initial state differs from
+        the target's. *)
+    Parameter equiv_query_ce : forall {state} (m : M.t state) t,
+        equiv_query m = Some t ->
+        M.mobs m m.(M.initial _) t <> M.tobs output_lang [] t.
+End MealyTeacher.

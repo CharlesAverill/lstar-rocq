@@ -1,6 +1,7 @@
 open Unix
 open Lstar
-open Automata
+open DFA
+open Alphabet
 open Teacher
 
 module MakeSocketTeacher (S : Symbol) : DFATEACHER with module S = S = struct

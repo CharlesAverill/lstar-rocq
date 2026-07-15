@@ -3,7 +3,7 @@
 
 From Stdlib Require Import Lia PeanoNat Bool.
 From Stdlib Require Import Eqdep_dec.
-From lstar Require Import Automata Teacher ListLemmas RS.
+From lstar Require Import automata.DFA Teacher ListLemmas RS.
 Import ListNotations.
 
 Module TTT (s : Symbol) (L : RegularLanguage s) (Tch : DFATeacher s L).

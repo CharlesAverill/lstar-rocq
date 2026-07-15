@@ -351,3 +351,20 @@ Proof.
     repeat intro. apply in_all_vectors.
         now apply H0. eauto.
 Qed.
+
+Lemma rev_nil_inv : forall {A} (l : list A),
+    rev l = [] -> l = [].
+Proof.
+    induction l; intros.
+        reflexivity.
+    simpl in H. now apply app_eq_nil in H.
+Qed.
+
+Lemma skipn_nil_inv : forall {A} (l : list A) n,
+    skipn n l = [] -> length l <= n.
+Proof.
+    induction l; intros.
+        destruct n; simpl in *. reflexivity. apply Nat.le_0_l.
+    simpl in *. destruct n. simpl in H. discriminate.
+    simpl in H. apply le_n_S. now apply IHl.
+Qed.

@@ -1,5 +1,5 @@
 open Lstar
-open Automata
+open DFA
 open Specif
 open Teacher
 open Stdlib

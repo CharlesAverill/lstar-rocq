@@ -1,7 +1,7 @@
 (** Rivest-Schapire counterexample analysis: https://doi.org/10.1006/inco.1993.1021*)
 
 From Stdlib Require Import Lia PeanoNat.
-From lstar Require Import Automata Teacher.
+From lstar Require Import automata.DFA automata.Moore.
 
 Module Type RS_Setup (s : Symbol) (L : RegularLanguage s).
 Import s L D.

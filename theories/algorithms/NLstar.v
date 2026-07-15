@@ -3,7 +3,7 @@
     
 #[local] Set Warnings "-intuition-auto-with-star".
 
-From lstar Require Import Automata ListLemmas SetLemmas.
+From lstar Require Import automata.NFA ListLemmas SetLemmas.
 From Stdlib Require Import List.
 From Stdlib Require Import Lia.
 From Stdlib Require Import PeanoNat.
