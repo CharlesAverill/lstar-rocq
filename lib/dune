@@ -3,10 +3,15 @@
  (extracted_modules
   Lstar
   Lstar_Moore
+  Lstar_Mealy
   KV
   Datatypes
   Bool
-  Automata
+  DFA
+  NFA
+  Mealy
+  Moore
+  Alphabet
   Specif
   ListLemmas
   List

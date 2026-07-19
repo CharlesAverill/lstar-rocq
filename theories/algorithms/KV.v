@@ -1,7 +1,7 @@
 (** Kearns-Vazirani automata learning
     https://doi.org/10.7551/mitpress%2F3897.001.0001 *)
 
-From lstar Require Import Automata ListLemmas Teacher RS.
+From lstar Require Import automata.DFA ListLemmas Teacher RS.
 From Stdlib Require Import List.
 From Stdlib Require Import Lia.
 From Stdlib Require Import PeanoNat.
