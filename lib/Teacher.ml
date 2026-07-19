@@ -802,6 +802,8 @@ module NLstarLearner (T : NFATEACHER) = struct
         let member = T.member
 
         let num_states_in_canonical = T.fuel
+
+        let num_residuals = T.fuel
       end)
       (struct
         let equiv_query r_aut = T.equiv_query (T.R.nfa r_aut)

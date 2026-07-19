@@ -139,4 +139,13 @@ Module Type ResidualLanguage (s : Symbol).
     Parameter exists_rfsa : exists state (r : R.t state),
         canonical r /\ minimal r /\
         List.length (N.states state (R.nfa state r)) <= num_states_in_canonical.
+
+    (** The target language is regular, so it has finitely many residual languages.*)
+    Parameter num_residuals : nat.
+    Parameter residuals_bounded : forall (rs : list Res.lang),
+        (forall r, In r rs -> residual r) ->
+        (forall i j, i < List.length rs -> j < List.length rs ->
+            Res.lang_eq (List.nth i rs (fun _ => false)) (List.nth j rs (fun _ => false)) ->
+            i = j) ->
+        List.length rs <= num_residuals.
 End ResidualLanguage.
