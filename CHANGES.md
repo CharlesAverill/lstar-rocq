@@ -1,3 +1,9 @@
+# v3.0
+
+Breaking changes.
+Teacher modules have changed substantially.
+TTT for DFAs, L* for Moore and Mealy machines are now supported.
+
 # v2.0
 
 Breaking changes.

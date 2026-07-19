@@ -16,7 +16,7 @@
   ListLemmas
   List
   ListDef
-  NLstar
+  ; NLstar
   PeanoNat
   Nat
   RS

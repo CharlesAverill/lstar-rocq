@@ -3,7 +3,7 @@ open Lstar_Moore
 open Lstar_Mealy
 open KV
 open TTT
-open NLstar
+(* open NLstar *)
 open DFA
 open NFA
 open Mealy
@@ -790,7 +790,7 @@ module TTTLearner (T : DFATEACHER) = struct
   let ttt () : __ T.D.t = match Impl.ttt () with Coq_existT (_, d) -> d
 end
 
-module NLstarLearner (T : NFATEACHER) = struct
+(* module NLstarLearner (T : NFATEACHER) = struct
   module Impl =
     NLstar
       (T.S)
@@ -810,4 +810,4 @@ module NLstarLearner (T : NFATEACHER) = struct
       end)
 
   include Impl
-end
+end *)
