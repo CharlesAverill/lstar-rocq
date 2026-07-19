@@ -92,6 +92,45 @@ If the equivalence query returns <span class="inlinecode"><span class="id" title
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">equiv_query</span> <span class="id" title="var">nfa</span> = <span class="id" title="var">Some</span> <span class="id" title="var">w</span> →<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">N.accept_string</span> <span class="id" title="var">nfa</span> <span class="id" title="var">w</span> ≠ <span class="id" title="var">member</span> <span class="id" title="var">w</span>.<br/>
 <span class="id" title="keyword">End</span> <span class="id" title="var">RFSATeacher</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Teacher for Moore-machine learning. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Module</span> <span class="id" title="keyword">Type</span> <span class="id" title="var">MooreTeacher</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>) (<span class="id" title="var">O</span> : <span class="id" title="var">Output</span>) (<span class="id" title="var">L</span> : <span class="id" title="var">MooreLanguage</span> <span class="id" title="var">s</span> <span class="id" title="var">O</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span> <span class="id" title="var">O</span> <span class="id" title="var">L</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The teacher answers equivalence queries: whether the given Moore
+        machine encodes the target output function or not. 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">equiv_query</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> {<span class="id" title="var">state</span>}, <span class="id" title="var">M.t</span> <span class="id" title="var">state</span> → <span class="id" title="var">option</span> <span class="id" title="var">str</span>.<br/>
+</div>
+
+<div class="doc">
+If <span class="inlinecode"><span class="id" title="var">equiv_query</span></span> returns <span class="inlinecode"><span class="id" title="var">None</span></span>, the machine encodes L. 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">equiv_query_correct</span> : <span class="id" title="keyword">∀</span> {<span class="id" title="var">state</span>} (<span class="id" title="var">m</span> : <span class="id" title="var">M.t</span> <span class="id" title="var">state</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">equiv_query</span> <span class="id" title="var">m</span> = <span class="id" title="var">None</span> ↔ <span class="id" title="var">encodes</span> <span class="id" title="var">m</span>.<br/>
+</div>
+
+<div class="doc">
+If <span class="inlinecode"><span class="id" title="var">equiv_query</span></span> returns <span class="inlinecode"><span class="id" title="var">Some</span></span> <span class="inlinecode"><span class="id" title="var">w</span></span>, the machine mis-predicts on <span class="inlinecode"><span class="id" title="var">w</span></span>. 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">equiv_query_ce</span> : <span class="id" title="keyword">∀</span> {<span class="id" title="var">state</span>} (<span class="id" title="var">m</span> : <span class="id" title="var">M.t</span> <span class="id" title="var">state</span>) <span class="id" title="var">w</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">equiv_query</span> <span class="id" title="var">m</span> = <span class="id" title="var">Some</span> <span class="id" title="var">w</span> →<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">M.output_string</span> <span class="id" title="var">m</span> <span class="id" title="var">w</span> ≠ <span class="id" title="var">output_lang</span> <span class="id" title="var">w</span>.<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">MooreTeacher</span>.<br/>
 </div>
 </div>
 

@@ -294,7 +294,8 @@ Nondeterministic Finite Automaton
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">accept</span> : <span class="id" title="var">state</span> → <span class="id" title="var">bool</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">states</span> : <span class="id" title="var">list</span> <span class="id" title="var">state</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">states_complete</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">w</span> <span class="id" title="var">q</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">In</span> <span class="id" title="var">q</span> (<span class="id" title="var">fold_left</span> (<span class="id" title="var">step</span> <span class="id" title="var">transition</span>) <span class="id" title="var">w</span> <span class="id" title="var">initial</span>) → <span class="id" title="var">In</span> <span class="id" title="var">q</span> <span class="id" title="var">states</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">In</span> <span class="id" title="var">q</span> (<span class="id" title="var">fold_left</span> (<span class="id" title="var">step</span> <span class="id" title="var">transition</span>) <span class="id" title="var">w</span> <span class="id" title="var">initial</span>) → <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">In</span> <span class="id" title="var">q</span> <span class="id" title="var">states</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
 
 <br/>
@@ -471,6 +472,143 @@ For every regular language there is a unique minimal canonical RFSA
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">canonical</span> <span class="id" title="var">r</span> ∧ <span class="id" title="var">minimal</span> <span class="id" title="var">r</span> ∧<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">List.length</span> (<span class="id" title="var">N.states</span> <span class="id" title="var">state</span> (<span class="id" title="var">R.nfa</span> <span class="id" title="var">state</span> <span class="id" title="var">r</span>)) ≤ <span class="id" title="var">num_states_in_canonical</span>.<br/>
 <span class="id" title="keyword">End</span> <span class="id" title="var">ResidualLanguage</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+A finite output alphabet with decidable equality 
+</div>
+<div class="code">
+<span class="id" title="keyword">Module</span> <span class="id" title="keyword">Type</span> <span class="id" title="var">Output</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">t</span> : <span class="id" title="keyword">Type</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">eq_dec</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">x</span> <span class="id" title="var">y</span> : <span class="id" title="var">t</span>), {<span class="id" title="var">x</span> = <span class="id" title="var">y</span>} + {<span class="id" title="var">x</span> ≠ <span class="id" title="var">y</span>}.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">enum</span> : <span class="id" title="var">list</span> <span class="id" title="var">t</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">t_enumerable</span> : <span class="id" title="keyword">∀</span> (<span class="id" title="var">x</span> : <span class="id" title="var">t</span>), <span class="id" title="var">In</span> <span class="id" title="var">x</span> <span class="id" title="var">enum</span>.<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">Output</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Moore machine over symbol alphabet <span class="inlinecode"><span class="id" title="var">s</span></span> and output alphabet <span class="inlinecode"><span class="id" title="var">O</span></span>. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Module</span> <span class="id" title="var">Moore</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>) (<span class="id" title="var">O</span> : <span class="id" title="var">Output</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Moore machine type: like <span class="inlinecode"><span class="id" title="var">DFA.t</span></span> but with <span class="inlinecode"><span class="id" title="var">output</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">state</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">O.t</span></span>. 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Record</span> <span class="id" title="var">t</span> (<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>) : <span class="id" title="keyword">Type</span> := {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">transition</span> : <span class="id" title="var">state</span> → <span class="id" title="var">s.t</span> → <span class="id" title="var">state</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">initial</span> : <span class="id" title="var">state</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">output</span> : <span class="id" title="var">state</span> → <span class="id" title="var">O.t</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">states</span> : <span class="id" title="var">list</span> <span class="id" title="var">state</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">states_complete</span> : <span class="id" title="keyword">∀</span> <span class="id" title="var">w</span>, <span class="id" title="var">In</span> (<span class="id" title="var">fold_left</span> <span class="id" title="var">transition</span> <span class="id" title="var">w</span> <span class="id" title="var">initial</span>) <span class="id" title="var">states</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Run a Moore machine on a string and get the resulting state 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">run</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">m</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">w</span> : <span class="id" title="var">str</span>) : <span class="id" title="var">state</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">fold_left</span> <span class="id" title="var">m</span>.(<span class="id" title="var">transition</span> <span class="id" title="var">state</span>) <span class="id" title="var">w</span> <span class="id" title="var">m</span>.(<span class="id" title="var">initial</span> <span class="id" title="var">state</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The output the machine produces after processing a string 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">output_string</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">m</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">w</span> : <span class="id" title="var">str</span>) : <span class="id" title="var">O.t</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">m</span>.(<span class="id" title="var">output</span> <span class="id" title="var">state</span>) (<span class="id" title="var">run</span> <span class="id" title="var">m</span> <span class="id" title="var">w</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Every reachable state is listed in <span class="inlinecode"><span class="id" title="var">states</span></span> 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Lemma</span> <span class="id" title="var">run_in_states</span> : <span class="id" title="keyword">∀</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">m</span> : <span class="id" title="var">t</span> <span class="id" title="var">state</span>) (<span class="id" title="var">w</span> : <span class="id" title="var">str</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">In</span> (<span class="id" title="var">run</span> <span class="id" title="var">m</span> <span class="id" title="var">w</span>) (<span class="id" title="var">states</span> <span class="id" title="var">state</span> <span class="id" title="var">m</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+String equality is decidable
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Fixpoint</span> <span class="id" title="var">str_eq</span> (<span class="id" title="var">x</span> <span class="id" title="var">y</span> : <span class="id" title="var">str</span>) {<span class="id" title="keyword">struct</span> <span class="id" title="var">x</span>} : {<span class="id" title="var">x</span> = <span class="id" title="var">y</span>} + {<span class="id" title="var">x</span> ≠ <span class="id" title="var">y</span>}.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Defined</span>.<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">Moore</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Moore language: the target is a total function <span class="inlinecode"><span class="id" title="var">output_lang</span></span> <span class="inlinecode">:</span> <span class="inlinecode"><span class="id" title="var">str</span></span> <span class="inlinecode">→</span> <span class="inlinecode"><span class="id" title="var">O</span></span>. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Module</span> <span class="id" title="keyword">Type</span> <span class="id" title="var">MooreLanguage</span> (<span class="id" title="var">s</span> : <span class="id" title="var">Symbol</span>) (<span class="id" title="var">O</span> : <span class="id" title="var">Output</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Import</span> <span class="id" title="var">s</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Module</span> <span class="id" title="var">M</span> := <span class="id" title="var">Moore</span> <span class="id" title="var">s</span> <span class="id" title="var">O</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The target output function: the value the learned machine must
+        reproduce on every input word. 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">output_lang</span> : <span class="id" title="var">str</span> → <span class="id" title="var">O.t</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Whether a Moore machine encodes the target output function 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">encodes</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">m</span> : <span class="id" title="var">M.t</span> <span class="id" title="var">state</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">w</span> : <span class="id" title="var">str</span>), <span class="id" title="var">M.output_string</span> <span class="id" title="var">m</span> <span class="id" title="var">w</span> = <span class="id" title="var">output_lang</span> <span class="id" title="var">w</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Moore-machine state minimality 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Definition</span> <span class="id" title="var">minimal</span> {<span class="id" title="var">state</span> : <span class="id" title="keyword">Type</span>} (<span class="id" title="var">m</span> : <span class="id" title="var">M.t</span> <span class="id" title="var">state</span>) : <span class="id" title="keyword">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">encodes</span> <span class="id" title="var">m</span> ∧<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> (<span class="id" title="var">state'</span> : <span class="id" title="keyword">Type</span>) (<span class="id" title="var">m'</span> : <span class="id" title="var">M.t</span> <span class="id" title="var">state'</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">encodes</span> <span class="id" title="var">m'</span> →<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">List.length</span> (<span class="id" title="var">M.states</span> <span class="id" title="var">state</span> <span class="id" title="var">m</span>) ≤ <span class="id" title="var">List.length</span> (<span class="id" title="var">M.states</span> <span class="id" title="var">state'</span> <span class="id" title="var">m'</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+There exists a minimal Moore machine with <span class="inlinecode"><span class="id" title="var">num_states_in_minimal</span></span>
+        states 
+</div>
+<div class="code">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">num_states_in_minimal</span> : <span class="id" title="var">nat</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">Parameter</span> <span class="id" title="var">exists_moore</span> : <span class="id" title="tactic">∃</span> <span class="id" title="var">state</span> (<span class="id" title="var">m</span> : <span class="id" title="var">M.t</span> <span class="id" title="var">state</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">minimal</span> <span class="id" title="var">m</span> ∧ <span class="id" title="var">List.length</span> (<span class="id" title="var">M.states</span> <span class="id" title="var">state</span> <span class="id" title="var">m</span>) ≤ <span class="id" title="var">num_states_in_minimal</span>.<br/>
+<span class="id" title="keyword">End</span> <span class="id" title="var">MooreLanguage</span>.<br/>
 </div>
 </div>
 
