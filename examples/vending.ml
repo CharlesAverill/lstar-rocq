@@ -1,20 +1,5 @@
-(* Coin-operated vending machine: a 30c item, coins of 5/10/25, plus a
-   refund lever.
-
-   This is to Mealy machines what the traffic light is to Moore machines.
-   The traffic light's lamp is a property of *being* in a phase, so it
-   belongs on the state.  A vending machine's reaction -- drop nothing,
-   dispense the item, hand back change -- is a property of the *event*:
-   it depends on which coin you just inserted, not merely on how much
-   credit you had.  From a credit of 25c a nickel dispenses, a quarter
-   dispenses with 20c change, and the refund lever returns 25c: one
-   state, three different outputs.  Encoding this as a Moore machine
-   forces a separate state for every (credit, last-reaction) pair, since
-   the reaction has to be parked somewhere it can be read off the state.
-
-   Note the shape of [output_lang]: it takes the history *and* the next
-   symbol, and returns the single output emitted on that transition.
-   That is the Mealy target [output_lang : str -> s.t -> O.t]. *)
+(* Coin-operated vending machine: a 30c item, coins of 5/10/25, and a
+   refund lever *)
 
 open Lstar
 open Mealy
@@ -22,7 +7,7 @@ open Specif
 open Teacher
 open Stdlib
 
-(** Input alphabet: three coins and a refund lever *)
+(** Input alphabet *)
 module S = struct
   type t = Nickel | Dime | Quarter | Refund
 
@@ -57,12 +42,10 @@ module S = struct
   let string_of_str s = String.concat "" (List.map string_of_t s)
 end
 
-(** Output alphabet: what the machine does in response to a coin.
+(** Output alphabet
 
-    [Vend c] dispenses the item and returns [c] cents of change; [Coins c]
-    is the refund lever handing back [c] cents.  Both are bounded: change
-    is at most 20c (25c inserted against a 5c shortfall) and a refund at
-    most 25c (one cent short of vending), so the alphabet is finite. *)
+    [Vend c] dispenses the item and returns [c] cents of change
+    [Coins c] is the refund lever handing back [c] cents. *)
 module O = struct
   type t = Nothing | Vend of int | Coins of int
 
@@ -92,8 +75,6 @@ module O = struct
 
   type str = t list
 
-  (* Reachable outputs: no-op, a vend with change in {0,5,10,15,20}, and a
-     refund of {5,10,15,20,25}. *)
   let enum =
     [Nothing]
     @ List.map (fun c -> Vend c) [0; 5; 10; 15; 20]
@@ -118,8 +99,8 @@ module Teacher : MEALYTEACHER with module S = S and module O = O = struct
         0
 
   (** Credit accumulated after consuming [s], starting from an empty
-      machine.  Inserting a coin that reaches the price vends and clears
-      the credit; the refund lever also clears it. *)
+      machine. Inserting a coin that reaches the price vends and clears
+      the credit. *)
   let credit (s : S.str) : int =
     List.fold_left
       (fun c -> function
@@ -133,8 +114,8 @@ module Teacher : MEALYTEACHER with module S = S and module O = O = struct
               c' )
       0 s
 
-  (** The Mealy target: having already consumed [s], what does reading [a]
-      emit?  This is the whole specification of the machine. *)
+  (** Having already consumed [s], what does reading [a]
+      emit? *)
   let output_lang (s : S.str) (a : S.t) : O.t =
     let c = credit s in
     match a with
@@ -150,11 +131,7 @@ module Teacher : MEALYTEACHER with module S = S and module O = O = struct
         else
           O.Nothing
 
-  (** Breadth-first search for a word on which the hypothesis mispredicts.
-
-      The observable is the *last* output of a word, so the empty word is
-      never a counterexample (it emits nothing at all) and the search
-      starts from the one-symbol words. *)
+  (** Breadth-first search for a word on which the hypothesis mispredicts. *)
   let equiv_query (m : 'a M.t) : S.str option =
     let rec find_counter_example depth current_strings =
       if depth >= int_of_float (2. ** 12.) then
@@ -164,8 +141,6 @@ module Teacher : MEALYTEACHER with module S = S and module O = O = struct
         | [] ->
             None
         | s :: rest -> (
-          (* [s] is non-empty by construction.  [last_output] wants the word
-             as head symbol + tail; the spec wants prefix + final symbol. *)
           match (s, List.rev s) with
           | [], _ | _, [] ->
               find_counter_example (depth + 1) rest
@@ -212,10 +187,7 @@ let dedup l =
 let unsnoc (s : S.str) : (S.str * S.t) option =
   match List.rev s with [] -> None | a :: rprefix -> Some (List.rev rprefix, a)
 
-(** Run the learned machine on test cases and pretty-print results.
-
-    Only non-empty inputs are shown: the observable is the output of the
-    final transition, and the empty word takes no transition. *)
+(** Run the learned machine on test cases and pretty-print results *)
 let print_results name m n =
   Printf.printf "\n=== %s ===\n" name ;
   print_endline "Mealy machine found" ;
