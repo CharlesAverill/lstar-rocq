@@ -1,12 +1,13 @@
 #!/bin/bash
 
-for example in alternating div7 mod3 traffic vending; do
+for example in dfa.alternating dfa.div7 dfa.mod3 moore.traffic mealy.vending nfa.suffix; do
     echo "== $example =="
-    mapfile -t dot_files < <(dune exec "lstar.$example" | grep -o "/tmp/[^ ]*")
+    mapfile -t dot_files < <(dune exec "$example" | grep -o "/tmp/[^ ]*")
     count=1
     for file in "${dot_files[@]}"; do
         if [ -f "$file" ]; then
-            dot -Tpng "$file" -o "./examples/images/${example}_${count}.png"
+            fn=$(echo $example | sed 's/.*\.//g')
+            dot -Tpng "$file" -o "./examples/images/${fn}_${count}.png"
             rm "$file"
             ((count++))
         fi

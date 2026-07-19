@@ -3,7 +3,7 @@ open Lstar_Moore
 open Lstar_Mealy
 open KV
 open TTT
-(* open NLstar *)
+open NLstar
 open DFA
 open NFA
 open Mealy
@@ -263,6 +263,209 @@ module DFAPrinter (Teacher : DFATEACHER) = struct
                 if Buffer.length buf > 0 then Buffer.add_string buf ", " ;
                 Buffer.add_string buf (escape (S.string_of_t c)) ;
                 incr cnt )
+              S.enum ;
+            List.iter
+              (fun dst ->
+                let buf, cnt = Hashtbl.find tbl dst in
+                let self =
+                  if i = dst then
+                    " dir=back"
+                  else
+                    ""
+                in
+                if !cnt = alphabet_size then
+                  p "  q%d -> q%d [color=\"#c6c6cc\"%s];\n" i dst self
+                else
+                  p "  q%d -> q%d [label=\" %s \"%s];\n" i dst
+                    (Buffer.contents buf) self )
+              (List.rev !dst_order) )
+          states ;
+        p "}\n" ) ;
+    path
+end
+
+(** Pretty-printer / DOT exporter for learned RFSAs.
+
+    Mirrors {!DFAPrinter}. Nondeterminism forces two differences: an NFA has a
+    {i set} of initial states rather than a single one, and a transition leads
+    to a {i set} of successors, so a state may have several outgoing edges on
+    one symbol, or none at all. *)
+module NFAPrinter (Teacher : NFATEACHER) = struct
+  module S = Teacher.S
+  module N = Teacher.R.N
+
+  (* Returns states in discovery order plus an id lookup *)
+  let discover (n : 'st N.t) =
+    let module H = Hashtbl in
+    let ids : ('st, int) H.t = H.create 16 in
+    let order = ref [] in
+    let next = ref 0 in
+    let id_of s =
+      match H.find_opt ids s with
+      | Some i ->
+          i
+      | None ->
+          let i = !next in
+          incr next ;
+          H.add ids s i ;
+          order := s :: !order ;
+          i
+    in
+    let rec explore = function
+      | [] ->
+          ()
+      | s :: rest ->
+          if H.mem ids s then
+            explore rest
+          else begin
+            ignore (id_of s) ;
+            let succs = List.concat_map (fun c -> N.transition n s c) S.enum in
+            explore (rest @ succs)
+          end
+    in
+    explore (N.initial n) ;
+    (List.rev !order, id_of)
+
+  let print_nfa (n : 'st N.t) : unit =
+    let states, id_of = discover n in
+    let inits = List.map id_of (N.initial n) in
+    Printf.printf "States (%d):\n" (List.length states) ;
+    List.iter
+      (fun s ->
+        let i = id_of s in
+        let acc =
+          if N.accept n s then
+            "accept"
+          else
+            "reject"
+        in
+        let mark =
+          if List.mem i inits then
+            " <- initial"
+          else
+            ""
+        in
+        Printf.printf "  q%-3d  %s%s\n" i acc mark )
+      states ;
+    Printf.printf "Transitions:\n" ;
+    List.iter
+      (fun s ->
+        let i = id_of s in
+        List.iter
+          (fun c ->
+            match N.transition n s c with
+            | [] ->
+                Printf.printf "  q%-3d --%s--> (none)\n" i (S.string_of_t c)
+            | dsts ->
+                List.iter
+                  (fun d ->
+                    Printf.printf "  q%-3d --%s--> q%d\n" i (S.string_of_t c)
+                      (id_of d) )
+                  dsts )
+          S.enum )
+      states
+
+  (** Render the RFSA in Graphviz DOT format to a fresh temporary file and
+      return the file's path. Accept states are drawn as double circles, every
+      initial state gets an incoming arrow from an invisible node, and edges
+      between the same pair of states are collapsed into one labelled edge.
+      Feed the path to [dot -Tpng <path> -o rfsa.png]. *)
+  let to_dot ?(name = "RFSA") (n : 'st N.t) : string =
+    let states, id_of = discover n in
+    let inits = List.map id_of (N.initial n) in
+    let path = Filename.temp_file name ".dot" in
+    let out = open_out path in
+    Fun.protect
+      ~finally:(fun () -> close_out out)
+      (fun () ->
+        let p fmt = Printf.fprintf out fmt in
+        let escape s =
+          let buf = Buffer.create (String.length s + 2) in
+          String.iter
+            (fun ch ->
+              match ch with
+              | '"' ->
+                  Buffer.add_string buf "\\\""
+              | '\\' ->
+                  Buffer.add_string buf "\\\\"
+              | '\n' ->
+                  Buffer.add_string buf "\\n"
+              | '_' ->
+                  Buffer.add_string buf " - "
+              | c ->
+                  Buffer.add_char buf c )
+            s ;
+          Buffer.contents buf
+        in
+        p "digraph \"%s\" {\n" (escape name) ;
+        (* ---- graph-level styling ---- *)
+        p "  bgcolor=\"#fbfbfd\";\n" ;
+        p "  rankdir=LR;\n" ;
+        p "  nodesep=0.5;\n" ;
+        p "  dpi=300;\n" ;
+        p "  ranksep=0.6;\n" ;
+        p "  pad=0.3;\n" ;
+        p "  label=\"%s\";\n" (escape name) ;
+        p "  labelloc=\"t\";\n" ;
+        p "  fontsize=22;\n" ;
+        p "  fontname=\"Helvetica Neue, Helvetica, Arial, sans-serif\";\n" ;
+        p "  fontcolor=\"#1d1d1f\";\n" ;
+        (* ---- shared node + edge defaults ---- *)
+        p
+          "  node [fontname=\"Helvetica Neue, Helvetica, Arial, sans-serif\", \
+           fontsize=13, penwidth=1.4, style=filled];\n" ;
+        p
+          "  edge [fontname=\"Menlo, Consolas, monospace\", fontsize=11, \
+           color=\"#8a8a8e\", fontcolor=\"#3a3a3c\", arrowsize=0.8, \
+           penwidth=1.1];\n" ;
+        (* ---- states ---- *)
+        List.iter
+          (fun s ->
+            let i = id_of s in
+            let shape, fill, line =
+              if N.accept n s then
+                ("doublecircle", "#d6f0dd", "#349a57")
+              (* accept: green *)
+              else
+                ("circle", "#eef1f6", "#9aa0aa")
+              (* reject: grey-blue *)
+            in
+            p
+              "  q%d [shape=%s, label=\"q%d\", fillcolor=\"%s\", color=\"%s\"];\n"
+              i shape i fill line )
+          states ;
+        (* ---- start markers, one per initial state ---- *)
+        List.iteri
+          (fun k i ->
+            p "  __start%d [shape=point, width=0.12, color=\"#1d1d1f\"];\n" k ;
+            p "  __start%d -> q%d [color=\"#1d1d1f\", penwidth=1.4];\n" k i )
+          inits ;
+        (* ---- transitions (collapse parallel edges, omit universal label) ---- *)
+        let alphabet_size = List.length S.enum in
+        List.iter
+          (fun s ->
+            let i = id_of s in
+            let tbl : (int, Buffer.t * int ref) Hashtbl.t = Hashtbl.create 8 in
+            let dst_order = ref [] in
+            List.iter
+              (fun c ->
+                List.iter
+                  (fun d ->
+                    let dst = id_of d in
+                    let buf, cnt =
+                      match Hashtbl.find_opt tbl dst with
+                      | Some bc ->
+                          bc
+                      | None ->
+                          let bc = (Buffer.create 16, ref 0) in
+                          Hashtbl.add tbl dst bc ;
+                          dst_order := dst :: !dst_order ;
+                          bc
+                    in
+                    if Buffer.length buf > 0 then Buffer.add_string buf ", " ;
+                    Buffer.add_string buf (escape (S.string_of_t c)) ;
+                    incr cnt )
+                  (N.transition n s c) )
               S.enum ;
             List.iter
               (fun dst ->
@@ -790,7 +993,7 @@ module TTTLearner (T : DFATEACHER) = struct
   let ttt () : __ T.D.t = match Impl.ttt () with Coq_existT (_, d) -> d
 end
 
-(* module NLstarLearner (T : NFATEACHER) = struct
+module NLstarLearner (T : NFATEACHER) = struct
   module Impl =
     NLstar
       (T.S)
@@ -810,4 +1013,10 @@ end
       end)
 
   include Impl
-end *)
+
+  let nlstar () : __ T.R.t = match Impl.nlstar () with Coq_existT (_, r) -> r
+
+  (** The learned RFSA's underlying NFA, which is what the teacher's
+      equivalence query and {!NFAPrinter} consume. *)
+  let nfa () : __ T.R.N.t = T.R.nfa (nlstar ())
+end

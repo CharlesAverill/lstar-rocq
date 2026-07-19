@@ -5,7 +5,7 @@ A collection of formally-verified implementations of [automata learning](https:/
 | Algorithm | Resources | Proofs | Automata |
 | --- | --- | --- | --- |
 | L* | [Angluin, 1987](https://doi.org/10.1016/0890-5401(87)90052-6), [Lecture Notes](https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.pdf) | [Lstar.v](theories/algorithms/Lstar/) | DFA, Moore, Mealy |
-| NL* **(WIP)** | [Bollig et al., 2009](https://lsv.ens-paris-saclay.fr/Publis/RAPPORTS_LSV/PDF/rr-lsv-2008-28.pdf) | [NLstar.v](theories/algorithms/NLstar.v) | RFSA |
+| NL* | [Bollig et al., 2009](https://lsv.ens-paris-saclay.fr/Publis/RAPPORTS_LSV/PDF/rr-lsv-2008-28.pdf) | [NLstar.v](theories/algorithms/NLstar.v) | RFSA |
 | Kearns-Vazirani | [Kearns-Vazirani, 1994](https://doi.org/10.7551/mitpress/3897.003.0009), [Balle, 2010](https://borjaballe.github.io/papers/zulu10.pdf) | [KV.v](theories/algorithms/KV.v) | DFA |
 | TTT | [Isberner et al., 2014](https://doi.org/10.1007/978-3-319-11164-3) | [TTT.v](theories/algorithms/TTT.v) | DFA |
 
@@ -78,3 +78,6 @@ Examples `lstar.div7` and `lstar.mod3` show the learning of DFAs for decimal str
 ![traffic Moore](examples/images/traffic_1.png)
 
 ![vending Mealy](examples/images/vending_1.png)
+
+![suffix DFA](examples/images/suffix_1.png)
+![suffix NFA](examples/images/suffix_2.png)

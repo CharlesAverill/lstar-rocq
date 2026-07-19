@@ -1,12 +1,13 @@
 (executables
- (names alternating mod3 div7 alternating_socket traffic vending)
+ (names alternating mod3 div7 alternating_socket traffic vending suffix)
  (public_names
-  lstar.alternating
-  lstar.mod3
-  lstar.div7
-  lstar.alternating_socket
-  lstar.traffic
-  lstar.vending)
+  dfa.alternating
+  dfa.mod3
+  dfa.div7
+  dfa.alternating_socket
+  moore.traffic
+  mealy.vending
+  nfa.suffix)
  (libraries lstar unix threads str)
  (flags
   (:standard -w -26))

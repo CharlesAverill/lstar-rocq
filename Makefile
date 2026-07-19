@@ -22,12 +22,13 @@ clean:
 	git clean -dfXq
 
 test: fmt
-	$(OPAM_EXEC) $(DUNE) exec lstar.alternating | grep Accuracy
-	$(OPAM_EXEC) $(DUNE) exec lstar.alternating_socket | grep Accuracy
-	$(OPAM_EXEC) $(DUNE) exec lstar.mod3 | grep Accuracy
-	$(OPAM_EXEC) $(DUNE) exec lstar.div7 | grep Accuracy
-	$(OPAM_EXEC) $(DUNE) exec lstar.traffic | grep Accuracy
-	$(OPAM_EXEC) $(DUNE) exec lstar.vending | grep Accuracy
+	$(OPAM_EXEC) $(DUNE) exec dfa.alternating | grep Accuracy
+	$(OPAM_EXEC) $(DUNE) exec dfa.alternating_socket | grep Accuracy
+	$(OPAM_EXEC) $(DUNE) exec dfa.mod3 | grep Accuracy
+	$(OPAM_EXEC) $(DUNE) exec dfa.div7 | grep Accuracy
+	$(OPAM_EXEC) $(DUNE) exec moore.traffic | grep Accuracy
+	$(OPAM_EXEC) $(DUNE) exec mealy.vending | grep Accuracy
+	$(OPAM_EXEC) $(DUNE) exec nfa.suffix | grep Accuracy
 
 DOCS_PATH=docs/
 DOCS_NAME=lstar

@@ -3,5 +3,5 @@
 (rocq.theory
  (name lstar)
  (package lstar-rocq)
- (modules :standard \ algorithms.NLstar)
+ (modules :standard)
  (theories Stdlib))
