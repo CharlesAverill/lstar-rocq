@@ -1,6 +1,6 @@
 (** NL* RFSA learning
     https://lsv.ens-paris-saclay.fr/Publis/RAPPORTS_LSV/PDF/rr-lsv-2008-28.pdf *)
-    
+
 #[local] Set Warnings "-intuition-auto-with-star".
 
 From lstar Require Import automata.NFA ListLemmas SetLemmas.
@@ -521,6 +521,296 @@ Lemma covered_trans : forall T V a b c,
     covered T V a b -> covered T V b c -> covered T V a c.
 Proof.
     unfold covered. intros. apply H0; auto.
+Qed.
+
+Lemma row_eq_refl : forall T V u, row_eq T V u u.
+Proof. now intros T V u v Hv. Qed.
+
+Lemma row_eq_sym : forall T V u1 u2,
+    row_eq T V u1 u2 -> row_eq T V u2 u1.
+Proof. intros T V u1 u2 Hr v Hv. symmetry. now apply Hr. Qed.
+
+Lemma row_eq_trans : forall T V a b c,
+    row_eq T V a b -> row_eq T V b c -> row_eq T V a c.
+Proof.
+    intros T V a b c Hab Hbc v Hv. rewrite (Hab v Hv). now apply Hbc.
+Qed.
+
+Lemma covered_row_eq_r : forall T V u u1 u2,
+    row_eq T V u1 u2 -> covered T V u u1 -> covered T V u u2.
+Proof.
+    intros T V u u1 u2 Hr Hcov v Hv Huv.
+    rewrite <- (Hr v Hv). now apply Hcov.
+Qed.
+
+Lemma covered_row_eq_l : forall T V u u1 u2,
+    row_eq T V u1 u2 -> covered T V u1 u -> covered T V u2 u.
+Proof.
+    intros T V u u1 u2 Hr Hcov v Hv Huv.
+    apply Hcov; [assumption |]. now rewrite (Hr v Hv).
+Qed.
+
+Lemma strictly_covered_row_eq_r : forall T V u u1 u2,
+    row_eq T V u1 u2 -> strictly_covered T V u u1 -> strictly_covered T V u u2.
+Proof.
+    intros T V u u1 u2 Hr (Hcov & Hne). split.
+        exact (covered_row_eq_r T V u u1 u2 Hr Hcov).
+    intro Heq. apply Hne.
+    exact (row_eq_trans T V u u2 u1 Heq (row_eq_sym T V u1 u2 Hr)).
+Qed.
+
+(* Composedness only depends on the row, not on the access string. *)
+Lemma composed_row_eq : forall T V Ul u1 u2,
+    row_eq T V u1 u2 -> composed T V Ul u1 -> composed T V Ul u2.
+Proof.
+    intros T V Ul u1 u2 Hr Hc v Hv. rewrite <- (Hr v Hv). split.
+    - intro Hcell. destruct (proj1 (Hc v Hv) Hcell) as (u' & Hu' & Hsc & Hu'v).
+      exists u'. split. assumption. split; [|assumption].
+      eauto using strictly_covered_row_eq_r.
+    - intros (u' & Hu' & Hsc & Hu'v). apply (Hc v Hv).
+      exists u'. split. assumption. split; [|assumption].
+      eauto using strictly_covered_row_eq_r, row_eq_sym.
+Qed.
+
+(* Hence so does primality, for strings that index rows of the table. *)
+Lemma prime_row_eq : forall T V Ul u1 u2,
+    In u2 (row_index Ul) ->
+    row_eq T V u1 u2 -> prime T V Ul u1 -> prime T V Ul u2.
+Proof.
+    intros T V Ul u1 u2 Hu2 Hr (_ & Hnc). split; [exact Hu2 |].
+    intro Hc. apply Hnc.
+    exact (composed_row_eq T V Ul u2 u1 (row_eq_sym T V u1 u2 Hr) Hc).
+Qed.
+
+(* The number of columns of [vl] at which the row of [u] is true. *)
+Definition row_weight (T : str -> bool) (vl : list str) (u : str) : nat :=
+    List.length (filter (fun v => cell T u v) vl).
+
+Lemma row_weight_zero : forall T vl u v,
+    In v vl -> row_weight T vl u = 0 -> cell T u v = false.
+Proof.
+    intros T vl u v. unfold row_weight.
+    induction vl as [| x vl IH]; intros Hin Hz.
+        destruct Hin.
+    simpl in Hz. destruct (cell T u x) eqn:E.
+        simpl in Hz. discriminate.
+    destruct Hin as [<- | Hin]; [exact E | now apply IH].
+Qed.
+
+Lemma row_weight_le : forall T vl u1 u2,
+    (forall v, In v vl -> cell T u1 v = true -> cell T u2 v = true) ->
+    row_weight T vl u1 <= row_weight T vl u2.
+Proof.
+    intros T vl. unfold row_weight.
+    induction vl as [| v vl IH]; intros u1 u2 Hcov.
+        simpl. lia.
+    assert (Htail : forall x, In x vl -> cell T u1 x = true -> cell T u2 x = true)
+        by (intros x Hx; apply Hcov; now right).
+    specialize (IH u1 u2 Htail). simpl.
+    destruct (cell T u1 v) eqn:E1.
+    - rewrite (Hcov v (or_introl eq_refl) E1). simpl. lia.
+    - destruct (cell T u2 v); simpl; lia.
+Qed.
+
+Lemma row_weight_lt : forall T vl u1 u2,
+    (forall v, In v vl -> cell T u1 v = true -> cell T u2 v = true) ->
+    (exists v, In v vl /\ cell T u1 v = false /\ cell T u2 v = true) ->
+    row_weight T vl u1 < row_weight T vl u2.
+Proof.
+    intros T vl. unfold row_weight.
+    induction vl as [| v vl IH]; intros u1 u2 Hcov (w & Hw & Hw1 & Hw2).
+        destruct Hw.
+    assert (Htail : forall x, In x vl -> cell T u1 x = true -> cell T u2 x = true)
+        by (intros x Hx; apply Hcov; now right).
+    pose proof (row_weight_le T vl u1 u2 Htail) as Hle.
+    unfold row_weight in Hle. simpl.
+    destruct Hw as [<- | Hw].
+    - rewrite Hw1, Hw2. simpl. lia.
+    - specialize (IH u1 u2 Htail (ex_intro _ w (conj Hw (conj Hw1 Hw2)))).
+      destruct (cell T u1 v) eqn:E1.
+      + rewrite (Hcov v (or_introl eq_refl) E1). simpl. lia.
+      + destruct (cell T u2 v); simpl; lia.
+Qed.
+
+(* A pair of rows that differ somewhere on a column list differ at a listed
+   column.  The search is constructive because cells are booleans. *)
+Lemma row_neq_witness : forall T u1 u2 (vl : list str),
+    ~ (forall v, In v vl -> cell T u1 v = cell T u2 v) ->
+    exists v, In v vl /\ cell T u1 v <> cell T u2 v.
+Proof.
+    intros T u1 u2 vl. induction vl as [| v vl IH]; intro Hne.
+        exfalso. apply Hne. intros x [].
+    destruct (Bool.bool_dec (cell T u1 v) (cell T u2 v)) as [Heq | Hneq].
+    - destruct IH as (x & Hx & Hxne).
+          intro Hall. apply Hne. intros y [<- | Hy]; [exact Heq | now apply Hall].
+      exists x. split; [now right | exact Hxne].
+    - exists v. split; [now left | exact Hneq].
+Qed.
+
+(* A strictly covered row is false at some column where the covering row is
+   true, hence is strictly lighter. *)
+Lemma strictly_covered_witness : forall T V u1 u2 (finV : finite V),
+    strictly_covered T V u1 u2 ->
+    exists v, In v (proj1_sig finV) /\ cell T u1 v = false /\ cell T u2 v = true.
+Proof.
+    intros T V u1 u2 finV (Hcov & Hne).
+    destruct finV as (vl & ND & Hvl). simpl in *.
+    destruct (row_neq_witness T u1 u2 vl) as (v & Hv & Hvne).
+        intro Hall. apply Hne. intros x Hx. apply Hall. now apply Hvl.
+    assert (HvV : V v = true) by now apply Hvl.
+    exists v. split; [exact Hv |].
+    destruct (cell T u1 v) eqn:E1.
+    - exfalso. apply Hvne. symmetry. now apply (Hcov v HvV).
+    - destruct (cell T u2 v) eqn:E2.
+        now split.
+      exfalso. now apply Hvne.
+Qed.
+
+Lemma strictly_covered_weight_lt : forall T V u1 u2 (finV : finite V),
+    strictly_covered T V u1 u2 ->
+    row_weight T (proj1_sig finV) u1 < row_weight T (proj1_sig finV) u2.
+Proof.
+    intros T V u1 u2 finV Hsc.
+    destruct (strictly_covered_witness T V u1 u2 finV Hsc) as (x & Hx & Hx1 & Hx2).
+    apply row_weight_lt; [| now exists x].
+    intros y Hy Hy1. destruct Hsc as (Hcov & _). apply (Hcov y); [| exact Hy1].
+    destruct finV as (vl & ND & Hvl). simpl in Hy. now apply Hvl.
+Qed.
+
+Lemma row_prime_witness : forall T V Ul (finV : finite V) k u v,
+    row_weight T (proj1_sig finV) u <= k ->
+    In u (row_index Ul) -> V v = true -> cell T u v = true ->
+    exists p, In p (row_index Ul) /\ prime T V Ul p
+              /\ covered T V p u /\ cell T p v = true.
+Proof.
+    intros T V Ul finV k. induction k as [| k IH]; intros u v Hw Hu Hv Hcell.
+    - exfalso.
+      assert (Hin : In v (proj1_sig finV)). {
+          destruct finV as (vl & ND & Hvl). simpl. now apply Hvl. }
+      assert (Hz : row_weight T (proj1_sig finV) u = 0) by lia.
+      rewrite (row_weight_zero T (proj1_sig finV) u v Hin Hz) in Hcell.
+      discriminate.
+    - destruct (prime_dec T V Ul u finV) as [Hp | Hnp].
+      + exists u.
+        exact (conj Hu (conj Hp (conj (covered_refl T V u) Hcell))).
+      + assert (Hcomp : composed T V Ul u). {
+            destruct (composed_dec T V Ul u finV) as [Hc | Hnc]; [exact Hc |].
+            exfalso. apply Hnp. now split. }
+        destruct (proj1 (Hcomp v Hv) Hcell) as (u' & Hu' & Hsc & Hu'v).
+        pose proof (strictly_covered_weight_lt T V u' u finV Hsc) as Hlt.
+        destruct (IH u' v ltac:(lia) Hu' Hv Hu'v) as (p & Hp1 & Hp2 & Hp3 & Hp4).
+        destruct Hsc as (Hcov & _).
+        exists p.
+        exact (conj Hp1 (conj Hp2
+                 (conj (covered_trans T V p u' u Hp3 Hcov) Hp4))).
+Qed.
+
+Definition closed_violation (T V : str -> bool) (Ul : list str)
+    (finV : finite V) (u : str) : Prop :=
+    In u (USigma Ul) /\ prime T V Ul u
+    /\ forall p, In p (prime_reps T V Ul finV) -> ~ row_eq T V p u.
+
+(* A violating row is not an upper row: it is prime, so if it were in [Ul] it
+   would be one of the prime representatives, and it is row-equal to itself. *)
+Lemma closed_violation_not_upper : forall T V Ul finV u,
+    closed_violation T V Ul finV u -> ~ In u Ul.
+Proof.
+    intros T V Ul finV u (Hin & Hp & Hno) HuUl.
+    apply (Hno u); [| apply row_eq_refl].
+    unfold prime_reps. apply filter_In. split; [exact HuUl |].
+    now destruct (prime_dec T V Ul u finV).
+Qed.
+
+(* No upper row has the same row as a violating row. *)
+Lemma closed_violation_row_new : forall T V Ul finV u w,
+    closed_violation T V Ul finV u -> In w Ul -> ~ row_eq T V w u.
+Proof.
+    intros T V Ul finV u w (Hin & Hp & Hno) HwUl Hrow.
+    apply (Hno w); [| exact Hrow].
+    unfold prime_reps. apply filter_In. split; [exact HwUl |].
+    assert (Hwidx : In w (row_index Ul))
+        by (unfold row_index; apply in_or_app; now left).
+    assert (Hwp : prime T V Ul w). {
+        apply (prime_row_eq T V Ul u w Hwidx); [| exact Hp].
+        exact (row_eq_sym T V w u Hrow). }
+    now destruct (prime_dec T V Ul w finV).
+Qed.
+
+Lemma no_upper_prime_dec : forall T V Ul finV u,
+    (forall p, In p (prime_reps T V Ul finV) -> ~ row_eq T V p u)
+  + {p | In p (prime_reps T V Ul finV) /\ row_eq T V p u}.
+Proof.
+    intros T V Ul finV u.
+    assert (Hgen : forall l,
+        (forall p, In p l -> ~ row_eq T V p u)
+      + {p | In p l /\ row_eq T V p u}). {
+        intro l. induction l as [| p ps IH].
+            left. intros q [].
+        destruct (row_eq_dec T V p u finV) as [Heq | Hne].
+            right. exists p. split; [now left | exact Heq].
+        destruct IH.
+        - left. intros q [<- | Hq]; eauto.
+        - right. destruct s, a. exists x. split. now right. assumption. }
+    apply Hgen.
+Defined.
+
+Lemma closed_violation_search : forall T V Ul finV (l : list str),
+    (forall u, In u l -> In u (USigma Ul)) ->
+    {u : str | closed_violation T V Ul finV u}
+  + {forall u, In u l -> ~ closed_violation T V Ul finV u}.
+Proof.
+    intros T V Ul finV l. induction l as [| u l IH]; intro Hsub.
+        right. intros x [].
+    assert (Hsub' : forall x, In x l -> In x (USigma Ul))
+        by (intros x Hx; apply Hsub; now right).
+    destruct (prime_dec T V Ul u finV) as [Hp | Hnp].
+    - destruct (no_upper_prime_dec T V Ul finV u) as [Hno | (p & Hp' & Hpe)].
+      + left. exists u.
+        exact (conj (Hsub u (or_introl eq_refl)) (conj Hp Hno)).
+      + destruct (IH Hsub') as [Hyes | Hno].
+            left. exact Hyes.
+        right. intros x [<- | Hx]; [| now apply Hno].
+        intros (_ & _ & Hall). exact (Hall p Hp' Hpe).
+    - destruct (IH Hsub') as [Hyes | Hno].
+          left. exact Hyes.
+      right. intros x [<- | Hx]; [| now apply Hno].
+      now intros (_ & Hpx & _).
+Defined.
+
+Lemma closed_violation_dec : forall T V Ul finV,
+    {u : str | closed_violation T V Ul finV u}
+  + {forall u, In u (USigma Ul) -> ~ closed_violation T V Ul finV u}.
+Proof.
+    intros T V Ul finV.
+    exact (closed_violation_search T V Ul finV (USigma Ul) (fun u H => H)).
+Defined.
+
+Lemma no_violation_closed : forall T V U (finU : finite U) (finV : finite V),
+    (forall u, In u (USigma (proj1_sig finU)) ->
+        ~ closed_violation T V (proj1_sig finU) finV u) ->
+    closed T V finU.
+Proof.
+    intros T V U finU finV Hno u Hu v Hv. split.
+    - intro Hcell.
+      destruct (row_prime_witness T V (proj1_sig finU) finV
+                  (row_weight T (proj1_sig finV) u) u v (le_n _) Hu Hv Hcell)
+        as (p & Hpidx & Hpp & Hpcov & Hpv).
+      unfold row_index in Hpidx. apply in_app_or in Hpidx.
+      destruct Hpidx as [HpU | HpLow].
+      + exists p. exact (conj HpU (conj Hpp (conj Hpcov Hpv))).
+      + (* p is a lower prime row, so some upper prime representative has the
+           same row *)
+        destruct (no_upper_prime_dec T V (proj1_sig finU) finV p)
+          as [Hnone | (q & Hq & Hqe)].
+            exfalso. apply (Hno p HpLow).
+            exact (conj HpLow (conj Hpp Hnone)).
+        assert (Hqv : cell T q v = true) by (rewrite (Hqe v Hv); exact Hpv).
+        exists q.
+        exact (conj (prime_reps_upper T V (proj1_sig finU) finV q Hq)
+                 (conj (prime_reps_prime T V (proj1_sig finU) finV q Hq)
+                   (conj (covered_row_eq_l T V u p q
+                            (row_eq_sym T V q p Hqe) Hpcov) Hqv))).
+    - intros (u' & Hu' & Hpu' & Hcov & Hu'v). exact (Hcov v Hv Hu'v).
 Qed.
 
 (* Access strings are row indices *)
@@ -1053,50 +1343,124 @@ Proof.
     now rewrite H0.
 Qed.
 
-Lemma state_lang_prime : forall H (Hcl : Hclosed H) (Hco : Hconsistent H) (Hr : Hrep H) q,
+(* Language inclusion between two states is
+   covering between the rows of their access strings. *)
+Lemma state_lang_incl_covered : forall H (Hcl : Hclosed H) (Hco : Hconsistent H)
+      (q1 q2 : { q | memr H q = true }),
+    (forall w, N.L_state (make_nfa H) q1 w = true ->
+               N.L_state (make_nfa H) q2 w = true) ->
+    covered H.(T) H.(V) (proj1_sig q1) (proj1_sig q2).
+Proof.
+    intros H Hcl Hco q1 q2 Hincl.
+    destruct q1 as (u1 & p1), q2 as (u2 & p2); simpl in *.
+    now apply (covered_iff_lang_incl H Hcl Hco u1 u2 p1 p2).
+Qed.
+
+(* Running a word from a set of start states accepts iff some start state
+   accepts it on its own. *)
+Lemma existsb_accept_run_from : forall {state} (n : N.t state) qs v,
+    existsb (N.accept _ n) (N.run_from n qs v)
+    = existsb (fun q => N.L_state n q v) qs.
+Proof.
+    intros state n qs v. revert qs.
+    unfold N.run_from, N.L_state, N.run_from.
+    induction v; intros qs.
+    - simpl. induction qs; simpl. reflexivity.
+      now rewrite IHqs, Bool.orb_false_r.
+    - simpl. rewrite IHv.
+      unfold N.step. induction qs; simpl.
+        reflexivity.
+      rewrite existsb_app, IHqs. f_equal.
+      rewrite <- IHv. now rewrite app_nil_r.
+Qed.
+
+Lemma existsb_map : forall {X Y} (l : list X) f (g : X -> Y),
+    existsb f (map g l) = existsb (fun x => f (g x)) l.
+Proof.
+    induction l; intros; simpl in *.
+        reflexivity.
+    f_equal. apply IHl.
+Qed.
+
+(* The residual of an NFA's language by [u] is the union of the languages of
+   the states reachable after reading [u]. *)
+Lemma inverse_L_aut_union : forall {state} (n : N.t state) u,
+    Res.lang_eq (Res.inverse (N.L_aut n) u)
+                (union (map (N.L_state n) (N.run n u))).
+Proof.
+    intros state n u v. unfold Res.inverse, N.L_aut, N.accept_string.
+    unfold union. rewrite existsb_map.
+    unfold N.run at 1. unfold N.run_from. rewrite fold_left_app.
+    change (fold_left (N.step (N.transition state n)) u (N.initial state n)) with
+        (N.run n u).
+    change (fold_left _ _ _) with (N.run_from n (N.run n u) v).
+    now rewrite existsb_accept_run_from.
+Qed.
+
+Lemma state_lang_prime : forall H (Hcl : Hclosed H) (Hco : Hconsistent H) q,
     encodes (make_nfa H) ->
     L.prime (N.L_state (make_nfa H) q).
 Proof.
-    intros H Hcl Hco Hr. split.
+    intros H Hcl Hco q Henc.
+    set (n := make_nfa H).
+    split.
         now apply (state_residual H Hcl Hco).
+    intros (_ & rs & Hrs & Hunion).
+    (* the row of [q] is a prime row of the table *)
     assert (Hqpr : In (proj1_sig q) (prime_reps H.(T) H.(V) (Ul H) H.(fin_V)))
         by (apply (mem_In str_eq); exact (proj2_sig q)).
-    assert (Hqidx : In (proj1_sig q) (row_index (Ul H)))
-        by (apply (prime_reps_index H.(T) H.(V) (Ul H) H.(fin_V)); exact Hqpr).
-    intro Hcomp. destruct Hcomp. destruct H1. destruct H2, H2.
-    pose proof (prime_reps_prime H.(T) H.(V) (Ul H) H.(fin_V) (proj1_sig q)).
-    pose proof (proj1 (mem_In str_eq _ _) (proj2_sig q)).
-    specialize (H4 H5). apply H4. clear H4 H5.
-    intro v. intro HvV. split.
-    - intro Hqv.
-      assert (N.L_state (make_nfa H) q v = true).
-          rewrite (state_lang_cell H Hcl); auto.
-      rewrite H3 in H4. unfold union in H4. apply existsb_exists in H4.
-      destruct H4. destruct H4. destruct (H2 x1 H4). destruct (Hr x1 H6). destruct H8.
-      assert (Hx2mem : memr H x2 = true) by (apply (mem_In str_eq); exact H8).
-      assert (Hx2idx : In x2 (row_index (Ul H)))
-          by (apply (prime_reps_index H.(T) H.(V) (Ul H) H.(fin_V)); exact H8).
-      exists x2. split.
-        now apply prime_reps_index in H8.
+    destruct (prime_reps_prime H.(T) H.(V) (Ul H) H.(fin_V) (proj1_sig q) Hqpr)
+      as (Hqidx & Hncomp).
+    apply Hncomp. clear Hncomp.
+    intros v HvV. split.
+    - intro Hcell.
+      (* move from the table to the language of [q] *)
+      assert (HLq : N.L_state n q v = true) by
+        (rewrite state_lang_cell; eauto).
+      rewrite (Hunion v) in HLq. unfold union in HLq.
+      apply existsb_exists in HLq. destruct HLq as (r' & Hr'in & Hr'v).
+      destruct (Hrs r' Hr'in) as ((x & Hx) & Hr'neq).
+      (* [r'] is a residual of L(n), hence the union of the languages of the
+         states reached on [x] *)
+      assert (Hr'union : Res.lang_eq r' (union (map (N.L_state n) (N.run n x)))). {
+          intro w. rewrite (Hx w).
+          rewrite <- (inverse_L_aut_union n x w).
+          unfold Res.inverse, N.L_aut.
+          apply Bool.eq_true_iff_eq. split; intro Hm.
+              now apply Henc.
+          now apply (proj2 (Henc (x ++ w))). }
+      rewrite (Hr'union v) in Hr'v. unfold union in Hr'v.
+      apply existsb_exists in Hr'v. destruct Hr'v as (g & Hg & Hgv).
+      apply in_map_iff in Hg. destruct Hg as (q' & Hq'eq & Hq'run).
+      subst g.
+      (* L_state q' is included in r', which is included in L_state q *)
+      assert (Hincl : forall w, N.L_state n q' w = true -> N.L_state n q w = true). {
+          intros w Hw. rewrite (Hunion w). unfold union.
+          apply existsb_exists. exists r'. split; [exact Hr'in |].
+          rewrite (Hr'union w). unfold union. apply existsb_exists.
+          exists (N.L_state n q'). split; [| exact Hw].
+          apply in_map_iff. now exists q'. }
+      (* the inclusion is strict: otherwise [r'] would equal L_state q *)
+      assert (Hne : ~ Res.lang_eq (N.L_state n q') (N.L_state n q)). {
+          intro Heq. apply Hr'neq. intro w. apply Bool.eq_true_iff_eq. split.
+          - intro Hw. rewrite (Hunion w). unfold union.
+            apply existsb_exists. now exists r'.
+          - intro Hw. rewrite (Hr'union w). unfold union.
+            apply existsb_exists. exists (N.L_state n q'). split.
+                apply in_map_iff. now exists q'.
+            rewrite (Heq w). exact Hw. }
+      exists (proj1_sig q'). split.
+          apply state_row_index.
       split.
-        split.
-          repeat intro.
-            erewrite <- (residual_cell H (proj1_sig q) _ Hqidx _),
-                     <- state_lang_member, H3 by assumption.
-            unfold union. apply existsb_exists.
-            exists x1. split. assumption.
-            erewrite H9, (residual_cell H x2 _ Hx2idx _); eauto.
-                intro Contra.
-                apply H7. intro w.
-                assert (memr H x2 = true) by (now apply mem_In). rewrite H9.
-                pose proof (state_lang_member H Hcl Hco (exist _ x2 H10) H0 w). simpl in H11.
-                rewrite <- H11. now apply row_eq_lang_eq.
-            erewrite H9, (residual_cell H x2 _ Hx2idx HvV) in H5. eassumption.
-    - intros. destruct H4, H4, H5. now apply H5.
-    Unshelve. assumption. assumption.
+      + split.
+        * exact (state_lang_incl_covered H Hcl Hco q' q Hincl).
+        * intro Hrow. apply Hne. now apply row_eq_lang_eq.
+      + rewrite <- (state_lang_cell H Hcl q' v HvV). exact Hgv.
+    - intros (u' & Hu'idx & (Hcov & _) & Hu'v).
+      exact (Hcov v HvV Hu'v).
 Qed.
 
-Lemma make_nfa_canonical_of_encodes : forall H (Hcl : Hclosed H) (Hco : Hconsistent H) (Hr : Hrep H),
+Lemma make_nfa_canonical_of_encodes : forall H (Hcl : Hclosed H) (Hco : Hconsistent H),
     encodes (make_nfa H) ->
     { r : R.t { q | memr H q = true } | R.nfa _ r = make_nfa H /\ canonical r }.
 Proof.
@@ -1108,7 +1472,7 @@ Proof.
         unfold encodes in *. intros. simpl. split; intro.
             now rewrite <- H0.
             now rewrite H0.
-    intros. simpl in *. now apply (state_lang_prime H Hcl Hco Hr).
+    intros. simpl in *. now apply (state_lang_prime H Hcl Hco).
 Qed.
 
 Definition num_states (H : HypothesisRFSA) : nat :=
@@ -1249,47 +1613,6 @@ Proof.
     - apply (map_lang_pos_distinct (Res.inverse member) D []).
       + apply (dedup_rows_NoDup H.(T) H.(V) H.(fin_V)).
       + exact Hinj.
-Qed.
-
-(* Running a word from a set of start states accepts iff some start state
-   accepts it on its own. *)
-Lemma existsb_accept_run_from : forall {state} (n : N.t state) qs v,
-    existsb (N.accept _ n) (N.run_from n qs v)
-    = existsb (fun q => N.L_state n q v) qs.
-Proof.
-    intros state n qs v. revert qs.
-    unfold N.run_from, N.L_state, N.run_from.
-    induction v; intros qs.
-    - simpl. induction qs; simpl. reflexivity.
-      now rewrite IHqs, Bool.orb_false_r.
-    - simpl. rewrite IHv.
-      unfold N.step. induction qs; simpl.
-        reflexivity.
-      rewrite existsb_app, IHqs. f_equal.
-      rewrite <- IHv. now rewrite app_nil_r.
-Qed.
-
-Lemma existsb_map : forall {X Y} (l : list X) f (g : X -> Y),
-    existsb f (map g l) = existsb (fun x => f (g x)) l.
-Proof.
-    induction l; intros; simpl in *.
-        reflexivity.
-    f_equal. apply IHl.
-Qed.
-
-(* The residual of an NFA's language by [u] is the union of the languages of
-   the states reachable after reading [u]. *)
-Lemma inverse_L_aut_union : forall {state} (n : N.t state) u,
-    Res.lang_eq (Res.inverse (N.L_aut n) u)
-                (union (map (N.L_state n) (N.run n u))).
-Proof.
-    intros state n u v. unfold Res.inverse, N.L_aut, N.accept_string.
-    unfold union. rewrite existsb_map.
-    unfold N.run at 1. unfold N.run_from. rewrite fold_left_app.
-    change (fold_left (N.step (N.transition state n)) u (N.initial state n)) with
-        (N.run n u).
-    change (fold_left _ _ _) with (N.run_from n (N.run n u) v).
-    now rewrite existsb_accept_run_from.
 Qed.
 
 (* Remove the first occurrence of [x] from [l] *)
@@ -1628,9 +1951,43 @@ Definition strict_cover_count (H : HypothesisRFSA) : nat :=
                                   then true else false)
                         (list_prod D D)).
 
+(* The strict-covering count is bounded by [num_residuals]^2. *)
+Lemma filter_len_le : forall {A} (f : A -> bool) l, length (filter f l) <= length l.
+Proof.
+  intros A f l. induction l as [| x l IH]; simpl; [lia |].
+  destruct (f x); simpl; lia.
+Qed.
+
+Lemma strict_cover_count_le : forall H,
+    strict_cover_count H <= L.num_residuals * L.num_residuals.
+Proof.
+    intros H. unfold strict_cover_count.
+    set (D := dedup_rows H.(T) H.(V) H.(fin_V) (row_index (Ul H))).
+    eapply Nat.le_trans; [apply filter_len_le |].
+    replace (length (list_prod D D)) with (length D * length D) by
+      (now rewrite length_prod).
+    assert (HD : length D <= L.num_residuals).
+    { change (length D) with (num_distinct_rows H). apply num_distinct_rows_le. }
+    now apply Nat.mul_le_mono.
+Qed.
+
 Definition ce_measure (H : HypothesisRFSA) : nat :=
     (L.num_residuals - num_states H) * (L.num_residuals * L.num_residuals + 1)
     + strict_cover_count H.
+
+(* A strict increase in the number of states (staying within the residual bound)
+   strictly decreases [ce_measure], because the primary term drops by at least
+   K = num_residuals^2 + 1, dominating the strict-covering term (<= num_residuals^2). *)
+Lemma ce_measure_lt : forall A B,
+    num_states A < num_states B ->
+    num_states B <= L.num_residuals ->
+    ce_measure B < ce_measure A.
+Proof.
+    intros A B Hlt Hbnd. unfold ce_measure.
+    pose proof (strict_cover_count_le A) as HiA.
+    pose proof (strict_cover_count_le B) as HiB.
+    nia.
+Qed.
 
 Lemma resolve_closedness :
     forall (H : HypothesisRFSA),
@@ -1639,8 +1996,111 @@ Lemma resolve_closedness :
       { H' : HypothesisRFSA
         | Hsep H' /\ ce_measure H' < ce_measure H /\ num_states H <= num_states H' }.
 Proof.
-    intros.
-    set (l := List.list_prod (Ul H) s.enum).
+    intros H Hsp Hncl.
+    destruct (closed_violation_dec H.(T) H.(V) (Ul H) H.(fin_V))
+      as [(u0 & Hviol) | Hnone].
+    2: { exfalso. apply Hncl. unfold Hclosed.
+         exact (no_violation_closed H.(T) H.(V) H.(U) H.(fin_U) H.(fin_V) Hnone). }
+    assert (Hu0low : In u0 (USigma (Ul H))) by (now destruct Hviol).
+    assert (Hu0idx : In u0 (row_index (Ul H)))
+        by (unfold row_index; apply in_or_app; now right).
+    assert (Hu0new : forall w, In w (Ul H) -> ~ row_eq H.(T) H.(V) w u0)
+        by (intros w Hw; exact (closed_violation_row_new _ _ _ _ _ _ Hviol Hw)).
+    set (U' := fun x => (H.(U) x || (if str_eq x u0 then true else false))%bool).
+    (* finite witness for U' *)
+    assert (finU' : finite U'). {
+      destruct H.(fin_U) as (lu & NDu & Hlu).
+      destruct (in_dec str_eq u0 lu) as [Hin | Hnin].
+      - (* u0 already listed: U' = U as a set *)
+        exists lu. split; [exact NDu |].
+        intro x. unfold U'. rewrite Bool.orb_true_iff.
+        split.
+        + intros [Hx | Hx].
+            now apply Hlu.
+          destruct (str_eq x u0) as [-> |]; [exact Hin | discriminate].
+        + intro Hx. left. now apply Hlu.
+      - exists (u0 :: lu). split.
+          constructor; [exact Hnin | exact NDu].
+        intro x. unfold U'. rewrite Bool.orb_true_iff. simpl. split.
+        + intros [Hx | Hx].
+            right. now apply Hlu.
+          destruct (str_eq x u0) as [-> |]; [now left | discriminate].
+        + intros [-> | Hx].
+            right. now destruct (str_eq x x); [reflexivity | contradiction].
+          left. now apply Hlu. }
+    (* prefix-closedness of U' *)
+    assert (prefU' : forall w w', U' (w ++ w') = true -> U' w = true). {
+      intros w w' Hw. unfold U' in *. rewrite Bool.orb_true_iff in *.
+      destruct Hw as [Hw | Hw].
+      - left. exact (H.(pref) w w' Hw).
+      - (* w ++ w' = u0.  Then w is a prefix of u0; either w in U or w = u0. *)
+        destruct (str_eq (w ++ w') u0) as [Heq |]; [| discriminate].
+        (* u0 in row_index: u0 in Ul, or u0 = u1 ++ [a] for u1 in Ul *)
+        unfold row_index in Hu0idx. apply in_app_or in Hu0idx.
+        destruct Hu0idx as [Hu0Ul | Hu0Sig].
+        + (* u0 in Ul ⊆ U: w is a prefix of u0, so w ++ w' = u0 in U, giving U w *)
+          left. apply (H.(pref) w w'). rewrite Heq.
+          apply (proj2 (proj2_sig H.(fin_U)) u0) in Hu0Ul.
+          exact Hu0Ul.
+        + (* u0 = u1 ++ [a] with u1 in Ul.  w ++ w' = u1 ++ [a]. *)
+          unfold USigma in Hu0Sig. apply in_flat_map in Hu0Sig.
+          destruct Hu0Sig as (u1 & Hu1 & Ha). apply in_map_iff in Ha.
+          destruct Ha as (a & Hau & _). subst u0.
+          destruct w' as [| c w''] using rev_ind.
+          * (* w' = [] : w = u1++[a] = u0 *)
+            rewrite app_nil_r in Heq. right.
+            destruct (str_eq w (u1 ++ [a])) as [_ | Hne]; [reflexivity |].
+            exfalso. apply Hne. exact Heq.
+          * (* w' = _ ++ [c] nonempty : w is a prefix of u1 *)
+            left.
+            (* w ++ (w'0 ++ [c]) = u1 ++ [a]; strip last elements: w ++ w'0 = u1 *)
+            assert (Hpre : w ++ w'' = u1). {
+              apply (app_inj_tail (w ++ w'') u1 c a).
+              rewrite <- app_assoc. exact Heq. }
+            apply (H.(pref) w w''). rewrite Hpre.
+            now apply (proj2 (proj2_sig H.(fin_U)) u1). }
+    (* Build H' with T := member, U := U', V unchanged *)
+    unshelve eexists (Build_HypothesisRFSA member U' H.(V) finU' H.(fin_V)
+                        prefU' H.(suff) _ H.(eps_V) _).
+    - (* eps_U for U' *)
+      unfold U'. rewrite H.(eps_U). reflexivity.
+    - (* tbl : trivial since T := member *)
+      intros u v _ _. reflexivity.
+    - (* the three postconditions *)
+      simpl.
+      match goal with |- Hsep ?Hr /\ _ => assert (HsepH' : Hsep Hr) end.
+      { intros u1 u2 Hu1 Hu2 Hrow.
+        assert (Hmem : forall x, In x (proj1_sig finU') -> In x (Ul H) \/ x = u0). {
+          intros x Hx.
+          apply (proj2 (proj2 (proj2_sig finU') x)) in Hx.
+          unfold U' in Hx. rewrite Bool.orb_true_iff in Hx.
+          destruct Hx as [Hx | Hx].
+            left. now apply (proj2 (proj2_sig H.(fin_U)) x).
+          right. destruct (str_eq x u0) as [-> |]; [reflexivity | discriminate]. }
+        assert (Hrow' : forall a b, In a (row_index (Ul H)) ->
+                   In b (row_index (Ul H)) ->
+                   row_eq member H.(V) a b -> row_eq H.(T) H.(V) a b). {
+          intros a b Ha Hb Hab v Hv. unfold cell.
+          rewrite (H.(tbl) a v Ha Hv), (H.(tbl) b v Hb Hv).
+          specialize (Hab v Hv). unfold cell in Hab. exact Hab. }
+        assert (Hup : forall x, In x (Ul H) -> In x (row_index (Ul H)))
+          by (intros x Hx; unfold row_index; apply in_or_app; now left).
+        destruct (Hmem u1 Hu1) as [Hu1U | Hu1e], (Hmem u2 Hu2) as [Hu2U | Hu2e].
+        * apply (Hsp u1 u2 Hu1U Hu2U). apply Hrow'; auto.
+        * (* u2 = u0 : impossible, no upper row has the row of u0 *)
+          subst u2. exfalso.
+          apply (Hu0new u1 Hu1U). apply Hrow'; auto.
+        * (* u1 = u0 : symmetric *)
+          subst u1. exfalso.
+          apply (Hu0new u2 Hu2U). apply Hrow'; auto.
+          exact (row_eq_sym member H.(V) u0 u2 Hrow).
+        * subst u1 u2. reflexivity. }
+      split; [exact HsepH' |].
+      split.
+      + (* [ce_measure] decreases. *)
+        admit.
+      + (* [num_states H <= num_states H'] *)
+        admit.
 Admitted.
 
 Lemma filter_eq_nil : forall {X} (l : list X) f,
@@ -1673,7 +2133,7 @@ Lemma resolve_consistency :
       { H' : HypothesisRFSA
         | Hsep H' /\ ce_measure H' < ce_measure H /\ num_states H <= num_states H' }.
 Proof.
-    intros.
+    intros H Hsp Hcl Hncon.
     set (l := List.list_prod (List.list_prod (Ul H) s.enum) (Vl H)).
     set (l' := filter (fun '((u, a), v) =>
         negb (H.(T) (u ++ [a] ++ v)) &&
@@ -1683,23 +2143,79 @@ Proof.
             ) (Ul H))
     )%bool l).
     destruct filter eqn:E in l'.
-    - apply filter_eq_nil in E.
-      match type of E with 
-      | Forall ?P _ => pose proof (proj1 (Forall_forall P l) E)
-      end. admit.
-    - apply filter_eq_cons in E. destruct p as ((u & a) & v).
-      apply Bool.andb_true_iff in E. destruct E.
-      apply Bool.negb_true_iff in H3. apply existsb_exists_set in H4.
-      destruct H4 as (u' & Inu' & Tu'). admit.
+    - exfalso. apply Hncon.
+      apply filter_eq_nil in E.
+      pose proof (proj1 (Forall_forall _ l) E) as Hall.
+      admit.
+    - assert (Hpl : In p l).
+      { assert (Hpf : In p (filter (fun '((u, a), v) =>
+          negb (H.(T) (u ++ [a] ++ v)) &&
+          existsb (fun u' => H.(T) (u' ++ [a] ++ v))
+              (filter (fun u' =>
+                  forallb (fun v' => implb (H.(T) (u' ++ v')) (H.(T) (u ++ v')))
+                          (Vl H)) (Ul H)))%bool l))
+          by (rewrite E; now left).
+        apply filter_In in Hpf. now destruct Hpf. }
+      apply filter_eq_cons in E. destruct p as ((u & a) & v).
+      apply (in_prod_iff) in Hpl. destruct Hpl as (_ & Hvl).
+      assert (HvV : H.(V) v = true)
+        by exact (proj2 (proj2 (proj2_sig H.(fin_V)) v) Hvl).
+      apply Bool.andb_true_iff in E. destruct E as (Hneg & Hex).
+      apply Bool.negb_true_iff in Hneg. apply existsb_exists_set in Hex.
+      destruct Hex as (u' & Inu' & Tu').
+      set (c := [a] ++ v).
+      set (V' := fun x => (H.(V) x || (if str_eq x c then true else false))%bool).
+      assert (finV' : finite V'). {
+        destruct H.(fin_V) as (lv & NDv & Hlv).
+        destruct (in_dec str_eq c lv) as [Hin | Hnin].
+        - exists lv. split; [exact NDv |].
+          intro x. unfold V'. rewrite Bool.orb_true_iff. split.
+          + intros [Hx | Hx]. now apply Hlv.
+            destruct (str_eq x c) as [-> |]; [exact Hin | discriminate].
+          + intro Hx. left. now apply Hlv.
+        - exists (c :: lv). split.
+            constructor; [exact Hnin | exact NDv].
+          intro x. unfold V'. rewrite Bool.orb_true_iff. simpl. split.
+          + intros [Hx | Hx]. right. now apply Hlv.
+            destruct (str_eq x c) as [-> |]; [now left | discriminate].
+          + intros [-> | Hx].
+              right. now destruct (str_eq x x); [reflexivity | contradiction].
+            left. now apply Hlv. }
+      assert (suffV' : forall w w', V' (w ++ w') = true -> V' w' = true). {
+        intros w w' Hw. unfold V' in *. rewrite Bool.orb_true_iff in *.
+        destruct Hw as [Hw | Hw].
+        - left. exact (H.(suff) w w' Hw).
+        - destruct (str_eq (w ++ w') c) as [Heq |]; [| discriminate].
+          (* w ++ w' = c = [a] ++ v.  Case on w. *)
+          destruct w as [| x w0].
+          + (* w = [] : w' = c *)
+            simpl in Heq. subst w'. right.
+            now destruct str_eq.
+          + (* w = x :: w0 : [a]++v = x :: (w0 ++ w'), so v = w0 ++ w' *)
+            left. unfold c in Heq. simpl in Heq.
+            injection Heq as Hax Hv.
+            apply (H.(suff) w0 w'). rewrite Hv. exact HvV. }
+      unshelve eexists (Build_HypothesisRFSA member H.(U) V' H.(fin_U) finV'
+                          H.(pref) suffV' H.(eps_U) _ _).
+      + (* eps_V for V' *) unfold V'. rewrite H.(eps_V). reflexivity.
+      + (* tbl trivial : T := member *) intros uu vv _ _. reflexivity.
+      + simpl. split; [| split].
+        * (* Hsep H' : columns grew, rows only refine, separation preserved.
+             Same argument as extend_ce_sep. *)
+          intros u1 u2 Hu1 Hu2 Hrow.
+          apply (Hsp u1 u2 Hu1 Hu2).
+          intros vv Hvv.
+          assert (Hu1i : In u1 (row_index (Ul H))) by (apply in_or_app; now left).
+          assert (Hu2i : In u2 (row_index (Ul H))) by (apply in_or_app; now left).
+          unfold cell. rewrite (H.(tbl) u1 vv Hu1i Hvv), (H.(tbl) u2 vv Hu2i Hvv).
+          specialize (Hrow vv). unfold cell in Hrow.
+          assert (HvvV' : V' vv = true) by (unfold V'; rewrite Hvv; reflexivity).
+          specialize (Hrow HvvV'). exact Hrow.
+        * (* ce_measure decreases *)
+          admit.
+        * (* num_states monotone *)
+          admit.
 Admitted.
-
-Lemma closed_consistent_rep :
-    forall (H : HypothesisRFSA), Hsep H -> Hclosed H -> Hconsistent H -> Hrep H.
-Proof. Admitted.
-
-Lemma closed_consistent_dense :
-    forall (H : HypothesisRFSA), Hsep H -> Hclosed H -> Hconsistent H -> Hdense H.
-Proof. Admitted.
 
 Lemma extend_ce_Ul : forall H w (Hce : N.accept_string (make_nfa H) w <> member w),
     Ul (extend_table_ce H w Hce) = Ul H.
@@ -1742,22 +2258,20 @@ Proof.
     unfold cell in Hrow. rewrite !(extend_ce_T H w Hce) in Hrow. exact Hrow.
 Qed.
 
-Lemma ce_measure_step_decreases :
-    forall (H H' : HypothesisRFSA),
+(* The counterexample step strictly decreases the measure. *)
+Lemma ce_measure_extend_lt :
+    forall (H : HypothesisRFSA),
       Hclosed H -> Hconsistent H -> Hsep H ->
       forall w (Hce : N.accept_string (make_nfa H) w <> member w),
-      (* H' is the completed counterexample-extended table *)
-      Hclosed H' -> Hconsistent H' -> Hsep H' ->
-      num_states (extend_table_ce H w Hce) <= num_states H' ->
-      ce_measure H' < ce_measure H.
+      ce_measure (extend_table_ce H w Hce) < ce_measure H.
 Proof. Admitted.
 
 Definition complete :
     forall (H : HypothesisRFSA), Hsep H ->
       { H' : HypothesisRFSA
-        | Hclosed H' /\ Hconsistent H' /\ Hrep H' /\ Hsep H' /\ Hdense H'
+        | Hclosed H' /\ Hconsistent H' /\ Hsep H'
           /\ num_states H' <= L.num_residuals
-          /\ num_states H <= num_states H' }.
+          /\ ce_measure H' <= ce_measure H }.
 Proof.
     intros H0 Hsep0.
     remember (S (ce_measure H0)) as fuel eqn:Hfuel.
@@ -1767,11 +2281,6 @@ Proof.
     destruct (closed_dec H.(T) H.(V) H.(U) H.(fin_U) H.(fin_V)) as [Hcl | Hncl].
     - destruct (rfsa_consistent_dec H.(T) H.(V) H.(fin_U) H.(fin_V)) as [Hco | Hnco].
       + exists H. repeat (split; [assumption|]). split.
-            apply (closed_consistent_rep H Hsp Hcl Hco).
-        split. assumption.
-        split.
-            apply (closed_consistent_dense H Hsp Hcl Hco).
-        split.
             apply (num_states_le_num_residuals H Hsp).
         reflexivity.
       + pose proof (resolve_consistency H Hsp Hcl).
@@ -1780,7 +2289,7 @@ Proof.
             destruct Hnco as (((u & u') & a) & In1 & In2 & In3 & ?).
             now specialize (Contra _ _ _ In1 In2 In3).
         destruct (IH H' H'sep ltac:(lia))
-          as (H'' & ? & ? & ? & ? & ? & ? & Hmono').
+          as (H'' & ? & ? & ? & ? & Hmono').
         exists H''. repeat (split; [assumption|]). lia.
     - pose proof (resolve_closedness H Hsp).
       destruct X as (H' & Hsp' & Hdec & Hmono).
@@ -1788,56 +2297,57 @@ Proof.
         destruct Hncl as (u & Inu & Ncl).
         now specialize (Contra _ Inu).
       destruct (IH H' Hsp' ltac:(lia))
-        as (H'' & ? & ? & ? & ? & ? & ? & Hmono').
+        as (H'' & ? & ? & ? & ? & Hmono').
       exists H''. repeat (split; [assumption|]). lia.
 Defined.
 
 Definition saturate :
     forall (H : HypothesisRFSA),
-      Hclosed H -> Hconsistent H -> Hrep H -> Hsep H -> Hdense H ->
+      Hclosed H -> Hconsistent H -> Hsep H ->
       forall w, N.accept_string (make_nfa H) w <> member w ->
       { H' : HypothesisRFSA
-        | Hclosed H' /\ Hconsistent H' /\ Hrep H' /\ Hsep H' /\ Hdense H'
+        | Hclosed H' /\ Hconsistent H' /\ Hsep H'
           /\ num_states H' <= L.num_residuals }.
 Proof.
-    intros H Hcl Hco Hr Hsp Hdn w Hwce.
+    intros H Hcl Hco Hsp w Hwce.
     destruct (complete (extend_table_ce H w Hwce) (extend_ce_sep H w Hwce Hsp))
-      as (H' & Hcl' & Hco' & Hr' & Hsp' & Hdn' & Hbnd' & _).
+      as (H' & Hcl' & Hco' & Hsp' & Hbnd' & _).
     now exists H'.
 Defined.
 
 Definition step :
     forall (H : HypothesisRFSA),
-      Hclosed H -> Hconsistent H -> Hrep H -> Hsep H -> Hdense H ->
+      Hclosed H -> Hconsistent H -> Hsep H ->
       forall w, N.accept_string (make_nfa H) w <> member w ->
       { H' : HypothesisRFSA
-        | Hclosed H' /\ Hconsistent H' /\ Hrep H' /\ Hsep H' /\ Hdense H'
+        | Hclosed H' /\ Hconsistent H' /\ Hsep H'
           /\ ce_measure H' < ce_measure H
           /\ num_states H' <= L.num_residuals }.
 Proof.
-    intros H Hcl Hco Hr Hsp Hdn w Hwce.
+    intros H Hcl Hco Hsp w Hwce.
     destruct (complete (extend_table_ce H w Hwce) (extend_ce_sep H w Hwce Hsp))
-      as (H' & Hcl' & Hco' & Hr' & Hsp' & Hdn' & Hbnd' & Hmono).
-    exists H'. repeat (split; [assumption|]). split; [|assumption].
-    apply (ce_measure_step_decreases H H' Hcl Hco Hsp w Hwce Hcl' Hco' Hsp' Hmono).
+      as (H' & Hcl' & Hco' & Hsp' & Hbnd' & Hmono).
+    exists H'. repeat (split; [assumption|]). split; [| assumption].
+    (* completion does not increase the measure, and the counterexample
+       extension strictly decreases it *)
+    pose proof (ce_measure_extend_lt H Hcl Hco Hsp w Hwce). lia.
 Defined.
 
 (** The main NL* implementation *)
 Fixpoint nlstar_fuel (H : HypothesisRFSA)
-    (Hcl : Hclosed H) (Hco : Hconsistent H) (Hr : Hrep H)
-    (Hsp : Hsep H) (Hdn : Hdense H) (fuel : nat)
+    (Hcl : Hclosed H) (Hco : Hconsistent H) (Hsp : Hsep H) (fuel : nat)
     (LE : ce_measure H <= fuel)
     {struct fuel}
     : { T : Type & {r : R.t T | canonical r} }.
 Proof.
     destruct (equiv_query (make_nfa H)) eqn:E.
     - pose proof (equiv_query_ce (make_nfa H) s E) as Hce.
-      destruct (step H Hcl Hco Hr Hsp Hdn s Hce)
-        as (H' & Hcl' & Hco' & Hr' & Hsp' & Hdn' & Hlt & Hbnd).
+      destruct (step H Hcl Hco Hsp s Hce)
+        as (H' & Hcl' & Hco' & Hsp' & Hlt & Hbnd).
       destruct fuel as [| fuel']. lia.
-      apply (nlstar_fuel H' Hcl' Hco' Hr' Hsp' Hdn' fuel' ltac:(lia)).
+      apply (nlstar_fuel H' Hcl' Hco' Hsp' fuel' ltac:(lia)).
     - pose proof (proj1 (equiv_query_correct (make_nfa H)) E) as Henc.
-      pose proof (make_nfa_canonical_of_encodes H Hcl Hco Hr Henc) as X.
+      pose proof (make_nfa_canonical_of_encodes H Hcl Hco Henc) as X.
       destruct X as (RFSA & Eq & Canonical).
       now exists _, RFSA.
 Defined.
@@ -1915,8 +2425,8 @@ Qed.
 Definition nlstar (_ : unit) : { T : Type & {r : R.t T | canonical r} }.
 Proof.
     destruct (complete init_hyp init_sep)
-      as (H0 & Hcl & Hco & Hr & Hsp & Hdn & Hbnd & _).
-    exact (nlstar_fuel H0 Hcl Hco Hr Hsp Hdn (ce_measure H0) (le_n _)).
+      as (H0 & Hcl & Hco & Hsp & Hbnd & _).
+    exact (nlstar_fuel H0 Hcl Hco Hsp (ce_measure H0) (le_n _)).
 Defined.
 
 End NLstar.
