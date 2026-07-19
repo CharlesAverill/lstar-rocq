@@ -1,7 +1,7 @@
 (* European-style 4-phase traffic light *)
 
 open Lstar
-open Automata
+open Moore
 open Specif
 open Teacher
 open Stdlib
@@ -157,5 +157,4 @@ let print_results name m n =
   in
   Printf.printf "Accuracy: %d/%d\n" correct (List.length strings)
 
-let () =
-  print_results "Moore-L*" (Learner.mlstar ()) 4
+let () = print_results "Moore-L*" (Learner.mlstar ()) 4

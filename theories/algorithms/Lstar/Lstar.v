@@ -1,7 +1,7 @@
 (** Rivest-Schapire-style automata learning
     https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.pdf *)
 
-From lstar Require Import Automata ListLemmas SetLemmas RS.
+From lstar Require Import automata.DFA ListLemmas SetLemmas RS.
 From Stdlib Require Import Classes.RelationClasses.
 From Stdlib Require Import Setoids.Setoid.
 From Stdlib Require Import List.

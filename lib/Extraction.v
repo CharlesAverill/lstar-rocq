@@ -1,7 +1,8 @@
 From Stdlib Require Import Bool List String PeanoNat.
 From Stdlib Require Import Extraction ExtrOcamlNativeString ExtrOcamlBasic ExtrOcamlNatInt.
 
-From lstar Require Import Lstar Lstar_Moore KV Automata TTT NLstar.
+From lstar Require Import Lstar Lstar_Moore Lstar_Mealy 
+                          KV automata.DFA automata.NFA automata.Mealy automata.Moore TTT NLstar.
 
 Extraction Language OCaml.
 
@@ -9,4 +10,6 @@ Extraction Language OCaml.
 
 Extract Inlined Constant Bool.eqb => "(=)".
 
-Separate Extraction Lstar Lstar_Moore KV DFA NFA RFSA Moore TTT NLstar.
+Separate Extraction Lstar Lstar_Moore Lstar_Mealy
+                    KV TTT NLstar
+                    DFA NFA RFSA Moore Mealy.

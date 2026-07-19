@@ -1,9 +1,14 @@
 open Lstar
 open Lstar_Moore
+open Lstar_Mealy
 open KV
 open TTT
 open NLstar
-open Automata
+open DFA
+open NFA
+open Mealy
+open Moore
+open Alphabet
 open Stdlib
 
 (** Minimally Adequate Teachers *)
@@ -56,10 +61,33 @@ module type MOORETEACHER = sig
   (** Output alphabet *)
   module O : Symbol
 
-  (** DFA *)
+  (** Moore Machine *)
   module M : module type of Moore (S) (O)
 
   val output_lang : S.str -> O.t
+  (** Membership query *)
+
+  val equiv_query : 'a M.t -> S.str option
+  (** Equivalence query *)
+
+  val fuel : int
+  (** Maximum number of iterations to take
+      
+      Set to [Int.max_int] unless you know what you're doing *)
+end
+
+(* Teacher for Moore machines *)
+module type MEALYTEACHER = sig
+  (** Symbol alphabet *)
+  module S : Symbol
+
+  (** Output alphabet *)
+  module O : Symbol
+
+  (** Mealy Machine *)
+  module M : module type of Mealy (S) (O)
+
+  val output_lang : S.str -> S.t -> O.t
   (** Membership query *)
 
   val equiv_query : 'a M.t -> S.str option
@@ -355,13 +383,14 @@ module MoorePrinter (Teacher : MOORETEACHER) = struct
         (* A fixed palette; each distinct output value gets a (fill, line)
            colour pair, assigned by its position in [O.enum]. *)
         let palette =
-          [| ("#fde2e1", "#d1584f") (* red *);
-             ("#d6f0dd", "#349a57") (* green *);
-             ("#fdf3d0", "#c9a227") (* yellow *);
-             ("#ffe5cc", "#d97707") (* orange *);
-             ("#dbe7fb", "#3a6fd8") (* blue *);
-             ("#ece1f7", "#7a4fd1") (* purple *);
-             ("#e6f0f0", "#3a9a9a") |] (* teal *);
+          [| ("#fde2e1", "#d1584f") (* red *)
+           ; ("#d6f0dd", "#349a57") (* green *)
+           ; ("#fdf3d0", "#c9a227") (* yellow *)
+           ; ("#ffe5cc", "#d97707") (* orange *)
+           ; ("#dbe7fb", "#3a6fd8") (* blue *)
+           ; ("#ece1f7", "#7a4fd1") (* purple *)
+           ; ("#e6f0f0", "#3a9a9a") |]
+          (* teal *)
         in
         let colour_of out =
           let rec idx i = function
@@ -439,13 +468,225 @@ module MoorePrinter (Teacher : MOORETEACHER) = struct
             List.iter
               (fun dst ->
                 let buf, cnt = Hashtbl.find tbl dst in
-                let self = if i = dst then " dir=back" else "" in
+                let self =
+                  if i = dst then
+                    " dir=back"
+                  else
+                    ""
+                in
                 if !cnt = alphabet_size then
                   p "  q%d -> q%d [color=\"#c6c6cc\"%s];\n" i dst self
                 else
                   p "  q%d -> q%d [label=\" %s \"%s];\n" i dst
                     (Buffer.contents buf) self )
               (List.rev !dst_order) )
+          states ;
+        p "}\n" ) ;
+    path
+end
+
+module MealyPrinter (Teacher : MEALYTEACHER) = struct
+  module S = Teacher.S
+  module O = Teacher.O
+
+  (* States in discovery order plus an id lookup, exactly as MoorePrinter. *)
+  let discover (m : 'st Teacher.M.t) =
+    let module H = Hashtbl in
+    let ids : ('st, int) H.t = H.create 16 in
+    let order = ref [] in
+    let next = ref 0 in
+    let id_of s =
+      match H.find_opt ids s with
+      | Some i ->
+          i
+      | None ->
+          let i = !next in
+          incr next ;
+          H.add ids s i ;
+          order := s :: !order ;
+          i
+    in
+    let rec explore = function
+      | [] ->
+          ()
+      | s :: rest ->
+          if H.mem ids s then
+            explore rest
+          else begin
+            ignore (id_of s) ;
+            let succs = List.map (fun c -> Teacher.M.transition m s c) S.enum in
+            explore (rest @ succs)
+          end
+    in
+    explore [Teacher.M.initial m] ;
+    (List.rev !order, id_of)
+
+  let print_mealy (m : 'st Teacher.M.t) : unit =
+    let states, id_of = discover m in
+    let init_id = id_of (Teacher.M.initial m) in
+    Printf.printf "States (%d):\n" (List.length states) ;
+    List.iter
+      (fun s ->
+        let i = id_of s in
+        let mark =
+          if i = init_id then
+            " <- initial"
+          else
+            ""
+        in
+        Printf.printf "  q%-3d%s\n" i mark )
+      states ;
+    Printf.printf "Transitions:\n" ;
+    List.iter
+      (fun s ->
+        let i = id_of s in
+        List.iter
+          (fun c ->
+            let dst = Teacher.M.transition m s c in
+            let out = Teacher.M.output m s c in
+            Printf.printf "  q%-3d --%s/%s--> q%d\n" i (S.string_of_t c)
+              (O.string_of_t out) (id_of dst) )
+          S.enum )
+      states
+
+  (** Render the Mealy machine in Graphviz DOT format to a fresh temporary
+      file and return its path.  Keeps [MoorePrinter]'s styling; since the
+      output is carried by transitions, nodes are uniform and each edge is
+      labelled [symbol / output], with the output colour-coded to match the
+      Moore printer's per-output palette. *)
+  let to_dot ?(name = "Mealy") (m : 'st Teacher.M.t) : string =
+    let states, id_of = discover m in
+    let init_id = id_of (Teacher.M.initial m) in
+    let path = Filename.temp_file name ".dot" in
+    let out = open_out path in
+    Fun.protect
+      ~finally:(fun () -> close_out out)
+      (fun () ->
+        let p fmt = Printf.fprintf out fmt in
+        let escape s =
+          let buf = Buffer.create (String.length s + 2) in
+          String.iter
+            (fun ch ->
+              match ch with
+              | '"' ->
+                  Buffer.add_string buf "\\\""
+              | '\\' ->
+                  Buffer.add_string buf "\\\\"
+              | '\n' ->
+                  Buffer.add_string buf "\\n"
+              | '_' ->
+                  Buffer.add_string buf " - "
+              | c ->
+                  Buffer.add_char buf c )
+            s ;
+          Buffer.contents buf
+        in
+        (* Same palette as MoorePrinter, but it now colours *edges*: each
+           distinct output value gets a (fill, line) pair by its position in
+           [O.enum].  Only the line colour is used for edges. *)
+        let palette =
+          [| ("#fde2e1", "#d1584f") (* red *)
+           ; ("#d6f0dd", "#349a57") (* green *)
+           ; ("#fdf3d0", "#c9a227") (* yellow *)
+           ; ("#ffe5cc", "#d97707") (* orange *)
+           ; ("#dbe7fb", "#3a6fd8") (* blue *)
+           ; ("#ece1f7", "#7a4fd1") (* purple *)
+           ; ("#e6f0f0", "#3a9a9a") |]
+          (* teal *)
+        in
+        let colour_of out =
+          let rec idx i = function
+            | [] ->
+                0
+            | x :: _ when Teacher.O.eq_dec x out ->
+                i
+            | _ :: r ->
+                idx (i + 1) r
+          in
+          palette.(idx 0 O.enum mod Array.length palette)
+        in
+        p "digraph \"%s\" {\n" (escape name) ;
+        (* ---- graph-level styling ---- *)
+        p "  bgcolor=\"#fbfbfd\";\n" ;
+        p "  rankdir=LR;\n" ;
+        p "  nodesep=0.5;\n" ;
+        p "  dpi=300;\n" ;
+        p "  ranksep=0.6;\n" ;
+        p "  pad=0.3;\n" ;
+        p "  label=\"%s\";\n" (escape name) ;
+        p "  labelloc=\"t\";\n" ;
+        p "  fontsize=22;\n" ;
+        p "  fontname=\"Helvetica Neue, Helvetica, Arial, sans-serif\";\n" ;
+        p "  fontcolor=\"#1d1d1f\";\n" ;
+        (* ---- shared node + edge defaults ---- *)
+        p
+          "  node [fontname=\"Helvetica Neue, Helvetica, Arial, sans-serif\", \
+           fontsize=13, penwidth=1.4, style=filled];\n" ;
+        p
+          "  edge [fontname=\"Menlo, Consolas, monospace\", fontsize=11, \
+           color=\"#8a8a8e\", fontcolor=\"#3a3a3c\", arrowsize=0.8, \
+           penwidth=1.1];\n" ;
+        (* ---- start marker ---- *)
+        p "  __start [shape=point, width=0.12, color=\"#1d1d1f\"];\n" ;
+        (* ---- states: uniform, since Mealy outputs live on edges ---- *)
+        List.iter
+          (fun s ->
+            let i = id_of s in
+            p
+              "  q%d [shape=circle, label=\"q%d\", fillcolor=\"#eef1f6\", \
+               color=\"#9aa0aa\"];\n"
+              i i )
+          states ;
+        (* ---- start arrow ---- *)
+        p "  __start -> q%d [color=\"#1d1d1f\", penwidth=1.4];\n" init_id ;
+        (* ---- transitions ----
+           Group by (destination, output): symbols that agree on both may
+           share an edge.  Unlike the Moore/DFA printers we cannot collapse
+           a full alphabet into an unlabelled edge, because the output is
+           part of what the edge says. *)
+        List.iter
+          (fun s ->
+            let i = id_of s in
+            (* Group by (destination, output).  The key is rendered for
+               grouping, but the output *value* is carried alongside so the
+               colour never has to be recovered by re-parsing a string. *)
+            let tbl : (int * string, Buffer.t * O.t) Hashtbl.t =
+              Hashtbl.create 8
+            in
+            let key_order = ref [] in
+            List.iter
+              (fun c ->
+                let dst = id_of (Teacher.M.transition m s c) in
+                let out = Teacher.M.output m s c in
+                let key = (dst, O.string_of_t out) in
+                let buf, _ =
+                  match Hashtbl.find_opt tbl key with
+                  | Some bo ->
+                      bo
+                  | None ->
+                      let bo = (Buffer.create 16, out) in
+                      Hashtbl.add tbl key bo ;
+                      key_order := key :: !key_order ;
+                      bo
+                in
+                if Buffer.length buf > 0 then Buffer.add_string buf ", " ;
+                Buffer.add_string buf (escape (S.string_of_t c)) )
+              S.enum ;
+            List.iter
+              (fun ((dst, out_s) as key) ->
+                let buf, out = Hashtbl.find tbl key in
+                let self =
+                  if i = dst then
+                    " dir=back"
+                  else
+                    ""
+                in
+                let _, line = colour_of out in
+                p
+                  "  q%d -> q%d [label=\" %s / %s \", color=\"%s\", \
+                   fontcolor=\"%s\"%s];\n"
+                  i dst (Buffer.contents buf) (escape out_s) line line self )
+              (List.rev !key_order) )
           states ;
         p "}\n" ) ;
     path
@@ -474,6 +715,25 @@ end
 module MooreLstarLearner (T : MOORETEACHER) = struct
   module Impl =
     MooreLstar (T.S) (T.O)
+      (struct
+        module M = T.M
+
+        let output_lang = T.output_lang
+
+        let num_states_in_minimal = T.fuel
+      end)
+      (struct
+        let equiv_query = T.equiv_query
+      end)
+
+  include Impl
+
+  let mlstar () : __ T.M.t = match Impl.mlstar () with Coq_existT (_, m) -> m
+end
+
+module MealyLstarLearner (T : MEALYTEACHER) = struct
+  module Impl =
+    MealyLstar (T.S) (T.O)
       (struct
         module M = T.M
 
@@ -542,6 +802,8 @@ module NLstarLearner (T : NFATEACHER) = struct
         let member = T.member
 
         let num_states_in_canonical = T.fuel
+
+        let num_residuals = T.fuel
       end)
       (struct
         let equiv_query r_aut = T.equiv_query (T.R.nfa r_aut)
