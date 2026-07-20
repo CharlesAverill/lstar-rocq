@@ -44,10 +44,6 @@ Definition covered (T V : str -> bool) (u1 u2 : str) : Prop :=
 Definition strictly_covered (T V : str -> bool) (u1 u2 : str) : Prop :=
     covered T V u1 u2 /\ ~ row_eq T V u1 u2.
 
-Lemma strict_impl_covered : forall T V u1 u2,
-    strictly_covered T V u1 u2 -> covered T V u1 u2.
-Proof. intros. now destruct H. Qed.
-
 (* Definition 6: r is composed if there are r1,...,rn \in Rows(T) \ {r} such that r = r1 \sqcup ... \sqcup rn *)
 Definition composed (T V : str -> bool) (Ul : list str) (u : str) : Prop :=
     forall v, V v = true ->
@@ -334,16 +330,7 @@ Proof.
     - right. exists a. split; [now left | assumption].
 Defined.
 
-(* Definition 9: for all u,u' \in U and a \in \Sigma, row(u') \sqsubseteq row(u) implies row(u'a) \sqsubseteq row(ua)
-
-   The quantification is over the *upper* part [U], exactly as in the paper, and
-   not over all of [row_index].  Quantifying over lower rows too would be both
-   stronger than Definition 9 and unusable: for a lower row [u], the successor
-   [u ++ [a]] is not a row of the table at all, so the [tbl] field says nothing
-   about its cells and a violation found there cannot be turned into a truthful
-   new column.  Every use of consistency in this development (in [run_covered]
-   and [run_from_mono]) instantiates it at access strings of states, which lie
-   in [U] by [state_upper], so nothing is lost. *)
+(* Definition 9: for all u,u' \in U and a \in \Sigma, row(u') \sqsubseteq row(u) implies row(u'a) \sqsubseteq row(ua). *)
 Definition rfsa_consistent (T V : str -> bool) {U} (Ul : finite U) : Prop :=
     forall u u' a,
         In u (proj1_sig Ul) -> In u' (proj1_sig Ul) -> In a enum ->
@@ -443,8 +430,6 @@ Record HypothesisRFSA : Type := {
 
 (* Upper access strings of the table *)
 Definition Ul (H : HypothesisRFSA) : list str := proj1_sig H.(fin_U).
-
-Definition Vl (H : HypothesisRFSA) : list str := proj1_sig H.(fin_V).
 
 (* RFSA-closedness and consistency of a table *)
 Definition Hclosed (H : HypothesisRFSA) : Prop :=
@@ -553,13 +538,6 @@ Proof.
     unfold covered. intros. apply H0; auto.
 Qed.
 
-(* ------------------------------------------------------------------------ *)
-(* Row equality is an equivalence, and covering, primality and composedness
-   only depend on rows.  These are the facts that let the closedness-repair
-   step below reason about "rows of the upper part" while manipulating access
-   strings.                                                                  *)
-(* ------------------------------------------------------------------------ *)
-
 Lemma row_eq_refl : forall T V u, row_eq T V u u.
 Proof. now intros T V u v Hv. Qed.
 
@@ -619,11 +597,6 @@ Proof.
     exact (composed_row_eq T V Ul u2 u1 (row_eq_sym T V u1 u2 Hr) Hc).
 Qed.
 
-(* ------------------------------------------------------------------------ *)
-(* Every row is the join of the prime rows it covers                         *)
-(* ------------------------------------------------------------------------ *)
-
-(* The number of columns of [vl] at which the row of [u] is true. *)
 Definition row_weight (T : str -> bool) (vl : list str) (u : str) : nat :=
     List.length (filter (fun v => cell T u v) vl).
 
@@ -783,16 +756,6 @@ Proof.
                  (conj (covered_trans T V p u' u Hp3 Hcov) Hp4))).
 Qed.
 
-(* ------------------------------------------------------------------------ *)
-(* RFSA-closedness violations                                                *)
-(* ------------------------------------------------------------------------ *)
-
-(* The paper's closedness-repair rule: "find u in U and a in Sigma with
-   row(ua) in Primes(T) \ Primes_upp(T)".  A violation is therefore a *lower*
-   row that is prime and whose row is realised by no prime representative of
-   the upper part.  Searching only the lower part is essential: repairing at an
-   upper row would add a string already present in U, which neither enlarges
-   the table nor preserves [Hsep]. *)
 Definition closed_violation (T V : str -> bool) (Ul : list str)
     (finV : finite V) (u : str) : Prop :=
     In u (USigma Ul) /\ prime T V Ul u
@@ -877,11 +840,6 @@ Proof.
     exact (closed_violation_search T V Ul finV (USigma Ul) (fun u H => H)).
 Defined.
 
-(* Adequacy of the repair rule: if the lower part hides no prime row, the table
-   is RFSA-closed in the sense of Definition 8.  Every true cell is witnessed by
-   a prime row of the table ([row_prime_witness]); that prime row is either
-   already an upper row, or a lower one, in which case the absence of a
-   violation hands back an upper prime representative with the same row. *)
 Lemma no_violation_closed : forall T V U (finU : finite U) (finV : finite V),
     (forall u, In u (USigma (proj1_sig finU)) ->
         ~ closed_violation T V (proj1_sig finU) finV u) ->
@@ -1077,35 +1035,6 @@ Proof.
         apply in_list_with_proof in Hq.
         apply (prime_reps_upper H.(T) H.(V) (Ul H) H.(fin_V)).
         now apply (cover_set_prime_reps _ _ _ _ []).
-Qed.
-
-(* Lemma 2(2) on its own.  The proof of [row_state_lang] never uses its state
-   argument [r] for this half, but the statement demands one, and the automaton
-   of a table all of whose rows are composed has no states at all.  Splitting it
-   out makes it usable unconditionally. *)
-Lemma eps_cell_L_aut : forall H (Hcl : Hclosed H) v,
-    H.(V) v = true ->
-    (cell H.(T) [] v = true <-> N.L_aut (make_nfa H) v = true).
-Proof.
-    intros H Hcl v Hv.
-    unfold N.L_aut, N.accept_string, run.
-    rewrite (run_from_set_accept H Hcl v (N.initial _ (make_nfa H)) Hv).
-    + unfold make_nfa. simpl. rewrite <- cover_set_cell; auto.
-      * split.
-          intros (q & Hq & Hc).
-            exists (exist _ q (cover_set_memr H [] q Hq)). split.
-              apply (list_with_proof_complete _ _ (bool_eq_proof_irrel H)).
-              assumption.
-          intros (q & Hq & Hc).
-            apply in_list_with_proof in Hq.
-            now exists (proj1_sig q).
-      * unfold row_index, Ul. apply in_or_app. left.
-        destruct H, fin_U0, a; simpl in *. now apply i.
-    + intros q Hq.
-      unfold make_nfa in Hq. cbn [N.initial] in Hq.
-      apply in_list_with_proof in Hq.
-      apply (prime_reps_upper H.(T) H.(V) (Ul H) H.(fin_V)).
-      now apply (cover_set_prime_reps _ _ _ _ []).
 Qed.
 
 (* Covering of start sets is preserved by running *)
@@ -1440,23 +1369,6 @@ Proof.
     intros. exists (proj1_sig q). now apply state_lang_member.
 Qed.
 
-(* A residual represented by row u agrees with the row of u on every column
-   of the table *)
-Lemma residual_cell : forall H u v,
-    In u (row_index (Ul H)) -> H.(V) v = true ->
-    Res.inverse member u v = cell H.(T) u v.
-Proof.
-    intros H u v Hu Hv. unfold Res.inverse, cell. now rewrite (H.(tbl) u v Hu Hv).
-Qed.
-
-Lemma residual_cell_rep : forall H u v,
-    In u (prime_reps H.(T) H.(V) (Ul H) H.(fin_V)) -> H.(V) v = true ->
-    Res.inverse member u v = cell H.(T) u v.
-Proof.
-    intros H u v Hu Hv. apply residual_cell; [| exact Hv].
-    apply (prime_reps_index H.(T) H.(V) (Ul H) H.(fin_V)). exact Hu.
-Qed.
-
 (* Under encoding, L_state q agrees with the row of q on columns of V *)
 Lemma state_lang_cell : forall H (Hcl : Hclosed H) q v,
     H.(V) v = true ->
@@ -1537,18 +1449,6 @@ Proof.
     now rewrite existsb_accept_run_from.
 Qed.
 
-(* Theorem 1, primality half: "As, by Lemma 3, the relation [] over rows
-   corresponds to the subset relation over languages, L_row(u) is prime".
-
-   The argument does not need any a priori correspondence between residuals of
-   [member] and rows of the table.  Suppose the language of the state [q] were
-   composed, i.e. a union of residuals [rs] each different from it.  Every
-   residual of L(R_T) is the union of the languages of the states reached on a
-   word inducing it ([inverse_L_aut_union]), so each member of [rs] -- hence the
-   language of [q] itself -- is a union of state languages, each of which is
-   included in, and different from, the language of [q].  By Lemma 3 those
-   states are rows strictly covered by [row(u)], which exhibits [row(u)] as a
-   composed row and contradicts its primality in the table. *)
 Lemma state_lang_prime : forall H (Hcl : Hclosed H) (Hco : Hconsistent H) q,
     encodes (make_nfa H) ->
     L.prime (N.L_state (make_nfa H) q).
@@ -1748,27 +1648,6 @@ Proof.
       rewrite <- (H.(tbl) u1 v H1 Hv). exact Hcv.
 Qed.
 
-(* The number of distinct rows of the table (upper and lower). *)
-Definition num_distinct_rows (H : HypothesisRFSA) : nat :=
-    List.length (dedup_rows H.(T) H.(V) H.(fin_V) (row_index (Ul H))).
-
-(* A map that is Leibniz-injective on a NoDup list produces a NoDup image. *)
-Lemma NoDup_map_inj : forall {A B} (f : A -> B) (l : list A),
-    NoDup l ->
-    (forall x y, In x l -> In y l -> f x = f y -> x = y) ->
-    NoDup (map f l).
-Proof.
-    intros A B f l. induction l as [| a l IH]; intros ND Hinj; simpl.
-        constructor.
-    apply NoDup_cons_iff in ND as (Hnin & ND').
-    constructor.
-    - intro Hin. apply in_map_iff in Hin. destruct Hin as (y & Hfy & Hy).
-      assert (a = y) by (apply Hinj; [now left | now right | now rewrite Hfy]).
-      subst y. contradiction.
-    - apply IH; [assumption |].
-      intros x y Hx Hy. apply Hinj; now right.
-Qed.
-
 (* Two access strings that are rows of the table and induce the same residual
    have equal rows over V (uses the truthfulness of in-scope cells). *)
 Lemma residual_eq_row_eq : forall H u1 u2,
@@ -1797,27 +1676,6 @@ Proof.
     assert (Hxy : nth i l dA = nth j l dA)
       by (apply Hinj; [apply nth_In; exact Hi | apply nth_In; exact Hj | exact Heq]).
     apply (NoDup_nth l dA) in Hxy; assumption.
-Qed.
-
-Lemma num_distinct_rows_le : forall H,
-    num_distinct_rows H <= L.num_residuals.
-Proof.
-    intros H. unfold num_distinct_rows.
-    set (D := dedup_rows H.(T) H.(V) H.(fin_V) (row_index (Ul H))).
-    assert (Hincl : forall x, In x D -> In x (row_index (Ul H)))
-        by (intros x Hx; apply (dedup_rows_incl _ _ _ _ _ Hx)).
-    assert (Hinj : forall u1 u2, In u1 D -> In u2 D ->
-              Res.lang_eq (Res.inverse member u1) (Res.inverse member u2) -> u1 = u2). {
-        intros u1 u2 H1 H2 Heq.
-        apply (dedup_rows_distinct H.(T) H.(V) H.(fin_V) (row_index (Ul H)) u1 u2 H1 H2).
-        apply residual_eq_row_eq; auto. }
-    rewrite <- (length_map (Res.inverse member) D).
-    apply L.residuals_bounded.
-    - intros r Hr. apply in_map_iff in Hr. destruct Hr as (u & <- & Hu).
-      exists u. intro w. reflexivity.
-    - apply (map_lang_pos_distinct (Res.inverse member) D []).
-      + apply (dedup_rows_NoDup H.(T) H.(V) H.(fin_V)).
-      + exact Hinj.
 Qed.
 
 (* Remove the first occurrence of [x] from [l] *)
@@ -2149,32 +2007,6 @@ Proof.
     apply fin_U0.
 Defined.
 
-(* ------------------------------------------------------------------------ *)
-(* The termination measure                                                   *)
-(*                                                                           *)
-(* The measure of the paper is the tuple M(T) = (l_up, l, p, i) where l_up is
-   the number of distinct upper rows, l the number of distinct rows, p the
-   number of prime rows and i the number of strictly covering pairs.  Two
-   simplifications are made here.
-
-   First, the [p] component is dropped.  It is only needed in the paper's case
-   (3) as an alternative to "i decreases"; below, the consistency repair is
-   shown to decrease [i] outright whenever no rows split, so [p] never carries
-   the argument.
-
-   Second, [l] and [i] are counted over *access strings* rather than over
-   distinct rows.  Counting distinct rows would force a bijection between two
-   deduplicated lists whenever the count is unchanged, which is painful;
-   counting strings instead makes both components manifestly monotone under a
-   column extension, because [row_index] is then literally the same list.  The
-   role of "l increases" is played by "the number of row-equal pairs [eqp]
-   decreases": adding a column can only separate rows, never merge them.
-
-   The price is that [eqp] and [icov] are bounded by |row_index|^2 rather than
-   by n^2, so the constants are stated in terms of [row_bound]; and that bound
-   needs [Hsep], which is available at every call site.                      *)
-(* ------------------------------------------------------------------------ *)
-
 Lemma filter_len_le : forall {A} (f : A -> bool) l, length (filter f l) <= length l.
 Proof.
   intros A f l. induction l as [| x l IH]; simpl; [lia |].
@@ -2276,17 +2108,6 @@ Proof.
     pose proof (row_index_le H Hsp). now apply Nat.mul_le_mono.
 Qed.
 
-(* The number of prime rows of the table -- the paper's [p].
-
-   An earlier version of this development dropped [p], on the grounds that the
-   consistency repair decreases [icov] outright whenever no rows split.  That is
-   true, but [p] is genuinely needed for the counterexample step: a column
-   extension can leave the row equalities and the covering relation completely
-   unchanged and still turn a composed row into a prime one, because [composed]
-   quantifies over *all* columns and a new column can be true at a row without
-   being true at any of the rows strictly below it.  The automaton then acquires
-   a state without any pair being separated.  This is exactly why the paper's
-   case (3) reads "i decreases *or* p increases". *)
 Definition nprime (H : HypothesisRFSA) : nat :=
     List.length
       (filter (fun x => if prime_dec member H.(V) (Ul H) x H.(fin_V)
@@ -2447,13 +2268,6 @@ Proof.
       intros w Hw. rewrite Hr1, Hr2; auto.
 Qed.
 
-(* ------------------------------------------------------------------------ *)
-(* The measure decreases when a separating column is added                   *)
-(*                                                                           *)
-(* This is cases (2) and (3) of the paper, packaged once so that both the
-   consistency repair and the counterexample step can use it.  [H'] is [H] with
-   extra columns, and [u], [u'] is a pair that the new columns separate.      *)
-(* ------------------------------------------------------------------------ *)
 Lemma ce_measure_add_column :
     forall (H H' : HypothesisRFSA),
       Hsep H' ->
@@ -2709,15 +2523,6 @@ Proof.
           exact (row_eq_sym member H.(V) u0 u2 Hrow).
         * subst u1 u2. reflexivity. }
       split; [exact HsepH' |].
-      (* [ce_measure] decreases by case (1) of the paper: the repair adds [u0]
-         to the upper part, and no existing upper row has the row of [u0], so
-         the number of distinct upper rows strictly increases.
-
-         Note that the number of *states* need not increase: the new successors
-         [u0 . Sigma] in the lower part can turn a previously prime upper row
-         into a composed one, and the paper is explicit that "the number of
-         states may decrease during a run of the algorithm".  That is why the
-         measure counts distinct upper rows rather than states. *)
       apply ce_measure_lt_up.
       + (* l_up H < l_up H' *)
         assert (Hnew : forall x, In x (Ul H) -> ~ row_eq member H.(V) u0 x). {
@@ -2725,8 +2530,6 @@ Proof.
           apply (proj2 (row_eq_member H x u0 (in_Ul_row_index _ x Hx) Hu0idx)).
           exact (row_eq_sym member H.(V) u0 x Hrx). }
         unfold l_up. simpl.
-        (* [simpl] has already taken [dedup_rows] on [u0 :: Ul H] apart, so
-           [dedup_rows_cons_new] no longer applies; discharge the test directly. *)
         match goal with
         | |- context [if ?b then _ else _] => destruct b eqn:Eex
         end.
@@ -2741,28 +2544,6 @@ Proof.
       + exact (icov_le _ HsepH').
 Qed.
 
-Lemma filter_eq_nil : forall {X} (l : list X) f,
-    filter f l = [] ->
-    Forall (fun x => f x = false) l.
-Proof.
-    induction l; intros; simpl in *.
-        constructor.
-    destruct (f a) eqn:E.
-        discriminate.
-    constructor; auto.
-Qed.
-
-Lemma filter_eq_cons : forall {X} (l : list X) f h t,
-    filter f l = h :: t ->
-    f h = true.
-Proof.
-    induction l; intros; simpl in *.
-        discriminate.
-    destruct (f a) eqn:E.
-        inversion H; now subst.
-    eauto.
-Qed.
-
 Lemma resolve_consistency :
     forall (H : HypothesisRFSA),
       Hsep H ->
@@ -2771,15 +2552,11 @@ Lemma resolve_consistency :
       { H' : HypothesisRFSA | Hsep H' /\ ce_measure H' < ce_measure H }.
 Proof.
     intros H Hsp Hcl Hncon.
-    (* Use the semantic decision procedure rather than an ad-hoc boolean search:
-       it returns exactly a violating triple of Definition 9, with both strings
-       in the upper part, so no bridge back to [covered] is needed. *)
     destruct (rfsa_consistent_dec H.(T) H.(V) H.(fin_U) H.(fin_V))
       as [Hcon | (q & Hq)].
         exfalso. now apply Hncon.
     destruct q as ((u & u') & a). simpl in Hq.
     destruct Hq as (Hu & Hu' & Ha & Hviol).
-    (* the failing implication has a true premise and a false conclusion *)
     assert (Hcov : covered H.(T) H.(V) u u'). {
         destruct (covered_dec H.(T) H.(V) u u' H.(fin_V)) as [Hc | Hnc].
           exact Hc.
@@ -2788,9 +2565,6 @@ Proof.
         by (intro Hc; apply Hviol; intros _; exact Hc).
     destruct (covered_fail_witness H.(T) H.(V) (u ++ [a]) (u' ++ [a]) H.(fin_V) Hncov)
       as (v & HvV & Huav & Hu'av).
-    (* [u] and [u'] are upper strings, so [u ++ [a]] and [u' ++ [a]] are rows of
-       the table and the cells at the new column are truthful.  This is exactly
-       where Definition 9's restriction to the upper part is needed. *)
     assert (Hidx : forall x, In x (Ul H) -> In (x ++ [a]) (row_index (Ul H))). {
         intros x Hx. unfold row_index. apply in_or_app. right.
         unfold USigma. apply in_flat_map. exists x. split; [exact Hx |].
@@ -2853,9 +2627,6 @@ Proof.
           specialize (Hrow HvvV'). exact Hrow.
         }
         split; [exact HsepH' |].
-        (* Cases (2) and (3) of the paper: the new column separates [u] from
-           [u'], so either two rows come apart or the covering [u] <= [u'] is
-           destroyed. *)
         assert (HcV' : V' c = true). {
             unfold V'. destruct (str_eq c c) as [_ | Hne].
               apply Bool.orb_true_r.
@@ -2869,30 +2640,6 @@ Proof.
           intro Hc. simpl in Hc.
           specialize (Hc c HcV' Hucm). rewrite Hu'cm in Hc. discriminate.
 Qed.
-
-(* [Hrep] and [Hdense] are NOT invariants of RFSA-closed, RFSA-consistent
-   tables, and the two lemmas that used to stand here --
-
-     closed_consistent_rep   : Hsep H -> Hclosed H -> Hconsistent H -> Hrep H
-     closed_consistent_dense : Hsep H -> Hclosed H -> Hconsistent H -> Hdense H
-
-   -- are both false.  [Hrep] asks that *every* residual of the target be the
-   residual induced by a prime representative; but a composed residual is by
-   definition a union of other residuals and is equal to none of the prime ones,
-   so [Hrep] already fails for every language whose canonical RFSA is smaller
-   than its minimal DFA -- that is, for exactly the languages NL* is designed
-   for.  [Hdense] fails at the other end: the initial one-row table is
-   RFSA-closed and RFSA-consistent, and its single prime representative
-   [epsilon] induces the residual [L], which need not be prime.
-
-   Both were only ever needed to prove that the states of the hypothesis denote
-   prime residuals.  [state_lang_prime] now derives that directly from
-   [inverse_L_aut_union] and Lemma 3, following the paper's proof of Theorem 1,
-   so neither property is required and both have been dropped from the
-   invariant carried by [complete], [saturate], [step] and [nlstar_fuel].
-   [Hrep] and [Hdense] themselves are kept only because
-   [num_states_le_canonical] is stated relative to them; that bound is a
-   quality result about the final automaton and is not used by the algorithm. *)
 
 Lemma extend_ce_Ul : forall H w (Hce : N.accept_string (make_nfa H) w <> member w),
     Ul (extend_table_ce H w Hce) = Ul H.
@@ -2934,35 +2681,6 @@ Proof.
     specialize (Hrow v (extend_ce_V_incl H w Hce v Hv)).
     unfold cell in Hrow. rewrite !(extend_ce_T H w Hce) in Hrow. exact Hrow.
 Qed.
-
-(* A counterexample is never already a column of the table.
-
-   This is the crux of the counterexample step, and it follows from facts
-   already available.  If [w] were a column, [tbl] would give
-   [cell T [] w = member w], while Lemma 2(2) gives
-   [cell T [] w = true <-> L_aut (make_nfa H) w = true]; together the hypothesis
-   would classify [w] correctly, contradicting [Hce].  So [extend_table_ce]
-   genuinely enlarges the column set. *)
-Lemma ce_column_new : forall H (Hcl : Hclosed H) w,
-    N.accept_string (make_nfa H) w <> member w ->
-    H.(V) w = false.
-Proof.
-    intros H Hcl w Hce.
-    destruct (H.(V) w) eqn:Hw; [| reflexivity].
-    exfalso.
-    assert (Heps : In ([] : str) (row_index (Ul H))). {
-        unfold row_index. apply in_or_app. left.
-        apply (proj1 (proj2 (proj2_sig H.(fin_U)) [])). exact H.(eps_U). }
-    pose proof (eps_cell_L_aut H Hcl w Hw) as Hiff.
-    unfold cell in Hiff. rewrite (H.(tbl) [] w Heps Hw) in Hiff. simpl in Hiff.
-    apply Hce. apply Bool.eq_true_iff_eq. split; intro Hx.
-    - now apply (proj2 Hiff).
-    - now apply (proj1 Hiff).
-Qed.
-
-(* ------------------------------------------------------------------------ *)
-(* Auxiliaries for the counterexample step                                   *)
-(* ------------------------------------------------------------------------ *)
 
 Lemma row_eq_covered : forall T V a b, row_eq T V a b -> covered T V a b.
 Proof. intros T V a b Hr v Hv Hc. now rewrite <- (Hr v Hv). Qed.
@@ -3361,42 +3079,10 @@ Proof.
     pose proof (ce_measure_extend_lt H Hcl Hco Hsp w Hwce). lia.
 Defined.
 
-(** The main NL* implementation *)
-(* ------------------------------------------------------------------------ *)
-(* Normalisation                                                             *)
-(*                                                                           *)
-(* The learned automaton is correct but expensive to run.  Its states are
-   access strings, and [transition] recomputes [cover_set] -- a filter of
-   [prime_reps] whose test scans every column of the table -- on every step, so
-   a single [accept_string] costs O(|w| . |Q| . |V|) table work per path
-   explored.
-
-   [normalize] renames the states to their positions in [N.states] and
-   precomputes the whole transition relation into a table, turning a step into
-   two list lookups.  Two details matter for that to be a real speed-up rather
-   than a reshuffling:
-
-   - The tables are passed to [n_accept] and [n_transition] as *arguments*, so
-     that the record field is the partial application [n_transition tbl].
-     Building the record then forces [tbl] exactly once and the closure
-     captures it.  Had the table been a section definition referring to [m],
-     extraction would rebuild it on every transition call, which is slower than
-     doing nothing at all.
-   - [idxs] removes duplicate successors.  [N.step] is a [flat_map] with no
-     deduplication, so duplicates in a reachable set multiply along a run; the
-     state list stays bounded by [length Q] only if each transition is a set.
-
-   The residual exponential in [N.run] -- distinct sources sharing a successor
-   still duplicate it -- is a property of [N.run] itself, not of the learned
-   automaton, and would have to be fixed there. *)
-(* ------------------------------------------------------------------------ *)
-
 Section Normalize.
   Context {state : Type}.
   Variable eqb : state -> state -> bool.
   Variable m : N.t state.
-
-  (** ** The index space *)
 
   Fixpoint dedup (l : list state) : list state :=
     match l with
@@ -3406,10 +3092,9 @@ Section Normalize.
         if existsb (fun x => eqb h x) d then d else h :: d
     end.
 
-  (** The states, without repetitions: indices are positions in this list. *)
   Definition Q : list state := dedup (N.states state m).
 
-  (** First position of [q] in [l]. *)
+  (* First position of [q] in [l]. *)
   Fixpoint pos (q : state) (l : list state) : option nat :=
     match l with
     | [] => None
@@ -3418,8 +3103,7 @@ Section Normalize.
 
   Definition ix (q : state) : option nat := pos q Q.
 
-  (** Positions of a list of states, without repetitions.  States outside [Q]
-      are dropped; [trans_closed] below rules that out. *)
+  (*  Positions of a list of states, without repetitions *)
   Definition raw_idxs (qs : list state) : list nat :=
     fold_right
       (fun q acc => match ix q with Some i => i :: acc | None => acc end)
@@ -3427,7 +3111,7 @@ Section Normalize.
 
   Definition idxs (qs : list state) : list nat := nodup Nat.eq_dec (raw_idxs qs).
 
-  (** Position of a symbol in [enum]. *)
+  (* Position of a symbol in [enum]. *)
   Fixpoint spos (a : s.t) (l : list s.t) : nat :=
     match l with
     | [] => 0
@@ -3436,16 +3120,14 @@ Section Normalize.
 
   Definition sym_ix (a : s.t) : nat := spos a enum.
 
-  (** ** The precomputed tables *)
+  (* The precomputed tables *)
 
   Definition acc_table : list bool := map (N.accept state m) Q.
 
   Definition trans_table : list (list (list nat)) :=
     map (fun q => map (fun a => idxs (N.transition state m q a)) enum) Q.
 
-  (** ** The normalised automaton.
-      The tables are parameters, so that the record fields below are partial
-      applications and the tables are built once. *)
+  (* The normalised automaton. *)
 
   Definition n_states : list nat := seq 0 (length Q).
   Definition n_initial : list nat := idxs (N.initial state m).
@@ -3453,7 +3135,7 @@ Section Normalize.
   Definition n_transition (tbl : list (list (list nat))) (i : nat) (a : s.t)
     : list nat := nth (sym_ix a) (nth i tbl []) [].
 
-  (** ** Positions *)
+  (* Positions *)
 
   Lemma pos_lt : forall q l i, pos q l = Some i -> i < length l.
   Proof.
@@ -3552,13 +3234,6 @@ Section Normalize.
        N.states := n_states;
        N.states_complete := normalize_states_complete |}.
 
-  (** ** Correctness *)
-
-  (* The three correctness side conditions.  They are explicit binders rather
-     than section [Hypothesis]es: Coq discharges only the hypotheses a proof
-     actually uses, so section hypotheses would give the exported lemmas three
-     different argument lists.  Every lemma below takes all three, in this
-     order, whether it needs them or not. *)
   Definition Spec : Prop := forall x y, eqb x y = true <-> x = y.
   Definition TransClosed : Prop := forall q a,
       In q (N.states state m) -> incl (N.transition state m q a) (N.states state m).
@@ -3821,9 +3496,6 @@ Proof.
     - pose proof (proj1 (equiv_query_correct (make_nfa H)) E) as Henc.
       pose proof (make_nfa_canonical_of_encodes H Hcl Hco Henc) as X.
       destruct X as (RFSA & Eq & Canonical).
-      (* Normalise here, where the automaton is still known to be [make_nfa H]:
-         [state_in_states] then discharges the closure side conditions, which
-         are not recoverable from [canonical] alone. *)
       refine (normalize_rfsa (state_eqb H) RFSA (state_eqb_spec H) _ _ Canonical).
       + intros q a _ r' _. rewrite Eq. apply state_in_states.
       + intros r' _. rewrite Eq. apply state_in_states.
@@ -3898,11 +3570,7 @@ Proof.
     reflexivity.
 Qed.
 
-
-(** The total NL* implementation.  The hypothesis automaton is normalised
-    before it is returned, so that the caller runs an automaton over [nat] with
-    a precomputed transition table rather than one over access strings that
-    rebuilds [cover_set] at every step. *)
+(** The total NL* implementation. *)
 Definition nlstar (_ : unit) : { T : Type & {r : R.t T | canonical r} }.
 Proof.
     destruct (complete init_hyp init_sep)
