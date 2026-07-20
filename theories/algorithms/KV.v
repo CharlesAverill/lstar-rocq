@@ -231,29 +231,6 @@ Proof.
       destruct H; auto.
 Qed.
 
-Lemma split_leaves_bwd : forall t target e q_new x,
-    In target (leaves t) ->
-    (x = q_new \/ In x (leaves t)) ->
-    In x (leaves (split_leaf t target e q_new)).
-Proof.
-    intros. destruct H0.
-        subst. now apply split_q_new_in.
-    now apply split_leaves_pres.
-Qed.
-
-Lemma split_discriminators_incl : forall t target e q_new,
-    incl (discriminators t) (discriminators (split_leaf t target e q_new)).
-Proof.
-    induction t0 as [q | e' lt IHlt rt IHrt]; intros; simpl.
-    - destruct (str_eq q target); [destruct (member (q ++ e)); simpl |];
-        intros x Hx; inversion Hx.
-    - intros x Hx. simpl in Hx. destruct Hx as [-> | Hx].
-          now left.
-      right. apply in_or_app. apply in_app_or in Hx. destruct Hx.
-        left. now apply IHlt.
-        right. now apply IHrt.
-Qed.
-
 (** A well-oriented split preserves distinctness of leaves: [target] occurs once
     and [q_new] is fresh, so replacing the former by the pair adds no
     duplicates *)

@@ -31,25 +31,6 @@ Module Mealy (s : Symbol) (O : Output).
     Definition output_word {state : Type} (m : t state) (w : str) : list O.t :=
         output_word_from m m.(initial state) w.
 
-    Lemma output_word_from_app : forall {state : Type} (m : t state) q u v,
-        output_word_from m q (u ++ v) =
-        output_word_from m q u ++ output_word_from m (fold_left m.(transition state) u q) v.
-    Proof.
-        intros state m q u. revert q.
-        induction u as [| a u IH]; intros q v; simpl.
-            reflexivity.
-        now rewrite IH.
-    Qed.
-
-    Lemma output_word_app : forall {state : Type} (m : t state) u v,
-        output_word m (u ++ v) =
-        output_word m u ++ output_word_from m (run m u) v.
-    Proof.
-        intros state m u v.
-        unfold output_word, run.
-        now rewrite output_word_from_app.
-    Qed.
-
     (** The last output emitted while reading a non-empty word starting from state [q] *)
     Fixpoint last_output_from {state : Type} (m : t state)
         (q : state) (a : s.t) (w : str) : O.t :=

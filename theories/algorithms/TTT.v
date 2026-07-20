@@ -234,16 +234,6 @@ Proof.
       destruct H; auto.
 Qed.
 
-Lemma split_leaves_bwd : forall t target e q_new x,
-    In target (leaves t) ->
-    (x = q_new \/ In x (leaves t)) ->
-    In x (leaves (split_leaf t target e q_new)).
-Proof.
-    intros. destruct H0.
-        subst. now apply split_q_new_in.
-    now apply split_leaves_pres.
-Qed.
-
 (** A well-oriented split preserves distinctness of leaves: [target] occurs once
     and [q_new] is fresh, so replacing the former by the pair adds no
     duplicates *)
@@ -613,21 +603,6 @@ Section Finalize.
     destruct d; simpl; now rewrite IHlt, IHrt.
   Qed.
 
-  (** [finalize] finalizes *)
-  Lemma finalize_finalized : forall t, finalized (finalize t).
-  Proof.
-    induction t0 as [q | d lt IHlt rt IHrt]; simpl.
-        exact I.
-    destruct d; simpl; repeat split; auto.
-  Qed.
-
-  Lemma in_bigger_leaves_impl_in_smaller_leaves :
-    forall s d l r,
-    In s (leaves (Node d l r)) -> In s (leaves l) \/ In s (leaves r).
-  Proof.
-    intros. simpl in H. now apply in_app_or in H.
-  Qed.
-
   Lemma wf_bisects_impl_bisects :
     forall e lt rt,
         (forall q : str, In q (leaves lt) -> member (q ++ e) = true) ->
@@ -678,39 +653,6 @@ Section Finalize.
     - now split.
   Qed.
 
-  (** If some suffix strictly shorter than [e] bisects, the chosen
-      discriminator is strictly shorter *)
-  Theorem choose_shortens : forall e l r e0,
-    In e0 (suffixes e) ->
-    bisects e0 l r = true ->
-    List.length (choose e l r) <= List.length e0.
-  Proof.
-    induction e as [| a e IH]; intros l r e0 Hin Hbis.
-    - simpl in Hin. destruct Hin as [<- | []].
-      unfold choose. simpl. now rewrite Hbis.
-    - unfold choose.
-      simpl (suffixes (a :: e)). simpl.
-      rewrite list_find.
-      destruct (find (fun e' => bisects e' l r) (rev (suffixes e))) eqn:F.
-      + assert (Hs_in : In l0 (suffixes e))
-          by (apply find_some in F as [Hi _]; now apply in_rev in Hi).
-        assert (Hs_len : List.length l0 <= List.length e)
-          by now apply suffixes_length.
-        destruct Hin as [<- | Hin0].
-            simpl. lia.
-        assert (Hchoose_e : choose e l r = l0) by
-            (unfold choose; now rewrite F).
-        pose proof (IH l r e0 Hin0 Hbis) as Hle.
-        now rewrite Hchoose_e in Hle.
-      + simpl in *. destruct Hin as [<- | Hin0].
-            now destruct (bisects _ _ _).
-        exfalso.
-        assert (Hin_rev : In e0 (rev (suffixes e))) by
-            now rewrite <- in_rev.
-        pose proof (find_none _ _ F e0 Hin_rev) as Hf.
-        simpl in Hf. congruence.
-  Qed.
-
   (** Finalization preserves well-formedness *)
   Lemma finalize_preserves_wf :
     forall t, wf t -> wf (finalize t).
@@ -730,82 +672,6 @@ Section Finalize.
     repeat split; auto.
   Qed.
 
-  Lemma choose_routes_agree_leaves : forall e l r u,
-    bisects e l r = true ->
-    In u (leaves l) \/ In u (leaves r) ->
-    member (u ++ choose e l r) = member (u ++ e).
-  Proof.
-    intros e l r u He Hu.
-    destruct (choose_correct e l r He) as [Hchb _].
-    apply bisects_impl_clauses in He as [HLe HRe].
-    apply bisects_impl_clauses in Hchb as [HLc HRc].
-    destruct Hu as [Hu | Hu].
-    - now rewrite (HLe u Hu), (HLc u Hu).
-    - now rewrite (HRe u Hu), (HRc u Hu).
-  Qed.
-
-  Lemma choose_routes_agree :
-    forall e l r u,
-        bisects e l r = true ->
-        In u (leaves l) \/ In u (leaves r) ->
-        member (u ++ choose e l r) = member (u ++ e).
-  Proof.
-    intros e l r u Hbis Hin.
-    unfold choose.
-    destruct (find (fun e' => bisects e' l r)
-                    (rev (suffixes e))) eqn:F.
-    - apply find_some in F as [Hin_rev Hbis_l0].
-      apply in_rev, suffixes_length in Hin_rev.
-      apply bisects_impl_clauses in Hbis_l0 as [Hl Hr].
-      assert (Hrell :
-        forall q, In q (leaves l) ->
-            member (q ++ e) = member (q ++ l0)). {
-        intros q Hq.
-        rewrite Hl by assumption;
-            apply bisects_impl_clauses in Hbis as [HLe _];
-            now rewrite HLe.
-      }
-      assert (Hrelr :
-        forall q, In q (leaves r) ->
-            member (q ++ e) = member (q ++ l0)). {
-        intros q Hq.
-        rewrite Hr by assumption;
-            apply bisects_impl_clauses in Hbis as [_ HRe];
-            now rewrite HRe.
-      }
-      destruct Hin as [HinL | HinR].
-        now rewrite <- (Hrell u HinL).
-        now rewrite <- (Hrelr u HinR).
-    - destruct Hin as [HinL | HinR];
-        apply bisects_impl_clauses in Hbis as [Hl _]; auto.
-    Qed.
-
-  Lemma finalize_sift_agree_leaves :
-    forall t u, wf t -> In u (leaves t) -> sift (finalize t) u = sift t u.
-  Proof.
-    intros t u H. destruct H as [H _].
-    induction t as [q | d lt IHlt rt IHrt]; intro Hu; simpl in *.
-        reflexivity.
-    destruct H as (DL & DR & Hwfl & Hwfr).
-    apply in_app_or in Hu.
-    assert (Hbis : bisects (disc_str d) (finalize lt) (finalize rt) = true). {
-        apply wf_bisects_impl_bisects;
-        intros q Hq; rewrite finalize_leaves in Hq; auto. }
-    destruct d; simpl in *.
-    - destruct (member (u ++ e)) eqn:M; destruct Hu as [Hu | Hu]; auto.
-        specialize (DR u Hu). congruence.
-        specialize (DL u Hu). congruence.
-    - assert (Hroute : member (u ++ choose e (finalize lt) (finalize rt))
-                       = member (u ++ e)). {
-        apply choose_routes_agree_leaves with (l := finalize lt) (r := finalize rt).
-            assumption.
-        now repeat rewrite !finalize_leaves. }
-      rewrite Hroute.
-      destruct (member (u ++ e)) eqn:M; destruct Hu as [Hu | Hu]; auto.
-        specialize (DR u Hu). congruence.
-        specialize (DL u Hu). congruence.
-  Qed.
-
   (** Every finalized discriminator is no longer than its origin *)
   Lemma choose_length : forall e l r,
     List.length (choose e l r) <= List.length e.
@@ -816,38 +682,6 @@ Section Finalize.
     apply find_some in F as [Hin _]. apply in_rev in Hin.
     now apply suffixes_length.
   Qed.
-
-  Lemma finalize_length_bound :
-  forall t,
-    Forall (fun d' => exists d, In d (discriminators t) /\
-                          List.length (disc_str d') <= List.length (disc_str d))
-           (discriminators (finalize t)).
-  Proof.
-    intros t.
-    induction t as [q | d lt IHlt rt IHrt]; simpl in *.
-        constructor.
-    destruct d; simpl.
-    - constructor.
-        eexists. split; auto.
-      apply Forall_app. split.
-      -- eapply Forall_impl; [| eassumption].
-         intros d' (d & Hin & Hle). exists d. split; [| assumption].
-         right. apply in_or_app. now left.
-      -- eapply Forall_impl; [| eassumption].
-         intros d' (d & Hin & Hle). exists d. split; [| assumption].
-         right. apply in_or_app. now right.
-    - constructor.
-        eexists. split; [now left |]. simpl.
-        apply choose_length.
-      apply Forall_app. split.
-      -- eapply Forall_impl; [| eassumption].
-         intros d' (d & Hin & Hle). exists d. split; [| assumption].
-         right. apply in_or_app. now left.
-      -- eapply Forall_impl; [| eassumption].
-         intros d' (d & Hin & Hle). exists d. split; [| assumption].
-         right. apply in_or_app. now right.
-  Qed.
-
 End Finalize.
 
 Section Learner.

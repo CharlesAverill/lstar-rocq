@@ -51,48 +51,5 @@ Proof.
     now apply (proj1 (InG x)), FsubG, (proj2 (InF x)).
 Qed.
 
-Lemma finite_update_impl_finite : forall
-    (f : X -> bool) k v
-    (FinUpdF : finite f[k := v]),
-    finite f.
-Proof.
-    intros. destruct FinUpdF as (fl' & NDfl' & Infl).
-    unfold finite, update in *.
-    destruct v, (f k) eqn:Hfk.
-    - exists fl'. split. assumption.
-        intro s. specialize (Infl s). destruct (eq_dec s k).
-            subst. now rewrite Hfk.
-        assumption.
-    - exists (filter f fl'). split.
-        + clear Infl. induction fl' as [| h t IH].
-            constructor.
-          inversion NDfl'; subst. simpl. destruct (f h) eqn:Hfh.
-            constructor.
-                intro C. apply filter_In in C.
-                now destruct C.
-            now apply IH.
-          now apply IH.
-        + intro s. specialize (Infl s). rewrite filter_In. 
-            destruct (eq_dec s k) as [e|n].
-                subst. rewrite Hfk. now split; intro H.
-            split; intro H.
-                split; [now apply Infl | assumption].
-            now destruct H.
-    - exists (k :: fl'). split.
-        + constructor; auto.
-          intro C. specialize (Infl k). destruct (eq_dec k k).
-            now rewrite <- Infl in C.
-          contradiction.
-        + intro s. specialize (Infl s). simpl. destruct (eq_dec s k).
-            subst. rewrite Hfk. split; auto.
-            split; intro H.
-                right. now apply Infl.
-            destruct H as [e2 | Hfl]; intuition.
-    - exists fl'. split; auto.
-        intro s. specialize (Infl s). destruct (eq_dec s k).
-            subst. now rewrite Hfk.
-            assumption.
-Defined.
-
 End SL.
 
