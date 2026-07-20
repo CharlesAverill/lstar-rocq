@@ -389,7 +389,7 @@ Proof.
 Qed.
 
 (** Linear search for an adjacent correctness flip *)
-Theorem sg_partition :
+Theorem sg_partition_linear :
     mobs (make_mealy H) (make_mealy H).(initial _) (w' ++ [a])
       <> obs nil (w' ++ [a]) ->
     {k | correct k /\ ~ correct (S k) /\ k < List.length w'}.
@@ -409,6 +409,51 @@ Proof.
         exists k. split; [assumption | split; [assumption | lia]].
   }
   apply (search (List.length w')); [lia | assumption].
+Defined.
+
+Theorem sg_partition_binary :
+    mobs (make_mealy H) (make_mealy H).(initial _) (w' ++ [a])
+      <> obs nil (w' ++ [a]) ->
+    {k | correct k /\ ~ correct (S k) /\ k < List.length w'}.
+Proof.
+    intro Hce.
+    pose proof sg_0 as C0.
+    pose proof (last_not_correct Hce) as Cm.
+    (* Search [lo, hi] with correct lo, ~correct hi, lo < hi, by strong
+       induction on the gap (hi - lo). *)
+    assert (search : forall gap lo hi,
+        hi - lo <= gap ->
+        lo < hi <= List.length w' ->
+        correct lo ->
+        ~ correct hi ->
+        {k | correct k /\ ~ correct (S k) /\ k < List.length w'}). {
+      induction gap as [| gap IHgap]; intros lo hi Hgap Hlt Clo Chi.
+        lia.
+      (* if hi = S lo, the flip is at lo.
+         Otherwise, look for the midpoint *)
+        destruct (Nat.eqb hi (S lo)) eqn:E.
+        - exists lo. split; [assumption|].
+          apply Nat.eqb_eq in E. rewrite <- E. split. assumption. lia.
+        - (* lo + 1 < hi, so there is a midpoint strictly between *)
+          set (mid := Nat.div2 (lo + hi)).
+          assert (Hmid_lo : lo < mid). {
+            unfold mid.
+            apply Nat.div2_le_lower_bound.
+            apply Nat.eqb_neq in E. lia. }
+          assert (Hmid_hi : mid < hi). {
+            unfold mid. rewrite Nat.div2_div.
+            apply Nat.Div0.div_lt_upper_bound. lia. }
+          destruct (correct_dec mid).
+          (* correct at mid: recurse on [mid, hi] *)
+            apply (IHgap mid hi); now try lia.
+          (* incorrect at mid: recurse on [lo, mid] *)
+            apply (IHgap lo mid); now try lia.
+    }
+    (* search(length w, 0 length w) *)
+    destruct (Nat.eqb (List.length w') 0) eqn:E.
+    - destruct Cm. apply Nat.eqb_eq in E. now rewrite E.
+    - apply Nat.eqb_neq in E.
+      apply (search (List.length w') 0 (List.length w')); now try lia.
 Defined.
 
 End SG.
@@ -434,7 +479,7 @@ Proof.
       intro Hw. subst w. apply Hce. reflexivity. }
     destruct (exists_last Hne) as (w' & a & Hw). subst w.
     (* Shahbaz-Groz search: a flip strictly inside w'. *)
-    destruct (sg_partition H w' a Hce) as (k & KCorrect & SKIncorrect & Hlt).
+    destruct (sg_partition_binary H w' a Hce) as (k & KCorrect & SKIncorrect & Hlt).
     (* The two adjacent reconstructions differ. *)
     assert (Dist : sg H w' a k <> sg H w' a (S k)). {
       unfold correct in KCorrect, SKIncorrect.
