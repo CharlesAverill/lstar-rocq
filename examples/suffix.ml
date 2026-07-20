@@ -135,7 +135,7 @@ let report_nfa name nfa k =
   print_endline "RFSA found" ;
   NP.print_nfa nfa ;
   Printf.printf "DOT file at %s\n" (NP.to_dot ~name:(name ^ "_suffix") nfa) ;
-  print_table (NTeacher.R.N.accept_string nfa) k
+  print_table (NTeacher.R.N.accept_string nfa) (3 * k)
 
 let () =
   let dfa = Lstar.lstar () in
