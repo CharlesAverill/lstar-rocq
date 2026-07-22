@@ -504,3 +504,31 @@ Proof.
       subst a'. contradiction.
     - intros a1 a2 c H1 H2. apply (Hinj a1 a2 c); now right.
 Qed.
+
+Fixpoint index {A} (a : A) (l : list A) (eq_dec : forall x y : A, {x = y} + {x <> y}) : option nat :=
+    match l with
+    | [] => None
+    | h :: t => if eq_dec h a then Some 0 else
+        match index a t eq_dec with
+        | None => None
+        | Some idx => Some (S idx)
+        end
+    end.
+
+Lemma index_sound_In : forall {A} (l : list A) a eq_dec,
+  In a l -> exists n, index a l eq_dec = Some n.
+Proof.
+    induction l; intros; simpl in *.
+        contradiction.
+    destruct eq_dec; subst.
+        now exists 0.
+    destruct H. contradiction.
+    eapply IHl with (eq_dec := eq_dec) in H.
+    destruct H. rewrite H. now exists (S x).
+Qed.
+
+Definition index_complete : forall {A} a l eq_dec (Complete : forall x : A, In x l), exists n, index a l eq_dec = Some n.
+Proof.
+  intros A a l eq_dec Complete.
+  apply index_sound_In, Complete.
+Defined.

@@ -20,7 +20,7 @@
        is therefore not a general HTTP parser.
      - Packet validity is defined in terms of the HTTP parsing functions *)
 
-From lstar Require Import TTT automata.DFA Teacher.
+From lstar Require Import TTT_DFA automata.DFA Teacher.
 From Stdlib Require Import Bool String List PeanoNat Lia.
 Import ListNotations.
 

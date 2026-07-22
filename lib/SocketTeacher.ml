@@ -1,5 +1,5 @@
 open Unix
-open Lstar
+open Lstar_DFA
 open DFA
 open Alphabet
 open Teacher

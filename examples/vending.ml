@@ -1,7 +1,6 @@
 (* Coin-operated vending machine: a 30c item, coins of 5/10/25, and a
    refund lever *)
 
-open Lstar
 open Mealy
 open Specif
 open Teacher
@@ -160,7 +159,13 @@ module Teacher : MEALYTEACHER with module S = S and module O = O = struct
 end
 
 (** Mealy L* implementation *)
-module Learner = MealyLstarLearner (Teacher)
+module LstarLearner = MealyLstarLearner (Teacher)
+
+(** Mealy KV implementation *)
+module KVLearner = MealyKVLearner (Teacher)
+
+(** Mealy TTT implementation *)
+module TTTLearner = MealyTTTLearner (Teacher)
 
 module MP = MealyPrinter (Teacher)
 
@@ -241,4 +246,7 @@ let print_results name m n =
   in
   Printf.printf "Accuracy: %d/%d\n" correct (List.length strings)
 
-let () = print_results "Mealy-L*" (Learner.mlstar ()) 3
+let () =
+  print_results "Mealy-L*" (LstarLearner.mlstar ()) 3 ;
+  print_results "Mealy-KV" (KVLearner.mkv ()) 3 ;
+  print_results "Mealy-TTT" (TTTLearner.mttt ()) 3

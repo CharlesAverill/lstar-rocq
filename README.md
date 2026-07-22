@@ -6,8 +6,8 @@ A collection of formally-verified implementations of [automata learning](https:/
 | --- | --- | --- | --- |
 | L* | [Angluin, 1987](https://doi.org/10.1016/0890-5401(87)90052-6), [Lecture Notes](https://www.tifr.res.in/~shibashis.guha/courses/diwali2021/L-starMalharManagoli.pdf) | [Lstar.v](theories/algorithms/Lstar/) | DFA, Moore, Mealy |
 | NL* | [Bollig et al., 2009](https://lsv.ens-paris-saclay.fr/Publis/RAPPORTS_LSV/PDF/rr-lsv-2008-28.pdf) | [NLstar.v](theories/algorithms/NLstar.v) | NFA |
-| Kearns-Vazirani | [Kearns-Vazirani, 1994](https://doi.org/10.7551/mitpress/3897.003.0009), [Balle, 2010](https://borjaballe.github.io/papers/zulu10.pdf) | [KV.v](theories/algorithms/KV.v) | DFA |
-| TTT | [Isberner et al., 2014](https://doi.org/10.1007/978-3-319-11164-3) | [TTT.v](theories/algorithms/TTT.v) | DFA |
+| Kearns-Vazirani | [Kearns-Vazirani, 1994](https://doi.org/10.7551/mitpress/3897.003.0009), [Balle, 2010](https://borjaballe.github.io/papers/zulu10.pdf) | [KV.v](theories/algorithms/KV.v) | DFA, Moore, Mealy |
+| TTT | [Isberner et al., 2014](https://doi.org/10.1007/978-3-319-11164-3) | [TTT.v](theories/algorithms/TTT.v) | DFA, Moore, Mealy |
 
 [These notes](https://www.overleaf.com/read/jbftmjdhmyjd#a32216) summarize each of the main proof arguments and algorithm designs.
 
@@ -50,11 +50,30 @@ make # will build lstar-rocq, extract, then build lstar
 
 An example execution is provided in [alternating.ml](examples/alternating.ml).
 The target language is alternating bit strings (e.g., "01", "10", "101", "0101", etc.).
-Running `dune exec lstar.alternating` will start the learning algorithm, report that it has found a DFA that encodes the language, and then run some test cases for bit strings of length 3:
+It can be recognized by the following four-state DFA:
+![alternating DFA](examples/images/alternating_1.png)
+
+Running `dune exec dfa.alternating` will start the learning algorithm, report that it has found a DFA that encodes the language, and then run some test cases for bit strings of length 3:
 
 ```
-$ dune exec lstar.alternating
-DFA found                          
+$ dune exec dfa.alternating
+=== L* ===
+DFA found
+States (4):
+  q0    accept <- initial
+  q1    accept
+  q2    accept
+  q3    reject
+Transitions:
+  q0   --0--> q1
+  q0   --1--> q2
+  q1   --0--> q3
+  q1   --1--> q2
+  q2   --0--> q1
+  q2   --1--> q3
+  q3   --0--> q3
+  q3   --1--> q3
+DOT file at /tmp/L*_alternating8dc429.dot
 Input       Expected  Got       Correct 
 [000]       false     false     Y
 [001]       false     false     Y
@@ -67,9 +86,7 @@ Input       Expected  Got       Correct
 Accuracy: 8/8
 ```
 
-Examples `lstar.div7` and `lstar.mod3` show the learning of DFAs for decimal strings divisible by 7, and binary strings where the number of `1`s is divisible by 3.
-
-![alternating DFA](examples/images/alternating_1.png)
+See more [examples](./examples/).
 
 ![mod3 DFA](examples/images/mod3_2.png)
 

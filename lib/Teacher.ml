@@ -1,8 +1,12 @@
-open Lstar
+open Lstar_DFA
 open Lstar_Moore
 open Lstar_Mealy
-open KV
-open TTT
+open KV_DFA
+open KV_Moore_Binary
+open KV_Mealy_Binary
+open TTT_DFA
+open TTT_Moore_Binary
+open TTT_Mealy_Binary
 open NLstar
 open DFA
 open NFA
@@ -973,6 +977,44 @@ module KVLearner (T : DFATEACHER) = struct
   let kv () : __ T.D.t = match Impl.kv () with Coq_existT (_, d) -> d
 end
 
+module MooreKVLearner (T : MOORETEACHER) = struct
+  module Impl =
+    KV_Moore_Binary (T.S) (T.O)
+      (struct
+        module M = T.M
+
+        let output_lang = T.output_lang
+
+        let num_states_in_minimal = T.fuel
+      end)
+      (struct
+        let equiv_query = T.equiv_query
+      end)
+
+  include Impl
+
+  let mkv () : __ T.M.t = match Impl.mkv () with Coq_existT (_, m) -> m
+end
+
+module MealyKVLearner (T : MEALYTEACHER) = struct
+  module Impl =
+    KV_Mealy_Binary (T.S) (T.O)
+      (struct
+        module M = T.M
+
+        let output_lang = T.output_lang
+
+        let num_states_in_minimal = T.fuel
+      end)
+      (struct
+        let equiv_query = T.equiv_query
+      end)
+
+  include Impl
+
+  let mkv () : __ T.M.t = match Impl.mkv () with Coq_existT (_, m) -> m
+end
+
 module TTTLearner (T : DFATEACHER) = struct
   module Impl =
     TTT
@@ -991,6 +1033,44 @@ module TTTLearner (T : DFATEACHER) = struct
   include Impl
 
   let ttt () : __ T.D.t = match Impl.ttt () with Coq_existT (_, d) -> d
+end
+
+module MooreTTTLearner (T : MOORETEACHER) = struct
+  module Impl =
+    TTT_Moore_Binary (T.S) (T.O)
+      (struct
+        module M = T.M
+
+        let output_lang = T.output_lang
+
+        let num_states_in_minimal = T.fuel
+      end)
+      (struct
+        let equiv_query = T.equiv_query
+      end)
+
+  include Impl
+
+  let mttt () : __ T.M.t = match Impl.mttt () with Coq_existT (_, m) -> m
+end
+
+module MealyTTTLearner (T : MEALYTEACHER) = struct
+  module Impl =
+    TTT_Mealy_Binary (T.S) (T.O)
+      (struct
+        module M = T.M
+
+        let output_lang = T.output_lang
+
+        let num_states_in_minimal = T.fuel
+      end)
+      (struct
+        let equiv_query = T.equiv_query
+      end)
+
+  include Impl
+
+  let mttt () : __ T.M.t = match Impl.mttt () with Coq_existT (_, m) -> m
 end
 
 module NLstarLearner (T : NFATEACHER) = struct

@@ -1,6 +1,5 @@
 (* European-style 4-phase traffic light *)
 
-open Lstar
 open Moore
 open Specif
 open Teacher
@@ -101,7 +100,13 @@ module Teacher : MOORETEACHER with module S = S and module O = O = struct
 end
 
 (** Moore L* implementation *)
-module Learner = MooreLstarLearner (Teacher)
+module LstarLearner = MooreLstarLearner (Teacher)
+
+(** Moore KV implementation *)
+module KVLearner = MooreKVLearner (Teacher)
+
+(** Moore TTT implementation *)
+module TTTLearner = MooreTTTLearner (Teacher)
 
 module MP = MoorePrinter (Teacher)
 
@@ -157,4 +162,7 @@ let print_results name m n =
   in
   Printf.printf "Accuracy: %d/%d\n" correct (List.length strings)
 
-let () = print_results "Moore-L*" (Learner.mlstar ()) 4
+let () =
+  print_results "Moore-L*" (LstarLearner.mlstar ()) 4 ;
+  print_results "Moore-KV" (KVLearner.mkv ()) 4 ;
+  print_results "Moore-TTT" (TTTLearner.mttt ()) 4

@@ -1,4 +1,3 @@
-open Lstar
 open DFA
 open Specif
 open Teacher

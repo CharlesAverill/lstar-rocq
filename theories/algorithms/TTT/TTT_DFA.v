@@ -9,8 +9,7 @@ Import ListNotations.
 Module TTT (s : Symbol) (L : RegularLanguage s) (Tch : DFATeacher s L).
 Import s L Tch D.
 
-(** Trees are now tagged with whether their discriminators are
-    _final_ or _temporary_ *)
+(** Discriminators are tagged with whether their discriminators are _final_ or _temporary_ *)
 Inductive disc : Type :=
 | Final (e : str)
 | Temp  (e : str).
@@ -363,7 +362,6 @@ Proof.
         repeat split; auto.
         intros x Hx. apply split_leaves_fwd in Hx. destruct Hx as [-> | Hx]; auto.
 Qed.
-
 
 Theorem find_split :
     forall (t : ttree) (w : str)

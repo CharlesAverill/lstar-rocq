@@ -1,10 +1,15 @@
 (rocq.extraction
  (prelude Extraction)
  (extracted_modules
-  Lstar
+  Lstar_DFA
   Lstar_Moore
   Lstar_Mealy
-  KV
+  KV_DFA
+  KV_Moore_Binary
+  KV_Mealy_Binary
+  TTT_DFA
+  TTT_Moore_Binary
+  TTT_Mealy_Binary
   Datatypes
   Bool
   DFA
@@ -20,8 +25,7 @@
   PeanoNat
   Nat
   RS
-  SetLemmas
-  TTT)
+  SetLemmas)
  (theories Stdlib lstar))
 
 (library

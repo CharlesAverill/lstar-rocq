@@ -1,6 +1,6 @@
 (** L* for Mealy machines *)
 
-From lstar Require Import automata.Mealy ListLemmas SetLemmas Teacher.
+From lstar Require Import automata.Mealy ListLemmas SetLemmas Teacher RS.
 From Stdlib Require Import Classes.RelationClasses.
 From Stdlib Require Import Setoids.Setoid.
 From Stdlib Require Import List.
@@ -302,37 +302,26 @@ Defined.
 (** Shahbaz-Groz Counterexample analysis
     https://doi.org/10.1007/978-3-642-05089-3_14 *)
 
-Lemma eps_in_H : forall (H : HypothesisMealy),
+Module SGSetup <: MealySG_Setup s O L.
+  Definition obt := HypothesisMealy.
+  Definition P (o : obt) (q : str) : Prop := o.(Q) q = true.
+  Definition make_mealy (o : obt) : M.t { q | P o q } := make_mealy o.
+
+Lemma eps_in_H : forall (H : obt),
     proj1_sig (make_mealy H).(initial _) = nil.
 Proof.
   intro H. unfold make_mealy, initial, fin_Q. simpl.
   now destruct H, fin_Q0, a.
 Qed.
 
-Lemma out_correct : forall (H : HypothesisMealy) q a,
-    output _ (make_mealy H) q a = output_lang (proj1_sig q) a.
+Lemma out_correct : forall (H : obt) q a,
+    output {s : str | P H s} (make_mealy H) q a = output_lang (proj1_sig q) a.
 Proof.
-  intros H q a. unfold make_mealy, output.
+  intros H q a. unfold make_mealy, MealyLstar.make_mealy, output.
   now destruct fin_Q, a0.
 Qed.
 
-(** [pi H w i] is the access string of the state the hypothesis reaches
-    after reading the length-[i] prefix of [w]. *)
-Definition pi (H : HypothesisMealy) (w : str) (i : nat) : str :=
-    proj1_sig (run (make_mealy H) (firstn i w)).
-
-Lemma pi_0 : forall H w, pi H w 0 = nil.
-Proof.
-  intros H w. unfold pi.
-  change (firstn 0 w) with (@nil s.t).
-  unfold run. simpl (fold_left _ nil _).
-  apply eps_in_H.
-Qed.
-
-Lemma pi_in_Q : forall H w i, H.(Q) (pi H w i) = true.
-Proof.
-  intros. unfold pi. exact (proj2_sig (run (make_mealy H) (firstn i w))).
-Qed.
+Definition obs : str -> str -> option O.t := obs.
 
 (** The hypothesis's own prediction for [w' ++ [a]] is the target's
     transition output at the access string reached after [w']. *)
@@ -340,123 +329,19 @@ Lemma prediction_is_obs_at_access : forall H w' a,
     mobs (make_mealy H) (make_mealy H).(initial _) (w' ++ a :: nil)
       = obs (proj1_sig (run (make_mealy H) w')) (a :: nil).
 Proof.
-  intros H w' a.
-  rewrite M.mobs_snoc, out_correct, obs_single. reflexivity.
+  intros H w' a. rewrite M.mobs_snoc.
+  change {q : str | Q H q = true} with {q : str | P H q}.
+  rewrite out_correct, obs_single. reflexivity.
 Qed.
+End SGSetup.
 
-Section SG.
-Context (H : HypothesisMealy) (w' : str) (a : s.t).
+Module SG := MealySG s O L SGSetup.
+Import SG.
 
-Definition sg (i : nat) : option O.t :=
-    obs (pi H w' i) (skipn i w' ++ [a]).
-
-(** Index [i] is _correct_ when the reconstructed observation still agrees
-    with the target's value on the whole counterexample. *)
-Definition correct (i : nat) : Prop := sg i = obs nil (w' ++ [a]).
-
-Lemma correct_dec : forall i, {correct i} + {~ correct i}.
+Lemma pi_in_Q : forall H w i, H.(Q) (pi H w i) = true.
 Proof.
-  intro i. unfold correct.
-  destruct (sg i) as [x|] eqn:E1, (obs nil (w' ++ [a])) as [y|] eqn:E2.
-  - destruct (O.eq_dec x y); [left; now subst | right; congruence].
-  - right; congruence.
-  - right; congruence.
-  - left; reflexivity.
-Defined.
-
-Lemma sg_0 : correct 0.
-Proof.
-  unfold correct, sg. rewrite pi_0.
-  change (skipn 0 w') with w'. reflexivity.
+  intros. unfold pi. exact (proj2_sig (run (make_mealy H) (firstn i w))).
 Qed.
-
-Lemma sg_last :
-    sg (List.length w')
-      = mobs (make_mealy H) (make_mealy H).(initial _) (w' ++ [a]).
-Proof.
-  unfold sg, pi.
-  rewrite firstn_all, skipn_all. simpl ((nil : str) ++ [a]).
-  now rewrite prediction_is_obs_at_access.
-Qed.
-
-Lemma last_not_correct :
-    mobs (make_mealy H) (make_mealy H).(initial _) (w' ++ [a])
-      <> obs nil (w' ++ [a]) ->
-    ~ correct (List.length w').
-Proof.
-  intros Hce Contra. unfold correct in Contra.
-  rewrite sg_last in Contra. contradiction.
-Qed.
-
-(** Linear search for an adjacent correctness flip *)
-Theorem sg_partition_linear :
-    mobs (make_mealy H) (make_mealy H).(initial _) (w' ++ [a])
-      <> obs nil (w' ++ [a]) ->
-    {k | correct k /\ ~ correct (S k) /\ k < List.length w'}.
-Proof.
-  intro Hce.
-  pose proof sg_0 as C0.
-  pose proof (last_not_correct Hce) as Cm.
-  (* Walk down from |w'| looking for the last correct index. *)
-  assert (search : forall n, n <= List.length w' ->
-            ~ correct n ->
-            {k | correct k /\ ~ correct (S k) /\ k < List.length w'}). {
-    induction n as [| n IH]; intros Hn Hnc.
-    - contradiction.
-    - destruct (correct_dec n) as [Cn | NCn].
-      + exists n. split; [assumption | split; [assumption | lia]].
-      + destruct (IH ltac:(lia) NCn) as (k & Ck & NCk & Hk).
-        exists k. split; [assumption | split; [assumption | lia]].
-  }
-  apply (search (List.length w')); [lia | assumption].
-Defined.
-
-Theorem sg_partition_binary :
-    mobs (make_mealy H) (make_mealy H).(initial _) (w' ++ [a])
-      <> obs nil (w' ++ [a]) ->
-    {k | correct k /\ ~ correct (S k) /\ k < List.length w'}.
-Proof.
-    intro Hce.
-    pose proof sg_0 as C0.
-    pose proof (last_not_correct Hce) as Cm.
-    (* Search [lo, hi] with correct lo, ~correct hi, lo < hi, by strong
-       induction on the gap (hi - lo). *)
-    assert (search : forall gap lo hi,
-        hi - lo <= gap ->
-        lo < hi <= List.length w' ->
-        correct lo ->
-        ~ correct hi ->
-        {k | correct k /\ ~ correct (S k) /\ k < List.length w'}). {
-      induction gap as [| gap IHgap]; intros lo hi Hgap Hlt Clo Chi.
-        lia.
-      (* if hi = S lo, the flip is at lo.
-         Otherwise, look for the midpoint *)
-        destruct (Nat.eqb hi (S lo)) eqn:E.
-        - exists lo. split; [assumption|].
-          apply Nat.eqb_eq in E. rewrite <- E. split. assumption. lia.
-        - (* lo + 1 < hi, so there is a midpoint strictly between *)
-          set (mid := Nat.div2 (lo + hi)).
-          assert (Hmid_lo : lo < mid). {
-            unfold mid.
-            apply Nat.div2_le_lower_bound.
-            apply Nat.eqb_neq in E. lia. }
-          assert (Hmid_hi : mid < hi). {
-            unfold mid. rewrite Nat.div2_div.
-            apply Nat.Div0.div_lt_upper_bound. lia. }
-          destruct (correct_dec mid).
-          (* correct at mid: recurse on [mid, hi] *)
-            apply (IHgap mid hi); now try lia.
-          (* incorrect at mid: recurse on [lo, mid] *)
-            apply (IHgap lo mid); now try lia.
-    }
-    (* search(length w, 0 length w) *)
-    destruct (Nat.eqb (List.length w') 0) eqn:E.
-    - destruct Cm. apply Nat.eqb_eq in E. now rewrite E.
-    - apply Nat.eqb_neq in E.
-      apply (search (List.length w') 0 (List.length w')); now try lia.
-Defined.
-
-End SG.
 
 (** Analyze a counterexample [w] to extract a new access string and a new
     distinguishing suffix that strictly refine the table. *)
@@ -479,7 +364,8 @@ Proof.
       intro Hw. subst w. apply Hce. reflexivity. }
     destruct (exists_last Hne) as (w' & a & Hw). subst w.
     (* Shahbaz-Groz search: a flip strictly inside w'. *)
-    destruct (sg_partition_binary H w' a Hce) as (k & KCorrect & SKIncorrect & Hlt).
+    destruct (sg_partition_binary _ _ _ Hce)
+        as (k & KCorrect & SKIncorrect & Hlt).
     (* The two adjacent reconstructions differ. *)
     assert (Dist : sg H w' a k <> sg H w' a (S k)). {
       unfold correct in KCorrect, SKIncorrect.
@@ -525,6 +411,7 @@ Proof.
       rewrite Hskipn. fold t.
       (* obs (pi k) (wk :: t) = obs (pi k ++ [wk]) t  by obs_shift *)
       change ((wk :: skipn (S k) w') ++ [a]) with (wk :: t).
+      unfold SGSetup.obs.
       rewrite (obs_shift (pi H w' k) wk t Htne).
       fold t. exact Hbad.
     }

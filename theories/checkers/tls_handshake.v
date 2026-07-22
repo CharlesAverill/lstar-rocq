@@ -14,7 +14,7 @@
 	  is logically equivalent to a vulnerability existing in the black box.
 *)
 
-From lstar Require Import TTT automata.DFA Teacher ListLemmas.
+From lstar Require Import TTT_DFA automata.DFA Teacher ListLemmas.
 From Stdlib Require Import List Bool PeanoNat Lia.
 Import ListNotations.
 
