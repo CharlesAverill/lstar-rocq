@@ -20,10 +20,6 @@ Module Residuals (s : Symbol).
         Res(M) = { u^{-1}M | u \in S } *)
     Definition Res (M : lang) (r : lang) : Prop :=
         exists u, lang_eq r (inverse M u).
-
-    (** Every language is its own residual (by the empty word) *)
-    Lemma Res_self : forall M, Res M M.
-    Proof. intros M. exists []. intro. reflexivity. Qed.
 End Residuals.
 
 (** Nondeterministic Finite Automaton *)
