@@ -437,22 +437,11 @@ Definition Hclosed (H : HypothesisRFSA) : Prop :=
 Definition Hconsistent (H : HypothesisRFSA) : Prop :=
     rfsa_consistent H.(T) H.(V) H.(fin_U).
 
-(* Every residual of L is realised by a prime row of the table *)
-Definition Hrep (H : HypothesisRFSA) : Prop :=
-    forall r, L.residual r ->
-        exists u, In u (prime_reps H.(T) H.(V) (Ul H) H.(fin_V))
-                  /\ Res.lang_eq r (Res.inverse member u).
-
 Definition Hsep (H : HypothesisRFSA) : Prop :=
     forall u1 u2,
         In u1 (Ul H) ->
         In u2 (Ul H) ->
         row_eq H.(T) H.(V) u1 u2 -> u1 = u2.
-
-Definition Hdense (H : HypothesisRFSA) : Prop :=
-    forall u,
-        In u (prime_reps H.(T) H.(V) (Ul H) H.(fin_V)) ->
-        L.prime (Res.inverse member u).
 
 (* Q = Primes_upp(T) *)
 Definition memr (H : HypothesisRFSA) (q : str) : bool :=
@@ -1595,19 +1584,6 @@ Proof.
     rewrite E in H. discriminate.
 Qed.
 
-(* Adding a row whose row is new keeps it. *)
-Lemma dedup_rows_cons_new : forall T V finV u l,
-    (forall x, In x l -> ~ row_eq T V u x) ->
-    dedup_rows T V finV (u :: l) = u :: dedup_rows T V finV l.
-Proof.
-    intros T V finV u l Hnew. simpl.
-    destruct (existsb (fun u' => if row_eq_dec T V u u' finV then true else false)
-                      (dedup_rows T V finV l)) eqn:E; [| reflexivity].
-    exfalso. apply existsb_exists in E. destruct E as (x & Hx & Hxe).
-    destruct (row_eq_dec T V u x finV) as [Heq |]; [| discriminate].
-    exact (Hnew x (dedup_rows_incl T V finV l x Hx) Heq).
-Qed.
-
 (* Every element of the list is represented in the deduplicated list. *)
 Lemma dedup_rows_complete : forall T V finV l x,
     In x l -> exists y, In y (dedup_rows T V finV l) /\ row_eq T V x y.
@@ -1709,27 +1685,6 @@ Proof.
     right. now apply IH.
 Qed.
 
-(* Finite conjunction of double negations is the double negation of the finite
-   conjunction.  Intuitionistically valid for concrete lists. *)
-Lemma nn_forall_list : forall {X} (l : list X) (Q : X -> Prop),
-    (forall x, In x l -> ~ ~ Q x) ->
-    ~ ~ (forall x, In x l -> Q x).
-Proof.
-    induction l as [| a l' IH]; intros Q Hall Hcon.
-        apply Hcon. intros x [].
-    apply (Hall a (or_introl eq_refl)). intro Qa.
-    apply (IH Q (fun x Hx => Hall x (or_intror Hx))). intro Qtail.
-    apply Hcon. intros x [<- | Hx]; [exact Qa | now apply Qtail].
-Qed.
-
-(* [le] on [nat] is stable under double negation. *)
-Lemma nn_le : forall m n : nat, ~ ~ (m <= n) -> m <= n.
-Proof.
-    intros m n Hnn. destruct (Compare_dec.le_dec m n) as [Hle | Hgt].
-        exact Hle.
-    exfalso. now apply Hnn.
-Qed.
-
 Lemma relational_pigeonhole :
     forall {A B : Type}
            (eqA : forall x y : A, {x = y} + {x <> y})
@@ -1758,118 +1713,6 @@ Proof.
       assert (a = a') by (apply (Hinj a a' b); [now left | now right | assumption | assumption]).
       subst a'. contradiction.
     - intros a1 a2 c H1 H2. apply (Hinj a1 a2 c); now right.
-Qed.
-
-(* In any RFSA that encodes L, every prime residual of L is realised by one of
-   its states. *)
-Lemma prime_residual_realized_nn :
-    forall {state} (r : R.t state),
-    encodes (R.nfa _ r) ->
-    forall rho, L.prime rho ->
-    ~ ~ (exists q, In q (N.states _ (R.nfa _ r))
-                   /\ Res.lang_eq (N.L_state (R.nfa _ r) q) rho).
-Proof.
-    intros state r Henc rho (Hres & Hncomp).
-    destruct Hres as (u & Hu).
-    set (n := R.nfa _ r).
-    assert (HeqL : Res.lang_eq (Res.inverse member u) (Res.inverse (N.L_aut n) u)). {
-        intro w. unfold Res.inverse, N.L_aut, N.accept_string.
-        apply Bool.eq_true_iff_eq. split; intro Hm.
-            now apply Henc.
-        now apply (proj2 (Henc (u ++ w))). }
-    set (qs := N.run n u).
-    assert (Hunion : Res.lang_eq rho (union (map (N.L_state n) qs))). {
-        intro w. rewrite Hu, HeqL. apply (inverse_L_aut_union n u w). }
-    assert (Hstates : forall q, In q qs -> In q (N.states _ n))
-        by (intros q Hq; apply (N.states_complete _ n u q Hq)).
-    assert (Hres_state : forall q, In q qs -> L.residual (N.L_state n q)). {
-        intros q Hq.
-        destruct (R.states_are_residuals _ r q (Hstates q Hq)) as (x & Hx).
-        exists x. intro w. rewrite Hx. unfold Res.inverse, N.L_aut.
-        apply Bool.eq_true_iff_eq. split; intro Hm.
-            now apply (proj2 (Henc (x ++ w))).
-        now apply Henc. }
-    intro Hno.
-    apply Hncomp. split; [now exists u |].
-    exists (map (N.L_state n) qs). split.
-    - intros r' Hr'. apply in_map_iff in Hr'. destruct Hr' as (q & <- & Hq).
-      split; [now apply Hres_state |].
-      intro Heq. apply Hno.
-      exists q. split; [now apply Hstates | exact Heq].
-    - exact Hunion.
-Qed.
-
-(* If two access strings induce the same residual of
-   [member], their rows agree on every column of V. *)
-Lemma lang_eq_residual_row_eq : forall H u1 u2,
-    In u1 (row_index (Ul H)) -> In u2 (row_index (Ul H)) ->
-    Res.lang_eq (Res.inverse member u1) (Res.inverse member u2) ->
-    row_eq H.(T) H.(V) u1 u2.
-Proof.
-    intros H u1 u2 Hu1 Hu2 Heq v Hv. unfold cell.
-    rewrite (H.(tbl) u1 v Hu1 Hv), (H.(tbl) u2 v Hu2 Hv). apply (Heq v).
-Qed.
-
-(* The number of states of a hypothesis is bounded by the number of prime
-   residuals of L, hence by [num_states_in_canonical]. *)
-Lemma num_states_le_canonical : forall H,
-    Hclosed H -> Hconsistent H -> Hrep H -> Hsep H -> Hdense H ->
-    num_states H <= L.num_states_in_canonical.
-Proof.
-    intros H Hcl Hco Hr Hsp Hdn.
-    assert (Hns : num_states H = length (prime_reps H.(T) H.(V) (Ul H) H.(fin_V))). {
-        unfold num_states, make_nfa. simpl. apply list_with_proof_preserves_len. }
-    rewrite Hns. clear Hns.
-    set (PR := prime_reps H.(T) H.(V) (Ul H) H.(fin_V)).
-    assert (HNDpr : NoDup PR).
-    { unfold PR, prime_reps. apply NoDup_filter.
-      unfold Ul. destruct H.(fin_U) as (l & Hnd & ?). exact Hnd. }
-    destruct L.exists_rfsa as (st & rc & (Henc & _) & _ & Hlen).
-    set (n := R.nfa _ rc).
-    set (Qs := N.states _ n).
-    set (idx := seq 0 (length Qs)).
-    set (Rel := fun (u : str) (i : nat) =>
-        exists q, nth_error Qs i = Some q
-                  /\ Res.lang_eq (N.L_state n q) (Res.inverse member u)).
-    assert (seq_len : forall (k start : nat), length (seq start k) = k).
-    { induction k as [| k IH]; intros start; [reflexivity |]. simpl. now rewrite IH. }
-    assert (Hidxlen : length idx = length Qs) by (unfold idx; apply seq_len).
-    enough (Hle : length PR <= length idx).
-    { rewrite Hidxlen in Hle. unfold Qs, n in Hle. lia. }
-    apply nn_le.
-    assert (Htot_nn : forall u, In u PR -> ~ ~ (exists i, In i idx /\ Rel u i)). {
-        intros u Hu.
-        assert (Hprime : L.prime (Res.inverse member u)).
-            apply Hdn. now unfold PR in Hu.
-        pose proof (prime_residual_realized_nn rc Henc _ Hprime) as Hnn.
-        intro Hcon. apply Hnn. intros (q & HqQ & Hlangeq).
-        apply Hcon.
-        destruct (In_nth_error _ _ HqQ) as (i & Hnth).
-        exists i. split.
-        - unfold idx. apply in_seq. split; [lia |].
-          rewrite Nat.add_0_l.
-          apply (proj1 (nth_error_Some Qs i)).
-          unfold Qs, n. rewrite Hnth. discriminate.
-        - exists q. split; [exact Hnth | exact Hlangeq]. }
-    assert (Hinj : forall u1 u2 i, In u1 PR -> In u2 PR ->
-                     Rel u1 i -> Rel u2 i -> u1 = u2). {
-        intros u1 u2 i Hu1 Hu2 (q1 & Hnth1 & He1) (q2 & Hnth2 & He2).
-        assert (q1 = q2) by (rewrite Hnth1 in Hnth2; now inversion Hnth2). subst q2.
-        assert (Heqr : Res.lang_eq (Res.inverse member u1) (Res.inverse member u2)). {
-            intro w. rewrite <- (He1 w), <- (He2 w). reflexivity. }
-        apply (Hsp u1 u2
-                 (prime_reps_upper H.(T) H.(V) (Ul H) H.(fin_V) u1 Hu1)
-                 (prime_reps_upper H.(T) H.(V) (Ul H) H.(fin_V) u2 Hu2)).
-        apply (lang_eq_residual_row_eq H u1 u2
-                 (prime_reps_index H.(T) H.(V) (Ul H) H.(fin_V) u1 Hu1)
-                 (prime_reps_index H.(T) H.(V) (Ul H) H.(fin_V) u2 Hu2)
-                 Heqr). }
-    pose proof (nn_forall_list PR (fun u => exists i, In i idx /\ Rel u i) Htot_nn) as Hnn_tot.
-    intro Hcon. apply Hnn_tot. intro Htot.
-    apply Hcon.
-    apply (relational_pigeonhole (list_eq_dec eq_dec) Nat.eq_dec Rel PR idx HNDpr).
-    - intros u Hu. destruct (Htot u Hu) as (i & Hi & HR). now exists i.
-    - exact Hinj.
 Qed.
 
 (* The number of states is bounded by the number of residuals of L. *)
@@ -3045,20 +2888,6 @@ Proof.
       destruct (IH H' Hsp' ltac:(lia))
         as (H'' & ? & ? & ? & ? & Hmono').
       exists H''. repeat (split; [assumption|]). lia.
-Defined.
-
-Definition saturate :
-    forall (H : HypothesisRFSA),
-      Hclosed H -> Hconsistent H -> Hsep H ->
-      forall w, N.accept_string (make_nfa H) w <> member w ->
-      { H' : HypothesisRFSA
-        | Hclosed H' /\ Hconsistent H' /\ Hsep H'
-          /\ num_states H' <= L.num_residuals }.
-Proof.
-    intros H Hcl Hco Hsp w Hwce.
-    destruct (complete (extend_table_ce H w Hwce) (extend_ce_sep H w Hwce Hsp))
-      as (H' & Hcl' & Hco' & Hsp' & Hbnd' & _).
-    now exists H'.
 Defined.
 
 Definition step :
