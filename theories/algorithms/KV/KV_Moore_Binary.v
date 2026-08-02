@@ -3,6 +3,7 @@
     Distinguishing more than two outputs on one suffix is achieved by chaining such tests down the [no] spine. *)
 
 From lstar Require Import automata.Moore ListLemmas Teacher RS.
+From lstar Require Import normalization.norm_moore.
 From Stdlib Require Import List.
 From Stdlib Require Import Lia.
 From Stdlib Require Import PeanoNat.
@@ -588,11 +589,44 @@ Proof.
     lia.
 Qed.
 
-(** The main KV implementation. Adds one state per counterexample *)
+(** The main KV implementation. *)
+Module Norm := NormalizeMoore s O M.
+
+Definition state_eq_dec (t : dtree) :
+    forall (x y : {q | mem q (leaves t) = true}), {x = y} + {x <> y}.
+Proof.
+  intros [x Hx] [y Hy].
+  destruct (str_eq x y) as [Heq | Hne].
+  - left. subst y. f_equal. apply UIP_dec, Bool.bool_dec.
+  - right. intro C. inversion C. contradiction.
+Defined.
+
+Lemma make_moore_trans_closed (t : dtree) :
+    Norm.TransClosed (make_moore t).
+Proof.
+  unfold Norm.TransClosed. intros [q Hq] a _.
+  set (tgt := M.transition _ (make_moore t) (exist _ q Hq) a).
+  unfold M.states, make_moore. cbn.
+  assert (Hmem : In (proj1_sig tgt) (leaves t))
+    by (apply (mem_In str_eq); exact (proj2_sig tgt)).
+  set (Pf := fun (x : str) (Hx : In x (leaves t)) =>
+               match mem_In str_eq x (leaves t) with conj _ H0 => H0 end Hx).
+  match goal with
+  | [ |- In (exist _ ?v ?pf) (list_with_proof _ _ ?In_proof) ] =>
+      replace (exist (fun q0 => mem q0 (leaves t) = true) v pf)
+         with (exist (fun q0 => mem q0 (leaves t) = true) v (In_proof v Hmem))
+      by (f_equal; apply UIP_dec, Bool.bool_dec)
+  end.
+  apply list_with_proof_complete.
+  intros. apply UIP_dec, Bool.bool_dec.
+Qed.
+
+Definition odefault (t : dtree) : O.t :=
+  M.output _ (make_moore t) (make_moore t).(initial _).
 Fixpoint kv_learn (fuel : nat) (t : dtree)
                   (LE : L.num_states_in_minimal - List.length (leaves t) <= fuel)
                   (Hwf : wf t)
-    : { St : Type & {m : M.t St | minimal m} }.
+    : { m : M.t nat | minimal m }.
     destruct (equiv_query (make_moore t)) eqn:Heq.
     - (* counterexample *)
         destruct fuel as [| n].
@@ -610,11 +644,22 @@ Fixpoint kv_learn (fuel : nat) (t : dtree)
             pose proof (split_leaf_count t target e q_new
                           (wf_NoDup t Hwf) HinT Hfresh) as Hcount.
             rewrite Hcount. lia.
-    - eexists. exists (make_moore t). apply (make_moore_minimal t Hwf Heq).
+    - pose (m0 := make_moore t).
+      pose (edec := state_eq_dec t).
+      pose (tc := make_moore_trans_closed t).
+      exists (Norm.normalize edec m0 tc (odefault t)).
+      pose proof (make_moore_minimal t Hwf Heq) as [Henc0 Hmin0].
+      split.
+      + intro w. unfold m0 in *.
+        rewrite (Norm.normalize_output_string edec _ tc (odefault t) w). exact (Henc0 w).
+      + intros state' dfa' Henc'.
+        unfold Norm.normalize, Norm.build, M.states, Norm.ND.n_states. cbn.
+        rewrite length_seq.
+        etransitivity; eauto using dedup_length_le.
 Defined.
 
 (** The learner is seeded with a trivially well-formed tree *)
-Definition mkv (_ : unit) : { St : Type & {m : M.t St | minimal m} } :=
+Definition mkv (_ : unit) : { m : M.t nat | minimal m } :=
     kv_learn num_states_in_minimal (Leaf nil) ltac:(lia) (conj I (or_introl eq_refl)).
 
 End KV_Moore_Binary.

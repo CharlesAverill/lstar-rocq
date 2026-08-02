@@ -184,14 +184,14 @@ Module Learner := TTT S FirewallLang FirewallTeacher.
 
 Import FirewallLang.
 
-Definition learned : { St : Type & { d : D.t St | minimal d } } :=
+Definition learned : { d : D.t nat | minimal d } :=
     Learner.ttt tt.
 
-Definition LSt : Type := projT1 learned.
-Definition learned_dfa : D.t LSt := proj1_sig (projT2 learned).
+Definition LSt : Type := nat.
+Definition learned_dfa : D.t LSt := (proj1_sig learned).
 
 Lemma learned_minimal : minimal learned_dfa.
-Proof. exact (proj2_sig (projT2 learned)). Qed.
+Proof. exact (proj2_sig learned). Qed.
 
 (* The learned DFA accepts exactly the forwarded packets. *)
 Lemma learned_encodes : forall s,

@@ -916,7 +916,7 @@ module LstarLearner (T : DFATEACHER) = struct
 
   include Impl
 
-  let lstar () : __ T.D.t = match Impl.lstar () with Coq_existT (_, d) -> d
+  let lstar () : int T.D.t = Impl.lstar ()
 end
 
 module MooreLstarLearner (T : MOORETEACHER) = struct
@@ -935,7 +935,7 @@ module MooreLstarLearner (T : MOORETEACHER) = struct
 
   include Impl
 
-  let mlstar () : __ T.M.t = match Impl.mlstar () with Coq_existT (_, m) -> m
+  let mlstar () : int T.M.t = Impl.mlstar ()
 end
 
 module MealyLstarLearner (T : MEALYTEACHER) = struct
@@ -954,7 +954,7 @@ module MealyLstarLearner (T : MEALYTEACHER) = struct
 
   include Impl
 
-  let mlstar () : __ T.M.t = match Impl.mlstar () with Coq_existT (_, m) -> m
+  let mlstar () : int T.M.t = Impl.mlstar ()
 end
 
 module KVLearner (T : DFATEACHER) = struct
@@ -974,7 +974,7 @@ module KVLearner (T : DFATEACHER) = struct
 
   include Impl
 
-  let kv () : __ T.D.t = match Impl.kv () with Coq_existT (_, d) -> d
+  let kv () : int T.D.t = Impl.kv ()
 end
 
 module MooreKVLearner (T : MOORETEACHER) = struct
@@ -993,7 +993,7 @@ module MooreKVLearner (T : MOORETEACHER) = struct
 
   include Impl
 
-  let mkv () : __ T.M.t = match Impl.mkv () with Coq_existT (_, m) -> m
+  let mkv () : int T.M.t = Impl.mkv ()
 end
 
 module MealyKVLearner (T : MEALYTEACHER) = struct
@@ -1012,7 +1012,7 @@ module MealyKVLearner (T : MEALYTEACHER) = struct
 
   include Impl
 
-  let mkv () : __ T.M.t = match Impl.mkv () with Coq_existT (_, m) -> m
+  let mkv () : int T.M.t = Impl.mkv ()
 end
 
 module TTTLearner (T : DFATEACHER) = struct
@@ -1032,7 +1032,7 @@ module TTTLearner (T : DFATEACHER) = struct
 
   include Impl
 
-  let ttt () : __ T.D.t = match Impl.ttt () with Coq_existT (_, d) -> d
+  let ttt () : int T.D.t = Impl.ttt ()
 end
 
 module MooreTTTLearner (T : MOORETEACHER) = struct
@@ -1051,7 +1051,7 @@ module MooreTTTLearner (T : MOORETEACHER) = struct
 
   include Impl
 
-  let mttt () : __ T.M.t = match Impl.mttt () with Coq_existT (_, m) -> m
+  let mttt () : int T.M.t = Impl.mttt ()
 end
 
 module MealyTTTLearner (T : MEALYTEACHER) = struct
@@ -1070,7 +1070,7 @@ module MealyTTTLearner (T : MEALYTEACHER) = struct
 
   include Impl
 
-  let mttt () : __ T.M.t = match Impl.mttt () with Coq_existT (_, m) -> m
+  let mkv () : int T.M.t = Impl.mttt ()
 end
 
 module NLstarLearner (T : NFATEACHER) = struct
@@ -1083,8 +1083,6 @@ module NLstarLearner (T : NFATEACHER) = struct
         module Res = R.Res
 
         let member = T.member
-
-        let num_states_in_canonical = T.fuel
 
         let num_residuals = T.fuel
       end)

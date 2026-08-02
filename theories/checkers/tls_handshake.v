@@ -99,15 +99,15 @@ Module Learner := TTT S TLSLang TLSTeacher.
 Import TLSLang.
 
 (* Extract the learned DFA and its minimality proof *)
-Definition learned : { St : Type & { d : D.t St | minimal d } } := 
+Definition learned : { d : D.t nat | minimal d } := 
 	Learner.ttt tt.
-Definition LSt : Type := projT1 learned.
-Definition learned_dfa : D.t LSt := proj1_sig (projT2 learned).
+Definition LSt : Type := nat.
+Definition learned_dfa : D.t LSt := proj1_sig learned.
 
 Lemma learned_encodes : forall s,
 	tls_server_accepts s = true <-> D.accept_string learned_dfa s = true.
 Proof. 
-	intros. destruct (proj2_sig (projT2 learned)) as [Henc _]. apply Henc. 
+	intros. destruct (proj2_sig learned) as [Henc _]. apply Henc. 
 Qed.
 
 (* A trace bypasses auth if ApplicationData appears before any valid Auth step *)

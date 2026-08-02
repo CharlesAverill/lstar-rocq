@@ -1,6 +1,7 @@
 (** L* for Moore machines *)
 
 From lstar Require Import automata.Moore ListLemmas SetLemmas RS Teacher.
+From lstar Require Import normalization.norm_moore.
 From Stdlib Require Import Classes.RelationClasses.
 From Stdlib Require Import Setoids.Setoid.
 From Stdlib Require Import List.
@@ -745,9 +746,42 @@ Proof.
   rewrite HH'' in *. lia.
 Qed.
 
+Module Norm := NormalizeMoore s O M.
+
+Definition state_eq_dec (H : HypothesisMoore) :
+    forall (x y : {q | H.(Q) q = true}), {x = y} + {x <> y}.
+Proof.
+  intros [x Hx] [y Hy].
+  destruct (str_eq x y) as [Heq | Hne].
+  - left. subst y. f_equal. apply UIP_dec, Bool.bool_dec.
+  - right. intro C. inversion C. contradiction.
+Defined.
+
+Lemma make_moore_trans_closed (H : HypothesisMoore) :
+    Norm.TransClosed (make_moore H).
+Proof.
+  unfold Norm.TransClosed. intros [q Hq] a _.
+  set (tgt := M.transition _ (make_moore H) (exist _ q Hq) a).
+  unfold M.states, make_moore. cbn.
+  destruct H.(fin_Q) as (l & ND & InQ) eqn:HF.
+  assert (Hmem : In (proj1_sig tgt) l)
+    by (apply (proj1 (InQ (proj1_sig tgt))); exact (proj2_sig tgt)).
+  replace tgt
+    with (exist (fun q0 => Q H q0 = true) (proj1_sig tgt)
+                (proj2 (InQ (proj1_sig tgt)) Hmem)); cycle 1.
+    destruct tgt as [v pf]. cbn. f_equal. apply UIP_dec, Bool.bool_dec.
+  apply (list_with_proof_complete l (fun q0 => Q H q0 = true)
+           (fun x0 p0 q0 => UIP_dec Bool.bool_dec p0 q0)
+           (fun x0 Hin => proj2 (InQ x0) Hin)
+           (proj1_sig tgt) Hmem).
+Qed.
+
+Definition odefault (H : HypothesisMoore) : O.t :=
+  M.output _ (make_moore H) (make_moore H).(initial _).
+
 Fixpoint mlstar_fuel (H : HypothesisMoore) (fuel : nat)
     (LE : L.num_states_in_minimal - num_states H <= fuel)
-    : { T : Type & {m : M.t T | minimal m} }.
+    : { m : M.t nat | minimal m }.
   destruct (equiv_query (make_moore H)) eqn:Heq.
   - destruct fuel as [| n].
     + exfalso.
@@ -795,13 +829,23 @@ Fixpoint mlstar_fuel (H : HypothesisMoore) (fuel : nat)
           now destruct (str_eq y q_new) as [e|n']. }
       unfold num_states at 2.
       etransitivity; eassumption.
-  - exists {q : str | H.(Q) q = true}.
-    exists (make_moore H).
-    exact (make_moore_minimal H Heq).
+  - pose (m0   := make_moore H).
+    pose (edec := state_eq_dec H).
+    pose (tc   := make_moore_trans_closed H).
+    exists (Norm.normalize edec m0 tc (odefault H)).
+    pose proof (make_moore_minimal H Heq) as [Henc0 Hmin0].
+    split.
+    + intro w. unfold m0 in *.
+      rewrite (Norm.normalize_output_string edec _ tc (odefault H) w).
+      exact (Henc0 w).
+    + intros state' dfa' Henc'.
+      unfold Norm.normalize, Norm.build, M.states, Norm.ND.n_states. cbn.
+      rewrite length_seq.
+      etransitivity; eauto using dedup_length_le.
 Defined.
 
 (** The total L* implementation for Moore machines. *)
-Definition mlstar (_ : unit) : { T : Type & {m : M.t T | minimal m} }.
+Definition mlstar (_ : unit) : { m : M.t nat | minimal m }.
     eapply mlstar_fuel with (fuel := num_states_in_minimal).
         lia.
     Unshelve.

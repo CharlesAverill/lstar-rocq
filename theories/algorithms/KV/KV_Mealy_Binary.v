@@ -5,6 +5,7 @@
     [o]. *)
 
 From lstar Require Import automata.Mealy ListLemmas Teacher RS.
+From lstar Require Import normalization.norm_mealy.
 From Stdlib Require Import List.
 From Stdlib Require Import Lia.
 From Stdlib Require Import PeanoNat.
@@ -672,11 +673,42 @@ Proof.
     lia.
 Qed.
 
-(** The main KV implementation. Adds one state per counterexample *)
+(** The main KV implementation. *)
+Module Norm := NormalizeMealy s O M.
+
+Definition state_eq_dec (t : dtree) :
+    forall (x y : {q | mem q (leaves t) = true}), {x = y} + {x <> y}.
+Proof.
+  intros [x Hx] [y Hy].
+  destruct (str_eq x y) as [Heq | Hne].
+  - left. subst y. f_equal. apply UIP_dec, Bool.bool_dec.
+  - right. intro C. inversion C. contradiction.
+Defined.
+
+Lemma make_mealy_trans_closed (t : dtree) :
+    Norm.TransClosed (make_mealy t).
+Proof.
+  unfold Norm.TransClosed. intros [q Hq] a _.
+  set (tgt := M.transition _ (make_mealy t) (exist _ q Hq) a).
+  unfold M.states, make_mealy. cbn.
+  assert (Hmem : In (proj1_sig tgt) (leaves t))
+    by (apply (mem_In str_eq); exact (proj2_sig tgt)).
+  set (Pf := fun (x : str) (Hx : In x (leaves t)) =>
+               match mem_In str_eq x (leaves t) with conj _ H0 => H0 end Hx).
+  match goal with
+  | [ |- In (exist _ ?v ?pf) (list_with_proof _ _ ?In_proof) ] =>
+      replace (exist (fun q0 => mem q0 (leaves t) = true) v pf)
+         with (exist (fun q0 => mem q0 (leaves t) = true) v (In_proof v Hmem))
+      by (f_equal; apply UIP_dec, Bool.bool_dec)
+  end.
+  apply list_with_proof_complete.
+  intros. apply UIP_dec, Bool.bool_dec.
+Qed.
+
 Fixpoint kv_learn (fuel : nat) (t : dtree)
                   (LE : L.num_states_in_minimal - List.length (leaves t) <= fuel)
                   (Hwf : wf t)
-    : { St : Type & {m : M.t St | minimal m} }.
+    : { m : M.t nat | minimal m }.
     destruct (equiv_query (make_mealy t)) eqn:Heq.
     - (* counterexample *)
         destruct fuel as [| n].
@@ -694,11 +726,22 @@ Fixpoint kv_learn (fuel : nat) (t : dtree)
             pose proof (split_leaf_count t target e q_new
                           (wf_NoDup t Hwf) HinT Hfresh) as Hcount.
             rewrite Hcount. lia.
-    - eexists. exists (make_mealy t). apply (make_mealy_minimal t Hwf Heq).
+    - pose (m0 := make_mealy t).
+      pose (edec := state_eq_dec t).
+      pose (tc := make_mealy_trans_closed t).
+      exists (Norm.normalize edec m0 tc).
+      pose proof (make_mealy_minimal t Hwf Heq) as [Henc0 Hmin0].
+      split.
+      + intros a w. unfold m0 in *.
+        rewrite (Norm.normalize_last_output edec _ tc a w). exact (Henc0 a w).
+      + intros state' dfa' Henc'.
+        unfold Norm.normalize, Norm.build, M.states, Norm.ND.n_states. cbn.
+        rewrite length_seq.
+        etransitivity; eauto using dedup_length_le.
 Defined.
 
 (** The learner is seeded with a trivially well-formed tree *)
-Definition mkv (_ : unit) : { St : Type & {m : M.t St | minimal m} } :=
+Definition mkv (_ : unit) : { m : M.t nat | minimal m } :=
     kv_learn num_states_in_minimal (Leaf nil) ltac:(lia) (conj I (or_introl eq_refl)).
 
 End KV_Mealy_Binary.

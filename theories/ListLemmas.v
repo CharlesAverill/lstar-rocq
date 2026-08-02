@@ -532,3 +532,105 @@ Proof.
   intros A a l eq_dec Complete.
   apply index_sound_In, Complete.
 Defined.
+
+(** Deduplication and positional indexing over a decidable type. *)
+
+Section DedupPos.
+  Context {A : Type}.
+  Variable eq_dec : forall (x y : A), {x = y} + {x <> y}.
+
+  (** Remove duplicates, keeping the last occurrence of each element. *)
+  Fixpoint dedup (l : list A) : list A :=
+    match l with
+    | [] => []
+    | h :: t =>
+        let r := dedup t in
+        if existsb (fun x => if eq_dec h x then true else false) r
+        then r else h :: r
+    end.
+
+  (** First position of [q] in [l], if present. *)
+  Fixpoint pos (q : A) (l : list A) : option nat :=
+    match l with
+    | [] => None
+    | h :: t => if eq_dec q h then Some 0 else option_map S (pos q t)
+    end.
+
+  (** Position of [a] in [l] as a [nat] (0 when absent). *)
+  Fixpoint spos (a : A) (l : list A) : nat :=
+    match l with
+    | [] => 0
+    | h :: t => if eq_dec a h then 0 else S (spos a t)
+    end.
+
+  Lemma pos_lt : forall q l i, pos q l = Some i -> i < length l.
+  Proof.
+    intros q l. induction l as [| h t IH]; simpl; intros i Hp.
+      discriminate.
+    destruct (eq_dec q h).
+      inversion Hp. lia.
+    destruct (pos q t) as [k |] eqn:E; simpl in Hp; inversion Hp; subst.
+    apply -> Nat.succ_lt_mono. now apply IH.
+  Qed.
+
+  Lemma dedup_In : forall l q, In q (dedup l) <-> In q l.
+  Proof.
+    intros l. induction l as [| h t IH]; intro q; simpl.
+      reflexivity.
+    destruct (existsb (fun x => if eq_dec h x then true else false)
+                (dedup t)) eqn:E.
+    - apply existsb_exists in E. destruct E as (y & Hy & Hxy).
+      destruct eq_dec; [|discriminate]. subst y. split.
+        intro Hq. right. now apply IH.
+      intros [<- | Hq]. assumption. now apply IH.
+    - simpl. split; (intros [<- | Hq]; [now left | right; now apply IH]).
+  Qed.
+
+  Lemma dedup_NoDup : forall l, NoDup (dedup l).
+  Proof.
+    intros l. induction l as [| h t IH]; simpl.
+      constructor.
+    destruct (existsb (fun x => if eq_dec h x then true else false)
+              (dedup t)) eqn:E; [exact IH |].
+    constructor; [| exact IH].
+    intro Hin.
+    assert (Hc : existsb (fun x => if eq_dec h x then true else false)
+                   (dedup t) = true).
+      { apply existsb_exists. exists h. split. assumption. now destruct eq_dec. }
+    congruence.
+  Qed.
+
+  Lemma dedup_length_le : forall l, length (dedup l) <= length l.
+  Proof.
+    induction l; simpl in *.
+      reflexivity.
+    destruct existsb; simpl; lia.
+  Qed.
+
+  Lemma pos_nth_error : forall l i q,
+      NoDup l -> nth_error l i = Some q -> pos q l = Some i.
+  Proof.
+    intros l. induction l as [| h t IH]; intros i q Hnd Hn.
+      destruct i; discriminate.
+    destruct i as [| k]; simpl in Hn.
+    - inversion Hn. subst q. simpl.
+    now destruct eq_dec.
+    - inversion Hnd as [| ? ? Hnh Hnt]. subst.
+      simpl. destruct eq_dec eqn:E.
+      +  subst h. exfalso. apply Hnh.
+        exact (nth_error_In _ _ Hn).
+      + rewrite (IH k q Hnt Hn). reflexivity.
+  Qed.
+
+  Lemma spos_nth : forall a l, In a l -> nth_error l (spos a l) = Some a.
+  Proof.
+    intros a l. induction l as [| h t IH]; simpl; intros Hin.
+      destruct Hin.
+    destruct eq_dec. now subst.
+    destruct Hin as [-> | Hin]; [now contradiction | now apply IH].
+  Qed.
+End DedupPos.
+
+Arguments dedup {A} eq_dec l.
+Arguments pos {A} eq_dec q l.
+Arguments spos {A} eq_dec a l.

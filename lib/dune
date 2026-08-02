@@ -16,6 +16,11 @@
   NFA
   Mealy
   Moore
+  norm_lemmas
+  norm_dfa
+  norm_moore
+  norm_mealy
+  norm_nfa
   Alphabet
   Specif
   ListLemmas
