@@ -916,7 +916,8 @@ module LstarLearner (T : DFATEACHER) = struct
 
   include Impl
 
-  let lstar () : int T.D.t = Impl.lstar ()
+  type dfa = int T.D.t
+  let lstar () : dfa = Impl.lstar ()
 end
 
 module MooreLstarLearner (T : MOORETEACHER) = struct
@@ -935,7 +936,8 @@ module MooreLstarLearner (T : MOORETEACHER) = struct
 
   include Impl
 
-  let mlstar () : int T.M.t = Impl.mlstar ()
+  type moore = int T.M.t
+  let mlstar () : moore = Impl.mlstar ()
 end
 
 module MealyLstarLearner (T : MEALYTEACHER) = struct
@@ -954,7 +956,8 @@ module MealyLstarLearner (T : MEALYTEACHER) = struct
 
   include Impl
 
-  let mlstar () : int T.M.t = Impl.mlstar ()
+  type mealy = int T.M.t
+  let mlstar () : mealy = Impl.mlstar ()
 end
 
 module KVLearner (T : DFATEACHER) = struct
@@ -974,7 +977,8 @@ module KVLearner (T : DFATEACHER) = struct
 
   include Impl
 
-  let kv () : int T.D.t = Impl.kv ()
+  type dfa = int T.D.t
+  let kv () : dfa = Impl.kv ()
 end
 
 module MooreKVLearner (T : MOORETEACHER) = struct
@@ -993,7 +997,8 @@ module MooreKVLearner (T : MOORETEACHER) = struct
 
   include Impl
 
-  let mkv () : int T.M.t = Impl.mkv ()
+  type moore = int T.M.t
+  let mkv () : moore = Impl.mkv ()
 end
 
 module MealyKVLearner (T : MEALYTEACHER) = struct
@@ -1012,7 +1017,8 @@ module MealyKVLearner (T : MEALYTEACHER) = struct
 
   include Impl
 
-  let mkv () : int T.M.t = Impl.mkv ()
+  type mealy = int T.M.t
+  let mkv () : mealy = Impl.mkv ()
 end
 
 module TTTLearner (T : DFATEACHER) = struct
@@ -1032,7 +1038,8 @@ module TTTLearner (T : DFATEACHER) = struct
 
   include Impl
 
-  let ttt () : int T.D.t = Impl.ttt ()
+  type dfa = int T.D.t
+  let ttt () : dfa = Impl.ttt ()
 end
 
 module MooreTTTLearner (T : MOORETEACHER) = struct
@@ -1051,7 +1058,8 @@ module MooreTTTLearner (T : MOORETEACHER) = struct
 
   include Impl
 
-  let mttt () : int T.M.t = Impl.mttt ()
+  type moore = int T.M.t
+  let mttt () : moore = Impl.mttt ()
 end
 
 module MealyTTTLearner (T : MEALYTEACHER) = struct
@@ -1070,7 +1078,8 @@ module MealyTTTLearner (T : MEALYTEACHER) = struct
 
   include Impl
 
-  let mkv () : int T.M.t = Impl.mttt ()
+  type mealy = int T.M.t
+  let mkv () : mealy = Impl.mttt ()
 end
 
 module NLstarLearner (T : NFATEACHER) = struct
