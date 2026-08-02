@@ -1101,9 +1101,6 @@ module NLstarLearner (T : NFATEACHER) = struct
 
   include Impl
 
-  let nlstar () : __ T.R.t = match Impl.nlstar () with Coq_existT (_, r) -> r
-
-  (** The learned RFSA's underlying NFA, which is what the teacher's
-      equivalence query and {!NFAPrinter} consume. *)
-  let nfa () : __ T.R.N.t = T.R.nfa (nlstar ())
+  type nfa = __ T.R.t
+  let nlstar () : nfa = match Impl.nlstar () with Coq_existT (_, r) -> r
 end

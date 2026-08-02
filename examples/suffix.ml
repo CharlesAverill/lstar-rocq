@@ -140,7 +140,7 @@ let report_nfa name nfa k =
 
 let () =
   let dfa = Lstar.lstar () in
-  let nfa = NLstar.nfa () in
+  let nfa = NLstar.nlstar () in
   report_dfa "L*" dfa (n + 2) ;
   report_nfa "NL*" nfa (n + 2) ;
   let dfa_states, _ = DP.discover dfa in
