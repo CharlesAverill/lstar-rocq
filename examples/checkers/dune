@@ -1,0 +1,5 @@
+(rocq.theory
+ (name lstar_checkers)
+ (package lstar-rocq)
+ (modules :standard)
+ (theories Stdlib lstar))

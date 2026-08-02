@@ -16,10 +16,10 @@ Functions return sigma types, so each sub-component of each algorithm provides a
 ## Layout
 
 - [automata](theories/automata/) - definitions for alphabets, regular languages, and automata, including the correctness properties of language encoding and minimality
+- [algorithms](theories/algorithms/) - formally-verified implementations of AAL algorithms, a general-purpose implementation of Rivest-Schapire counterexample analysis used in multiple implementations
+- [normalization](theories/normalization/) - post-learning normalization of FSMs
 - [Teacher.v](theories/Teacher.v) - definitions for the Minimum Adequate Teacher model
-- [ListLemmas.v](theories/ListLemmas.v) - miscellaneous lemmas about lists
-- [RS.v](theories/algorithms/RS.v) - a general-purpose implementation of Rivest-Schapire counterexample analysis, used in the implementations of L*, KV, and TTT
-- [Teacher.ml](lib/Teacher.ml) - OCaml entrypoint for using the extracted library, provides a single module interface to instantiate all of the learning algorithms
+- [Teacher.ml](lib/Teacher.ml) - OCaml entrypoint for using the extracted library, provides functors and module types to instantiate all of the learning algorithms
 
 ## Installation
 
