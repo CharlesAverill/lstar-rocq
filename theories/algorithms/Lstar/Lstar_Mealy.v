@@ -19,12 +19,6 @@ Import s O L Tch M.
 Definition obs : str -> str -> option O.t := M.tobs output_lang.
 Definition mealy_output : str -> s.t -> str -> O.t := M.tgt_last output_lang.
 
-Lemma obs_cons : forall q a w, obs q (a :: w) = Some (mealy_output q a w).
-Proof. reflexivity. Qed.
-
-Lemma obs_nil : forall q, obs q nil = None.
-Proof. reflexivity. Qed.
-
 Lemma obs_single : forall q a, obs q [a] = Some (output_lang q a).
 Proof. reflexivity. Qed.
 
@@ -66,10 +60,6 @@ Proof.
       unfold obs, tobs in *.
       rewrite H, IH. now rewrite <- app_assoc.
 Qed.
-
-Lemma obs_app_single : forall u t a,
-    obs u (t ++ [a]) = Some (output_lang (u ++ t) a).
-Proof. intros. now rewrite obs_shift_app, obs_single. Qed.
 
 Lemma encodes_obs : forall {state} (m : M.t state),
     encodes m <-> (forall t, M.mobs m m.(M.initial _) t = obs nil t).
@@ -140,14 +130,6 @@ Proof.
     intros. intros t T1t.
     specialize (Subset t T1t).
     specialize (H _ Subset).
-    assumption.
-Qed.
-
-Lemma total_refinement : forall T u v,
-    (fun _ => true) [u == v] -> T [u == v].
-Proof.
-    intros. intros t Tt.
-    specialize (H t eq_refl).
     assumption.
 Qed.
 
@@ -236,20 +218,6 @@ Proof.
         now apply Qfin.
         apply s.t_enumerable.
 Qed.
-
-Definition closed_dec : forall Q T,
-    finite Q ->
-    finite T ->
-    closed Q T + (closed Q T -> Empty_set).
-Proof.
-    intros. destruct (closed_dec_witness Q T X X0).
-        now left.
-    right. intros Contra.
-    destruct s as (q & a & Qq & Tdist).
-    specialize (Contra q a Qq).
-    destruct Contra as (q' & Qq' & Teq).
-    destruct (Tdist q' Qq' Teq).
-Defined.
 
 (** Lemma 1: the transition function is well defined. *)
 Definition delta Q T (c : closed Q T) (q : str) (a : s.t) (Qq : Q q = true) :
@@ -547,19 +515,6 @@ Proof with try easy.
         now destruct (str_eq s (q ++ [a])).
       + exists (q ++ [a]). split...
         apply update_eq.
-Defined.
-
-Lemma not_closed_impl_distinguishable :
-    forall Q T,
-        (closed Q T -> False) ->
-        finite Q -> finite T ->
-        {q : str & {a : s.t | Q q = true /\
-            forall q', Q q' = true -> ~ T [q ++ [a] == q'] }}.
-Proof.
-    intros Q T QNC Qfin Tfin.
-    destruct (closed_dec_witness Q T Qfin Tfin).
-        contradiction.
-    destruct s as (q & a & Qq & Tdist); eauto.
 Defined.
 
 Definition union_closed_loop :

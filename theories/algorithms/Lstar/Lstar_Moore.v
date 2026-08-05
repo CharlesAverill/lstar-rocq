@@ -74,14 +74,6 @@ Proof.
     assumption.
 Qed.
 
-Lemma total_refinement : forall T u v,
-    (fun _ => true) [u == v] -> T [u == v].
-Proof.
-    intros. intros t Tt.
-    specialize (H t eq_refl).
-    assumption.
-Qed.
-
 Definition finite := SetLemmas.finite str.
 Notation update := (SetLemmas.update str str_eq).
 Notation "s [ k := v ]" := (update s k v).
@@ -157,20 +149,6 @@ Proof.
         now apply Qfin.
         apply s.t_enumerable.
 Qed.
-
-Definition closed_dec : forall Q T,
-    finite Q ->
-    finite T ->
-    closed Q T + (closed Q T -> Empty_set).
-Proof.
-    intros. destruct (closed_dec_witness Q T X X0).
-        now left.
-    right. intros Contra.
-    destruct s as (q & a & Qq & Tdist).
-    specialize (Contra q a Qq).
-    destruct Contra as (q' & Qq' & Teq).
-    destruct (Tdist q' Qq' Teq).
-Defined.
 
 (** Lemma 1: the transition function is well defined. *)
 Definition delta Q T (c : closed Q T) (q : str) (a : s.t) (Qq : Q q = true) :
@@ -445,19 +423,6 @@ Proof with try easy.
         now destruct (str_eq s (q ++ [a])).
       + exists (q ++ [a]). split...
         apply update_eq.
-Defined.
-
-Lemma not_closed_impl_distinguishable :
-    forall Q T,
-        (closed Q T -> False) ->
-        finite Q -> finite T ->
-        {q : str & {a : s.t | Q q = true /\
-            forall q', Q q' = true -> ~ T [q ++ [a] == q'] }}.
-Proof.
-    intros Q T QNC Qfin Tfin.
-    destruct (closed_dec_witness Q T Qfin Tfin).
-        contradiction.
-    destruct s as (q & a & Qq & Tdist); eauto.
 Defined.
 
 Definition union_closed_loop :

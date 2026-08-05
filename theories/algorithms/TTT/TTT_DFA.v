@@ -670,17 +670,6 @@ Section Finalize.
     apply bisects_impl_clauses in Hchb as [HL HR].
     repeat split; auto.
   Qed.
-
-  (** Every finalized discriminator is no longer than its origin *)
-  Lemma choose_length : forall e l r,
-    List.length (choose e l r) <= List.length e.
-  Proof.
-    intros e l r. unfold choose.
-    destruct (find (fun e' => bisects e' l r) (rev (suffixes e))) eqn:F;
-        [|reflexivity].
-    apply find_some in F as [Hin _]. apply in_rev in Hin.
-    now apply suffixes_length.
-  Qed.
 End Finalize.
 
 Module Norm := NormalizeDFA s D.

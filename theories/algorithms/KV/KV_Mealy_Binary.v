@@ -21,9 +21,6 @@ Import s O L Tch M.
 Definition obs : str -> str -> option O.t := M.tobs output_lang.
 Definition mealy_output : str -> s.t -> str -> O.t := M.tgt_last output_lang.
 
-Lemma obs_cons : forall q a w, obs q (a :: w) = Some (mealy_output q a w).
-Proof. reflexivity. Qed.
-
 Lemma obs_nil : forall q, obs q nil = None.
 Proof. reflexivity. Qed.
 
@@ -57,21 +54,6 @@ Proof.
     intros u a t Ht. destruct t as [| b t']; [contradiction|].
     unfold obs, M.tobs. reflexivity.
 Qed.
-
-Lemma obs_shift_app : forall t u a,
-    obs u (t ++ [a]) = obs (u ++ t) [a].
-Proof.
-    intros t. induction t as [| c t IH]; intros u a; simpl.
-    - now rewrite app_nil_r.
-    - pose proof (obs_shift u c (t ++ [a])
-                   (fun C => ltac:(now apply app_eq_nil in C))).
-      unfold obs, tobs in *.
-      rewrite H, IH. now rewrite <- app_assoc.
-Qed.
-
-Lemma obs_app_single : forall u t a,
-    obs u (t ++ [a]) = Some (output_lang (u ++ t) a).
-Proof. intros. now rewrite obs_shift_app, obs_single. Qed.
 
 Lemma encodes_obs : forall {state} (m : M.t state),
     encodes m <-> (forall t, M.mobs m m.(M.initial _) t = obs nil t).

@@ -665,16 +665,6 @@ Section Finalize.
       apply bisects_impl_clauses in Hchb as [HL HR].
       repeat split; auto.
   Qed.
-
-  Lemma choose_length : forall e o l r,
-    List.length (choose e o l r) <= List.length e.
-  Proof.
-    intros e o l r. unfold choose.
-    destruct (find (fun e' => bisects e' o l r) (rev (suffixes e))) eqn:F;
-        [|reflexivity].
-    apply find_some in F as [Hin _]. apply in_rev in Hin.
-    now apply suffixes_length.
-  Qed.
 End Finalize.
 
 Module Norm := NormalizeMoore s O M.

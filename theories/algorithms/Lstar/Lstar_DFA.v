@@ -83,16 +83,6 @@ Proof.
     assumption.
 Qed.
 
-(** But Σ∗ is a superset of all the T's, so IL refines every ≡T. *)
-
-Lemma total_refinement : forall T u v,
-    (fun _ => true) [u == v] -> T [u == v].
-Proof.
-    intros. intros t Tt.
-    specialize (H t eq_refl).
-    assumption.
-Qed.
-
 (** The states Q and T that we maintain will be finite *)
 Definition finite := SetLemmas.finite str.
 Notation update := (SetLemmas.update str str_eq).
@@ -176,20 +166,6 @@ Proof.
         now apply Qfin.
         apply t_enumerable.
 Qed.
-
-Definition closed_dec : forall Q T,
-    finite Q ->
-    finite T ->
-    closed Q T + (closed Q T -> Empty_set).
-Proof.
-    intros. destruct (closed_dec_witness Q T X X0).
-        now left.
-    right. intros Contra.
-    destruct s as (q & a & Qq & Tdist).
-    specialize (Contra q a Qq).
-    destruct Contra as (q' & Qq' & Teq).
-    destruct (Tdist q' Qq' Teq).
-Defined.
 
 (** Lemma 1. If Q is closed and separable with respect to T,
     the transition function δ : (q, a) → q′ ∈ Q such that
@@ -497,22 +473,6 @@ Proof with try easy.
         now destruct (str_eq s (q ++ [a])).
       + exists (q ++ [a]). split...
         apply update_eq.
-Defined.
-
-(** If Q is not closed wrt T, we can find a q in Q such that
-    all q' in Q are T-distinguishable from q ++ [a] for all 
-    symbols in the alphabet *)
-Lemma not_closed_impl_distinguishable :
-    forall Q T,
-        (closed Q T -> False) ->
-        finite Q -> finite T ->
-        {q : str & {a : s.t | Q q = true /\
-            forall q', Q q' = true -> ~ T [q ++ [a] == q'] }}.
-Proof.
-    intros Q T QNC Qfin Tfin.
-    destruct (closed_dec_witness Q T Qfin Tfin).
-        contradiction.
-    destruct s as (q & a & Qq & Tdist); eauto.
 Defined.
 
 (** Adds a finite number of strings to Q to make it closed wrt T *)
