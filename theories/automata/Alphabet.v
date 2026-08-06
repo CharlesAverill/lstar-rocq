@@ -5,7 +5,7 @@ Export ListNotations.
 (** Symbol type *)
 Module Type Symbol.
     (** Alphabet *)
-    Parameter t : Type.
+    Parameter t : Set.
 
     (** Symbol equality is decidable *)
     Parameter eq_dec :
@@ -25,7 +25,7 @@ End Symbol.
 
 (** A finite output alphabet *)
 Module Type Output.
-    Parameter t : Type.
+    Parameter t : Set.
     Parameter eq_dec : forall (x y : t), {x = y} + {x <> y}.
     Parameter enum : list t.
     Parameter t_enumerable : forall (x : t), In x enum.

@@ -397,7 +397,7 @@ Proof.
         destruct (nth_error w k) eqn:E.
             now exists t0.
         rewrite nth_error_None in E. lia.
-    } destruct X as (wk & Hwk).
+    } destruct H as (wk & Hwk).
     destruct (nth_error_split_sig _ _ _ Hwk) as (l1 & l2 & Hw & Hlen).
     assert (Hfirstn : firstn (S k) w = firstn k w ++ [wk]). {
         subst.

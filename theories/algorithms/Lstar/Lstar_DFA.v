@@ -113,14 +113,14 @@ Defined.
 
 (** A set Q ⊆ Σ∗ is said to be separable with respect to T,
     if the elements of Q are pairwise T-distinguishable. *)
-Definition separable (Q T : str -> bool) : Type :=
+Definition separable (Q T : str -> bool) : Set :=
     forall (u v : str), Q u = true -> Q v = true ->
         u <> v ->
         ~ T [u == v].
 
 (** A set Q is said to be closed with respect to T, if
     ∀q ∈ Q ∀a ∈ Σ, ∃q′ ∈ Q such that q · a ≡T q'. *)
-Definition closed (Q T : str -> bool) :=
+Definition closed (Q T : str -> bool) : Set :=
     forall q a,
         Q q = true ->
         {q' : str | Q q' = true /\ T [(q ++ [a]) == q']}.
@@ -292,7 +292,7 @@ Theorem find_separable :
         destruct (nth_error w k) eqn:E.
             now exists t0.
         rewrite nth_error_None in E. lia.
-    } destruct X as (wk & Hwk).
+    } destruct H0 as (wk & Hwk).
     (* q_new := p_k w_k *)
     (* t := w[S k:] *)
     exists (pi H w k ++ [wk]), (skipn (S k) w).
@@ -320,7 +320,7 @@ Theorem find_separable :
     assert (H.(Q) (pi H w (S k)) = true) by
         exact (proj2_sig (run (make_dfa H) (firstn (S k) w))).
     repeat split.
-    - pose proof H.(sep). unfold separable in X.
+    - pose proof H.(sep). unfold separable in H1.
       destruct (H.(Q) (pi H w k ++ [wk])) eqn:HQ; auto.
       destruct Dist.
       assert (pi H w k ++ [wk] = pi H w (S k)). {
@@ -328,7 +328,7 @@ Theorem find_separable :
             easy.
           destruct (H.(sep) _ _ HQ H0 Hneq HTeq).
       } subst.
-      now rewrite <- H1, skipn_len_app, skipn_Slen_cons_app, <- app_assoc.
+      now rewrite <- H2, skipn_len_app, skipn_Slen_cons_app, <- app_assoc.
     - intros u v Qu Qv Neq Contra.
       unfold update, SetLemmas.update in Qu, Qv.
       destruct (str_eq u (pi H w k ++ [wk])),
