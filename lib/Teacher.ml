@@ -1110,7 +1110,7 @@ module NLstarLearner (T : NFATEACHER) = struct
 
   include Impl
 
-  type nfa = __ T.R.t
+  type nfa = int T.R.t
 
-  let nlstar () : nfa = match Impl.nlstar () with Coq_existT (_, r) -> r
+  let nlstar () : nfa = Impl.nlstar ()
 end

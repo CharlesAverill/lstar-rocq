@@ -2918,7 +2918,7 @@ Definition normalize_rfsa {T} (eqb : T -> T -> bool)
     (Ht : TransClosed r.(nfa _))
     (Hi : InitClosed (R.nfa T r))
     (Can : canonical r)
-    : { S : Type & { r' : R.t S | canonical r' } }.
+    : { r' : R.t nat | canonical r' }.
 Proof.
     set (m := R.nfa T r).
     assert (Hst : forall i, In i (n_states eqb m) ->
@@ -2930,7 +2930,6 @@ Proof.
         destruct (normalize_state_source eqb m Hs Ht Hi i Hi') as (q & Hq & HqS).
         exists q. repeat split; [exact Hq | exact HqS |].
         intro w. exact (normalize_L_state eqb m Hs Ht Hi i q Hq w). }
-    exists nat.
     unshelve eexists (R.Build_t nat (normalize eqb m) _).
     - (* states_are_residuals *)
       intros i Hi'. destruct (Hst i Hi') as (q & _ & HqS & Hlang).
@@ -2961,7 +2960,7 @@ Fixpoint nlstar_fuel (H : HypothesisRFSA)
     (Hcl : Hclosed H) (Hco : Hconsistent H) (Hsp : Hsep H) (fuel : nat)
     (LE : ce_measure H <= fuel)
     {struct fuel}
-    : { T : Type & {r : R.t T | canonical r} }.
+    : {r : R.t nat | canonical r}.
 Proof.
     destruct (equiv_query (make_nfa H)) eqn:E.
     - pose proof (equiv_query_ce (make_nfa H) s E) as Hce.
@@ -3047,7 +3046,7 @@ Proof.
 Qed.
 
 (** The total NL* implementation. *)
-Definition nlstar (_ : unit) : { T : Type & {r : R.t T | canonical r} }.
+Definition nlstar (_ : unit) : {r : R.t nat | canonical r}.
 Proof.
     destruct (complete init_hyp init_sep)
       as (H0 & Hcl & Hco & Hsp & Hbnd & _).
