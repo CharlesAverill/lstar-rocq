@@ -19,26 +19,45 @@ Proof. intros [] [] [H1 H2]; auto; symmetry; auto. Qed.
 Lemma eq_bool_iff : forall (b c : bool), c = b -> (b = true <-> c = true).
 Proof. intros b c H; subst; split; auto. Qed.
 
+Module DFAMoore (s : Symbol) (D : DFAType s) (M : MooreType s BoolOutput).
+
+    Definition of_dfa {state : Type} (d : D.t state) : M.t state :=
+        {| M.transition := D.transition state d;
+           M.initial := D.initial state d;
+           M.output := D.accept state d;
+           M.states := D.states state d;
+           M.states_complete := D.states_complete state d |}.
+
+    Definition to_dfa {state : Type} (m : M.t state) : D.t state :=
+        {| D.transition := M.transition state m;
+           D.initial := M.initial state m;
+           D.accept := M.output state m;
+           D.states := M.states state m;
+           D.states_complete := M.states_complete state m |}.
+
+    (* The two views agree on every string *)
+    Lemma of_dfa_output : forall {state : Type} (d : D.t state) (w : s.str),
+        M.output_string (of_dfa d) w = D.accept_string d w.
+    Proof. reflexivity. Qed.
+
+    Lemma to_dfa_accept : forall {state : Type} (m : M.t state) (w : s.str),
+        D.accept_string (to_dfa m) w = M.output_string m w.
+    Proof. reflexivity. Qed.
+End DFAMoore.
+
 (* The Moore view of a regular language *)
 Module MooreView (s : Symbol) (L : RegularLanguage s) (T : DFATeacher s L).
 
+    Module BM := Moore s BoolOutput.
+    Module Conv := DFAMoore s L.D BM.
+
     (** [L] as a Moore language over [bool] *)
     Module ML <: MooreLanguage s BoolOutput.
-        Module M := Moore s BoolOutput.
+        Module M := BM.
 
-        Definition of_dfa {state : Type} (d : L.D.t state) : M.t state :=
-            {| M.transition := L.D.transition state d;
-               M.initial := L.D.initial state d;
-               M.output := L.D.accept state d;
-               M.states := L.D.states state d;
-               M.states_complete := L.D.states_complete state d |}.
+        Definition of_dfa {state : Type} (d : L.D.t state) : M.t state := Conv.of_dfa d.
 
-        Definition to_dfa {state : Type} (m : M.t state) : L.D.t state :=
-            {| L.D.transition := M.transition state m;
-               L.D.initial := M.initial state m;
-               L.D.accept := M.output state m;
-               L.D.states := M.states state m;
-               L.D.states_complete := M.states_complete state m |}.
+        Definition to_dfa {state : Type} (m : M.t state) : L.D.t state := Conv.to_dfa m.
 
         Definition output_lang : s.str -> BoolOutput.t := L.member.
 

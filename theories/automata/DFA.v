@@ -42,6 +42,10 @@ Module DFA (s : Symbol).
     Defined.
 End DFA.
 
+Module Type DFAType (s : Symbol).
+    Include (DFA s).
+End DFAType.
+
 (** Regular Language *)
 Module Type RegularLanguage (s : Symbol).
     Import s.

@@ -42,6 +42,10 @@ Module Moore (s : Symbol) (O : Output).
     Defined.
 End Moore.
 
+Module Type MooreType (s : Symbol) (O : Output).
+    Include (Moore s O).
+End MooreType.
+
 (** Moore language: the target is a total function [output_lang : str -> O]. *)
 Module Type MooreLanguage (s : Symbol) (O : Output).
     Import s.
