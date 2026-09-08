@@ -17,8 +17,8 @@
   Mealy
   Moore
   norm_lemmas
-  norm_dfa
   norm_moore
+  MooreDFA
   norm_mealy
   norm_nfa
   Alphabet
