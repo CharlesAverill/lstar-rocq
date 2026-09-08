@@ -170,13 +170,13 @@ Proof.
 Defined.
 
 (** Q is separable wrt T when elements are pairwise T-distinguishable. *)
-Definition separable (Q T : str -> bool) : Type :=
+Definition separable (Q T : str -> bool) : Set :=
     forall (u v : str), Q u = true -> Q v = true ->
         u <> v ->
         ~ T [u == v].
 
 (** Q is closed wrt T when every q·a has a T-equivalent representative. *)
-Definition closed (Q T : str -> bool) :=
+Definition closed (Q T : str -> bool) : Set :=
     forall q a,
         Q q = true ->
         {q' : str | Q q' = true /\ T [(q ++ [a]) == q']}.
