@@ -460,21 +460,15 @@ Proof with try easy.
     intros Q T finQ finT u.
     destruct finQ as (Ql & HQl),
     (List.find (fun q =>
-        if Bool.eqb (Q q) true then
-            if T_equiv_dec T u q finT then true else false
-        else false) Ql) eqn:Hfind.
+        if T_equiv_dec T u q finT then true else false) Ql) eqn:Hfind.
     - left. apply List.find_some in Hfind.
       destruct Hfind as (HIn & Hcheck).
-      exists s.
-      destruct (Bool.eqb (Q s) true) eqn:E...
-        destruct (T_equiv_dec T u s finT)...
-        split...
-        apply Bool.eqb_prop in E...
+      exists s. split.
+        apply HQl...
+      destruct (T_equiv_dec T u s finT)...
     - right. intros r Hr Contra.
       apply List.find_none with (x := r) in Hfind.
-      + destruct (Bool.eqb (Q r) true) eqn:E.
-            destruct (T_equiv_dec T u r finT)...
-        rewrite Hr in E...
+      + destruct (T_equiv_dec T u r finT)...
       + apply HQl...
 Defined.
 
@@ -675,7 +669,7 @@ Proof.
     intros Q T sep finQ finT.
     pose proof finT as finT_copy.
     destruct finT as (Tl & NDT & HTl).
-    set (fuel := S (Nat.pow (S (length O.enum)) (length Tl))).
+    set (fuel := S (Init.Nat.pow (S (length O.enum)) (length Tl))).
     destruct (loop_terminates fuel Q Q T sep finQ Tl NDT HTl ltac:(auto) ltac:(lia)).
     destruct x as (Q' & ((clos' & sep') & finQ') & sub').
     exists Q'. repeat split; auto.

@@ -15,16 +15,18 @@ open Moore
 open Alphabet
 open Stdlib
 
-(** General memoization for membership queries *)
+(** General memoization for membership queries. *)
 let memo1 (f : 'a -> 'b) : 'a -> 'b =
-  let cache : ('a, 'b) Hashtbl.t = Hashtbl.create 4096 in
+  let cache : (int, ('a * 'b) list) Hashtbl.t = Hashtbl.create 4096 in
   fun x ->
-    match Hashtbl.find_opt cache x with
+    let h = Hashtbl.hash_param 1_000_000 1_000_000 x in
+    let bucket = try Hashtbl.find cache h with Not_found -> [] in
+    match List.assoc_opt x bucket with
     | Some y ->
         y
     | None ->
         let y = f x in
-        Hashtbl.add cache x y ;
+        Hashtbl.replace cache h ((x, y) :: bucket) ;
         y
 
 let memo2 (f : 'a -> 'b -> 'c) : 'a -> 'b -> 'c =

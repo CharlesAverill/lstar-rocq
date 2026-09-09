@@ -143,6 +143,79 @@ Proof.
       apply n0. exists x. auto.
 Defined.
 
+Definition sc_rows (T V : str -> bool) (Ul : list str) (finV : finite V)
+                   (u : str) : list str :=
+    filter (fun u' => if strictly_covered_dec T V u' u finV then true else false)
+           (row_index Ul).
+
+Lemma sc_rows_spec : forall T V Ul finV u u',
+    In u' (sc_rows T V Ul finV u)
+    <-> In u' (row_index Ul) /\ strictly_covered T V u' u.
+Proof.
+    intros T V Ul finV u u'. unfold sc_rows. rewrite filter_In. split.
+    - intros (Hin & Hd). split; [assumption |].
+      destruct (strictly_covered_dec T V u' u finV); [assumption | discriminate].
+    - intros (Hin & Hsc). split; [assumption |].
+      destruct (strictly_covered_dec T V u' u finV); [reflexivity | contradiction].
+Qed.
+
+Lemma sc_rows_exists : forall T V Ul finV u v,
+    (exists u', In u' (sc_rows T V Ul finV u) /\ cell T u' v = true)
+    <-> (exists u', In u' (row_index Ul) /\ strictly_covered T V u' u
+                    /\ cell T u' v = true).
+Proof.
+    intros T V Ul finV u v. split.
+    - intros (u' & Hin & Hc). apply sc_rows_spec in Hin. destruct Hin.
+      exists u'. auto.
+    - intros (u' & Hin & Hsc & Hc). exists u'. split; [| assumption].
+      apply sc_rows_spec. auto.
+Qed.
+
+Lemma cell_witness_dec : forall T v (rl : list str),
+    {u' | In u' rl /\ cell T u' v = true}
+  + {~ exists u', In u' rl /\ cell T u' v = true}.
+Proof.
+    intros T v rl. induction rl as [| a rl IH].
+    - right. intros (u' & Hin & _). inversion Hin.
+    - destruct (Bool.bool_dec (cell T a v) true) as [Ha | Ha].
+      + left. exists a. split; [now left | assumption].
+      + destruct IH as [Hy | Hn].
+        * left. destruct Hy as (x & Hin & Hc). exists x.
+          split; [now right | assumption].
+        * right. intros (x & Hin & Hc). destruct Hin as [Heq | Hin].
+              subst. contradiction.
+          apply Hn. exists x. auto.
+Defined.
+
+Lemma composed_on_dec_aux : forall T (sc : list str) u (vl : list str),
+    {forall v, In v vl ->
+        cell T u v = true <-> exists u', In u' sc /\ cell T u' v = true}
+  + {~ forall v, In v vl ->
+        cell T u v = true <-> exists u', In u' sc /\ cell T u' v = true}.
+Proof.
+    intros T sc u vl. induction vl as [| a vl IH].
+        left. intros v Hv. destruct Hv.
+    destruct (cell_witness_dec T a sc) as [Hw | Hw].
+    - destruct (Bool.bool_dec (cell T u a) true) as [Ha | Ha].
+      + destruct IH as [Hy | Hn].
+        * left. intros v Hv. destruct Hv as [Heq | Hv].
+              subst. destruct Hw as (x & Hin & Hc).
+              split; [intros _; exists x; auto | intros _; assumption].
+          now apply Hy.
+        * right. intro Hall. apply Hn. intros v Hv. apply Hall. now right.
+      + right. intro Hall. apply Ha.
+        destruct Hw as (x & Hin & Hc).
+        apply (Hall a (or_introl eq_refl)). exists x. auto.
+    - destruct (Bool.bool_dec (cell T u a) true) as [Ha | Ha].
+      + right. intro Hall. apply Hw.
+        apply (Hall a (or_introl eq_refl)). exact Ha.
+      + destruct IH as [Hy | Hn].
+        * left. intros v Hv. destruct Hv as [Heq | Hv].
+              subst. split; [intro Hc; contradiction | intro Hex; contradiction].
+          now apply Hy.
+        * right. intro Hall. apply Hn. intros v Hv. apply Hall. now right.
+Defined.
+
 (* Composedness is decidable on an arbitrary column list *)
 Lemma composed_on_dec : forall T V Ul u (vl : list str),
     finite V ->
@@ -153,23 +226,18 @@ Lemma composed_on_dec : forall T V Ul u (vl : list str),
         cell T u v = true <->
         exists u', In u' (row_index Ul) /\ strictly_covered T V u' u /\ cell T u' v = true}.
 Proof.
-    intros T V Ul u vl finV. induction vl.
-        left. intros. destruct H.
-    destruct (composed_witness_dec T V u a (row_index Ul) finV).
-    - destruct (Bool.bool_dec (cell T u a) true).
-      + destruct IHvl.
-            destruct s, a0, H0.
-            left. intros. destruct H2; [subst; split; eauto | auto].
-        right. intro. apply n. intros. apply H. now right.
-      + right. intro. apply n. exfalso. specialize (H a (or_introl eq_refl)).
-        destruct s, a0, H1. apply n, H. eauto.
-    - destruct (Bool.bool_dec (cell T u a) true).
-        right. intro. apply n. exfalso. specialize (H a (or_introl eq_refl)). intuition.
-      destruct IHvl.
-        left. intros. destruct H.
-            subst. intuition.
-        now apply i.
-      right. intro. apply n1. intros. apply H. now right.
+    intros T V Ul u vl finV.
+    destruct (composed_on_dec_aux T (sc_rows T V Ul finV u) u vl) as [Hy | Hn].
+    - left. intros v Hv. split.
+      + intro Hc. apply (proj1 (sc_rows_exists T V Ul finV u v)).
+        apply (Hy v Hv). exact Hc.
+      + intro Hex. apply (Hy v Hv).
+        apply (proj2 (sc_rows_exists T V Ul finV u v)). apply Hex.
+    - right. intro Hall. apply Hn. intros v Hv. split.
+      + intro Hc. apply (proj2 (sc_rows_exists T V Ul finV u v)).
+        apply (Hall v Hv). apply Hc.
+      + intro Hex. apply (Hall v Hv).
+        apply (proj1 (sc_rows_exists T V Ul finV u v)). apply Hex.
 Defined.
 
 (* Composedness is decidable for finite V *)
@@ -235,43 +303,70 @@ Proof.
     intros. apply filter_In in H. now destruct H.
 Qed.
 
+Definition cover_set_from (T V : str -> bool) (finV : finite V)
+                          (pr : list str) (u : str) : list str :=
+    filter (fun p => if covered_dec T V p u finV then true else false) pr.
+
+Lemma cover_set_from_eq : forall T V Ul finV u,
+    cover_set_from T V finV (prime_reps T V Ul finV) u = cover_set T V Ul finV u.
+Proof. reflexivity. Qed.
+
 (* Definition 8: r = \sqcup {r' \in Primes_upp(T) | r' \sqsubseteq r} *)
 Definition closed_row (T V : str -> bool) (Ul : list str) (u : str) : Prop :=
     forall v, V v = true ->
         cell T u v = true <->
         exists u', In u' Ul /\ prime T V Ul u' /\ covered T V u' u /\ cell T u' v = true.
 
-(* Closedness at a column is decidable over an arbitrary upper list *)
-Lemma closed_witness_dec : forall T V Ul u v (ul : list str),
-    finite V ->
-    {u' | In u' ul /\ prime T V Ul u' /\ covered T V u' u /\ cell T u' v = true}
-  + {~ exists u', In u' ul /\ prime T V Ul u' /\ covered T V u' u /\ cell T u' v = true}.
+Lemma prime_reps_iff : forall T V Ul finV p,
+    In p (prime_reps T V Ul finV) <-> In p Ul /\ prime T V Ul p.
 Proof.
-    intros T V Ul u v ul finV. induction ul.
-        right. intro Contra. destruct Contra, H. inversion H.
-    destruct (prime_dec T V Ul a finV).
-    - destruct (covered_dec T V a u finV).
-      + destruct (Bool.bool_dec (cell T a v) true).
-          left. exists a. intuition.
-        destruct IHul.
-          left. destruct s. exists x. split; [now right | intuition].
-        right. intro Contra. destruct Contra, H, H0, H1, H.
-          now subst.
-        apply n0. eauto.
-      + destruct IHul.
-          left. destruct s. exists x. split; [now right | intuition].
-        right. intro Contra. destruct Contra, H, H0, H1, H.
-          now subst.
-        apply n0. eauto.
-    - destruct IHul.
-        left. destruct s. exists x. split; [now right | intuition].
-      right. intro Contra. destruct Contra, H, H0, H.
-        now subst.
-      apply n0. eauto.
-Defined.
+    intros T V Ul finV p. unfold prime_reps. rewrite filter_In. split.
+    - intros (Hin & Hd). split; [assumption |].
+      destruct (prime_dec T V Ul p finV); [assumption | discriminate].
+    - intros (Hin & Hp). split; [assumption |].
+      destruct (prime_dec T V Ul p finV); [reflexivity | contradiction].
+Qed.
+
+Lemma pr_exists_iff : forall T V Ul (pr : list str) u v,
+    (forall p, In p pr <-> In p Ul /\ prime T V Ul p) ->
+    ((exists u', In u' pr /\ covered T V u' u /\ cell T u' v = true)
+     <-> (exists u', In u' Ul /\ prime T V Ul u' /\ covered T V u' u
+                     /\ cell T u' v = true)).
+Proof.
+    intros T V Ul pr u v Hpr. split.
+    - intros (u' & Hin & Hcov & Hce). apply Hpr in Hin. destruct Hin.
+      exists u'. auto.
+    - intros (u' & Hin & Hp & Hcov & Hce). exists u'. split; [| auto].
+      apply Hpr. auto.
+Qed.
+
+Lemma cover_set_from_spec : forall T V finV pr u p,
+    In p (cover_set_from T V finV pr u) <-> In p pr /\ covered T V p u.
+Proof.
+    intros T V finV pr u p. unfold cover_set_from. rewrite filter_In. split.
+    - intros (Hin & Hd). split; [assumption |].
+      destruct (covered_dec T V p u finV); [assumption | discriminate].
+    - intros (Hin & Hc). split; [assumption |].
+      destruct (covered_dec T V p u finV); [reflexivity | contradiction].
+Qed.
+
+Lemma cp_exists_iff : forall T V Ul finV (pr : list str) u v,
+    (forall p, In p pr <-> In p Ul /\ prime T V Ul p) ->
+    ((exists u', In u' (cover_set_from T V finV pr u) /\ cell T u' v = true)
+     <-> (exists u', In u' Ul /\ prime T V Ul u' /\ covered T V u' u
+                     /\ cell T u' v = true)).
+Proof.
+    intros T V Ul finV pr u v Hpr. split.
+    - intros (u' & Hin & Hce). apply cover_set_from_spec in Hin.
+      destruct Hin as (Hpin & Hcov). apply Hpr in Hpin. destruct Hpin.
+      exists u'. auto.
+    - intros (u' & Hin & Hp & Hcov & Hce). exists u'. split; [| assumption].
+      apply cover_set_from_spec. split; [| assumption]. apply Hpr. auto.
+Qed.
 
 (* Closedness of one row on an arbitrary column list is decidable *)
-Lemma closed_row_on_dec : forall T V Ul u (vl : list str),
+Lemma closed_row_on_dec : forall T V Ul u (pr vl : list str),
+    (forall p, In p pr <-> In p Ul /\ prime T V Ul p) ->
     finite V ->
     {forall v, In v vl ->
         cell T u v = true <->
@@ -280,32 +375,29 @@ Lemma closed_row_on_dec : forall T V Ul u (vl : list str),
         cell T u v = true <->
         exists u', In u' Ul /\ prime T V Ul u' /\ covered T V u' u /\ cell T u' v = true}.
 Proof.
-    intros T V Ul u vl finV. induction vl.
-        left. intros. destruct H.
-    destruct (closed_witness_dec T V Ul u a Ul finV).
-    - destruct (Bool.bool_dec (cell T u a) true).
-      + destruct IHvl.
-            left. intros. destruct H; [subst; split; eauto | auto].
-            destruct s, a, H0, H1. eauto.
-        right. intro. apply n. intros. apply H. now right.
-      + right. intro. apply n. exfalso. specialize (H a (or_introl eq_refl)).
-        destruct s, a0, H1, H2. apply n, H. eauto.
-    - destruct (Bool.bool_dec (cell T u a) true).
-        right. intro. apply n. exfalso. specialize (H a (or_introl eq_refl)). intuition.
-      destruct IHvl.
-        left. intros. destruct H.
-            subst. intuition.
-        now apply i.
-      right. intro. apply n1. intros. apply H. now right.
+    intros T V Ul u pr vl Hpr finV.
+    destruct (composed_on_dec_aux T (cover_set_from T V finV pr u) u vl)
+        as [Hy | Hn].
+    - left. intros v Hv. split.
+      + intro Hc. apply (proj1 (cp_exists_iff T V Ul finV pr u v Hpr)).
+        apply (Hy v Hv). exact Hc.
+      + intro Hex. apply (Hy v Hv).
+        apply (proj2 (cp_exists_iff T V Ul finV pr u v Hpr)). apply Hex.
+    - right. intro Hall. apply Hn. intros v Hv. split.
+      + intro Hc. apply (proj2 (cp_exists_iff T V Ul finV pr u v Hpr)).
+        apply (Hall v Hv). apply Hc.
+      + intro Hex. apply (Hall v Hv).
+        apply (proj1 (cp_exists_iff T V Ul finV pr u v Hpr)). apply Hex.
 Defined.
 
 (* Closedness of one row is decidable for finite V *)
-Lemma closed_row_dec : forall T V Ul u,
+Lemma closed_row_dec : forall T V Ul u (pr : list str),
+    (forall p, In p pr <-> In p Ul /\ prime T V Ul p) ->
     finite V -> {closed_row T V Ul u} + {~ closed_row T V Ul u}.
 Proof.
-    intros T V Ul u finV. unfold closed_row.
+    intros T V Ul u pr Hpr finV. unfold closed_row.
     destruct finV as (vl & ND & Hv).
-    destruct (closed_row_on_dec T V Ul u vl (exist _ vl (conj ND Hv))).
+    destruct (closed_row_on_dec T V Ul u pr vl Hpr (exist _ vl (conj ND Hv))).
     - left. intros. apply i. now apply Hv.
     - right. intro. apply n. intros. apply H. now apply Hv.
 Defined.
@@ -321,9 +413,13 @@ Lemma closed_dec : forall T V U
     closed T V fin_U + {u : str | In u (row_index (proj1_sig fin_U)) /\ ~ closed_row T V (proj1_sig fin_U) u}.
 Proof.
     intros T V U fin_U finV. unfold closed.
+    set (pr := prime_reps T V (proj1_sig fin_U) finV).
+    assert (Hpr : forall p, In p pr <-> In p (proj1_sig fin_U)
+                                        /\ prime T V (proj1_sig fin_U) p)
+        by (intro p; apply prime_reps_iff).
     induction (row_index _).
         left. intros. destruct H.
-    destruct (closed_row_dec T V (proj1_sig fin_U) a finV).
+    destruct (closed_row_dec T V (proj1_sig fin_U) a pr Hpr finV).
     - destruct IHl.
         left. intros. destruct H; auto; now subst.
       right. destruct s, a0. eexists. split. right. eassumption. assumption.
@@ -468,12 +564,13 @@ Definition make_nfa (H : HypothesisRFSA) : N.t { q | memr H q = true }.
     set (state := { q | memr H q = true }).
     set (Pr := prime_reps H.(T) H.(V) (Ul H) H.(fin_V)).
     assert (initial : list state). {
-        refine (list_with_proof (cover_set H.(T) H.(V) (Ul H) H.(fin_V) [])
+        refine (list_with_proof (cover_set_from H.(T) H.(V) H.(fin_V) Pr [])
                   (fun q => memr H q = true) _).
         intros x Hx. now apply (cover_set_memr H []). }
     assert (transition : state -> s.t -> list state). {
         intros q a.
-        refine (list_with_proof (cover_set H.(T) H.(V) (Ul H) H.(fin_V) (proj1_sig q ++ [a]))
+        refine (list_with_proof
+                  (cover_set_from H.(T) H.(V) H.(fin_V) Pr (proj1_sig q ++ [a]))
                   (fun q' => memr H q' = true) _).
         intros x Hx. now apply (cover_set_memr H (proj1_sig q ++ [a])). }
     set (accept := fun (q : state) => H.(T) (proj1_sig q)).

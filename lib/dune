@@ -40,4 +40,5 @@
  (wrapped false)
  (flags
   (:standard -w -20))
- (libraries unix))
+ (libraries unix)
+ (modes native))
