@@ -10,6 +10,7 @@
   TTT_DFA
   TTT_Moore_Binary
   TTT_Mealy_Binary
+  Cache
   Datatypes
   Bool
   DFA

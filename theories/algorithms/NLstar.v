@@ -3,7 +3,7 @@
 
 #[local] Set Warnings "-intuition-auto-with-star".
 
-From lstar Require Import automata.NFA ListLemmas SetLemmas normalization.norm_nfa.
+From lstar Require Import automata.NFA ListLemmas SetLemmas normalization.norm_nfa Cache.
 From Stdlib Require Import List.
 From Stdlib Require Import Lia.
 From Stdlib Require Import PeanoNat.
@@ -54,6 +54,90 @@ Definition composed (T V : str -> bool) (Ul : list str) (u : str) : Prop :=
 Definition prime (T V : str -> bool) (Ul : list str) (u : str) : Prop :=
     In u (row_index Ul) /\ ~ composed T V Ul u.
 
+(* Precomputed row vectors for fast comparison *)
+
+Definition row_vec (T : str -> bool) (vl : list str) (u : str) : list bool :=
+    map (cell T u) vl.
+
+Lemma map_eq_pointwise : forall (A B : Type) (f g : A -> B) (l : list A),
+    map f l = map g l <-> (forall x, In x l -> f x = g x).
+Proof.
+    intros A B f g l. induction l as [| a l IH]; simpl.
+    - split.
+      + intros _ x [].
+      + reflexivity.
+    - split.
+      + intros Heq x Hx. injection Heq as Ha Htl.
+        destruct Hx as [Hx | Hx].
+        * subst x. apply Ha.
+        * apply IH; assumption.
+      + intros H. f_equal.
+        * apply H. now left.
+        * apply IH. intros x Hx. apply H. now right.
+Qed.
+
+Lemma row_vec_eq_iff : forall T vl u1 u2,
+    row_vec T vl u1 = row_vec T vl u2
+    <-> (forall v, In v vl -> cell T u1 v = cell T u2 v).
+Proof.
+    intros T vl u1 u2. unfold row_vec. apply map_eq_pointwise.
+Qed.
+
+(* Pointwise implication between two row vectors. *)
+Fixpoint vec_covered (r1 r2 : list bool) : bool :=
+    match r1, r2 with
+    | nil, _ => true
+    | _, nil => true
+    | b1 :: t1, b2 :: t2 => andb (implb b1 b2) (vec_covered t1 t2)
+    end.
+
+Lemma vec_covered_iff : forall T vl u1 u2,
+    vec_covered (row_vec T vl u1) (row_vec T vl u2) = true
+    <-> (forall v, In v vl -> cell T u1 v = true -> cell T u2 v = true).
+Proof.
+    intros T vl u1 u2. unfold row_vec. induction vl as [| a vl IH]; simpl.
+    - split.
+      + intros _ v [].
+      + reflexivity.
+    - rewrite Bool.andb_true_iff, IH. split.
+      + intros (Himp & Htl) v Hv Hc. destruct Hv as [Hv | Hv].
+        * subst v. destruct (cell T u1 a); destruct (cell T u2 a);
+            try reflexivity; try discriminate.
+        * now apply Htl.
+      + intros H. split.
+        * destruct (cell T u1 a) eqn:E1; simpl; [| reflexivity].
+          rewrite (H a (or_introl eq_refl) E1). reflexivity.
+        * intros v Hv. apply H. now right.
+Qed.
+
+Section RowCache.
+
+Variable T : str -> bool.
+Variable vl : list str.
+
+Definition rowfact : Type := { p : str * list bool | snd p = row_vec T vl (fst p) }.
+
+Definition rcache : Type := Cache.trie s.t rowfact.
+
+Definition empty_rcache : rcache := Cache.empty.
+
+Definition fact_of (u : str) : rowfact := exist _ (u, row_vec T vl u) eq_refl.
+
+Definition cached_vec (c : rcache) (u : str) :
+    { r : list bool | r = row_vec T vl u } * rcache.
+Proof.
+    destruct (Cache.lookup s.eq_dec c u) as [p |].
+    - destruct (str_eq (fst (proj1_sig p)) u) as [Hk | _].
+      + refine (exist _ (snd (proj1_sig p)) _, c).
+        rewrite <- Hk. apply (proj2_sig p).
+      + exact (exist _ (row_vec T vl u) eq_refl,
+               Cache.insert s.eq_dec c u (fact_of u)).
+    - exact (exist _ (row_vec T vl u) eq_refl,
+             Cache.insert s.eq_dec c u (fact_of u)).
+Defined.
+
+End RowCache.
+
 (* Covering is decidable relative to an arbitrary column list *)
 Lemma covered_on_dec : forall T u1 u2 (vl : list str),
     {forall v, In v vl -> cell T u1 v = true -> cell T u2 v = true}
@@ -70,6 +154,41 @@ Proof.
     - destruct IHvl.
         left. intros. destruct H; subst; [congruence | auto].
       right. intro. apply n0. intros. apply H; auto. now right.
+Defined.
+
+(** Cache-passing counterparts of [covered_on_dec] and [row_eq_on_dec] *)
+Definition covered_on_dec_c : forall T (vl : list str) (u1 u2 : str),
+    rcache T vl ->
+    ({forall v, In v vl -> cell T u1 v = true -> cell T u2 v = true}
+   + {~ forall v, In v vl -> cell T u1 v = true -> cell T u2 v = true}) * rcache T vl.
+Proof.
+    intros T vl u1 u2 c.
+    destruct (cached_vec T vl c u1) as ((r1 & H1) & c1).
+    destruct (cached_vec T vl c1 u2) as ((r2 & H2) & c2).
+    destruct (vec_covered r1 r2) eqn:E.
+    - refine (left _, c2).
+      rewrite H1, H2 in E. now apply vec_covered_iff.
+    - refine (right _, c2).
+      intro Hcov.
+      assert (Hv : vec_covered (row_vec T vl u1) (row_vec T vl u2) = true)
+        by now apply vec_covered_iff.
+      rewrite <- H1, <- H2 in Hv. congruence.
+Defined.
+
+Definition row_eq_on_dec_c : forall T (vl : list str) (u1 u2 : str),
+    rcache T vl ->
+    ({forall v, In v vl -> cell T u1 v = cell T u2 v}
+   + {~ forall v, In v vl -> cell T u1 v = cell T u2 v}) * rcache T vl.
+Proof.
+    intros T vl u1 u2 c.
+    destruct (cached_vec T vl c u1) as ((r1 & H1) & c1).
+    destruct (cached_vec T vl c1 u2) as ((r2 & H2) & c2).
+    destruct (list_eq_dec Bool.bool_dec r1 r2) as [E | E].
+    - refine (left _, c2).
+      rewrite H1, H2 in E. now apply row_vec_eq_iff.
+    - refine (right _, c2).
+      intro Heq. apply E.
+      rewrite H1, H2. now apply row_vec_eq_iff.
 Defined.
 
 (* Covering is decidable for finite V *)
@@ -118,6 +237,47 @@ Proof.
         right. now intros.
       now left.
     - right. now intros.
+Defined.
+
+(** Cache-passing [covered_dec], [row_eq_dec], [strictly_covered_dec] *)
+Definition covered_dec_c : forall T V (finV : finite V) (u1 u2 : str),
+    rcache T (proj1_sig finV) ->
+    ({covered T V u1 u2} + {~ covered T V u1 u2}) * rcache T (proj1_sig finV).
+Proof.
+    intros T V finV u1 u2 c.
+    destruct (covered_on_dec_c T (proj1_sig finV) u1 u2 c) as (d & c').
+    refine (_, c'). unfold covered. destruct finV as (vl & Hnd & Hiff). simpl in *.
+    destruct d as [Hyes | Hno].
+    - left. intros v Hv. apply Hyes. now apply Hiff.
+    - right. intro H. apply Hno. intros v Hv. apply H. now apply Hiff.
+Defined.
+
+Definition row_eq_dec_c : forall T V (finV : finite V) (u1 u2 : str),
+    rcache T (proj1_sig finV) ->
+    ({row_eq T V u1 u2} + {~ row_eq T V u1 u2}) * rcache T (proj1_sig finV).
+Proof.
+    intros T V finV u1 u2 c.
+    destruct (row_eq_on_dec_c T (proj1_sig finV) u1 u2 c) as (d & c').
+    refine (_, c'). unfold row_eq. destruct finV as (vl & Hnd & Hiff). simpl in *.
+    destruct d as [Hyes | Hno].
+    - left. intros v Hv. apply Hyes. now apply Hiff.
+    - right. intro H. apply Hno. intros v Hv. apply H. now apply Hiff.
+Defined.
+
+Definition strictly_covered_dec_c : forall T V (finV : finite V) (u1 u2 : str),
+    rcache T (proj1_sig finV) ->
+    ({strictly_covered T V u1 u2} + {~ strictly_covered T V u1 u2})
+    * rcache T (proj1_sig finV).
+Proof.
+    intros T V finV u1 u2 c.
+    unfold strictly_covered.
+    destruct (covered_dec_c T V finV u1 u2 c) as (dc & c1).
+    destruct dc as [Hcov | Hncov].
+    - destruct (row_eq_dec_c T V finV u1 u2 c1) as (de & c2).
+      destruct de as [Heq | Hneq].
+      + apply (right (fun H => proj2 H Heq), c2).
+      + apply (left (conj Hcov Hneq), c2).
+    - apply (right (fun H => Hncov (proj1 H)), c1).
 Defined.
 
 (* Composedness is decidable over an arbitrary row list *)
@@ -171,6 +331,56 @@ Proof.
       apply sc_rows_spec. auto.
 Qed.
 
+Lemma dec_agree : forall (P : Prop) (d1 d2 : {P} + {~ P}),
+    (if d1 then true else false) = (if d2 then true else false).
+Proof.
+    intros P d1 d2. destruct d1, d2; try reflexivity; contradiction.
+Qed.
+
+(** Cache-threading [filter] *)
+Fixpoint filter_c {A St : Type} (f : St -> A -> bool * St) (c : St) (l : list A)
+    : list A * St :=
+    match l with
+    | nil => (nil, c)
+    | x :: tl =>
+        let (b, c') := f c x in
+        let (rest, c'') := filter_c f c' tl in
+        (if b then x :: rest else rest, c'')
+    end.
+
+Lemma filter_c_spec : forall (A St : Type) (f : St -> A -> bool * St) (g : A -> bool) l c,
+    (forall c' x, fst (f c' x) = g x) ->
+    fst (filter_c f c l) = filter g l.
+Proof.
+    intros A St f g l. induction l as [| a l IH]; intros c H; simpl.
+    - reflexivity.
+    - assert (Hb := H c a). destruct (f c a) as (b, c') eqn:Hf.
+      simpl in Hb. subst b.
+      destruct (filter_c f c' l) as (rest, c'') eqn:Hrest.
+      assert (Hr : rest = filter g l).
+      { rewrite <- (IH c' H). now rewrite Hrest. }
+      subst rest. now destruct (g a).
+Qed.
+
+(* Cache-passing [sc_rows] *)
+Definition sc_rows_c (T V : str -> bool) (Ul : list str) (finV : finite V)
+                     (u : str) (c : rcache T (proj1_sig finV))
+    : list str * rcache T (proj1_sig finV) :=
+    filter_c (fun c' u' =>
+                let (d, c'') := strictly_covered_dec_c T V finV u' u c' in
+                ((if d then true else false), c''))
+             c (row_index Ul).
+
+Lemma sc_rows_c_spec : forall T V Ul finV u c,
+    fst (sc_rows_c T V Ul finV u c) = sc_rows T V Ul finV u.
+Proof.
+    intros T V Ul finV u c. unfold sc_rows_c, sc_rows.
+    apply filter_c_spec. intros c' u'.
+    destruct (strictly_covered_dec_c T V finV u' u c') as (d, c'') eqn:E.
+    replace d with (fst (strictly_covered_dec_c T V finV u' u c')) by now rewrite E.
+    simpl. apply dec_agree.
+Qed.
+
 Lemma cell_witness_dec : forall T v (rl : list str),
     {u' | In u' rl /\ cell T u' v = true}
   + {~ exists u', In u' rl /\ cell T u' v = true}.
@@ -208,7 +418,7 @@ Proof.
         apply (Hall a (or_introl eq_refl)). exists x. auto.
     - destruct (Bool.bool_dec (cell T u a) true) as [Ha | Ha].
       + right. intro Hall. apply Hw.
-        apply (Hall a (or_introl eq_refl)). exact Ha.
+        apply (Hall a (or_introl eq_refl)). apply Ha.
       + destruct IH as [Hy | Hn].
         * left. intros v Hv. destruct Hv as [Heq | Hv].
               subst. split; [intro Hc; contradiction | intro Hex; contradiction].
@@ -230,7 +440,7 @@ Proof.
     destruct (composed_on_dec_aux T (sc_rows T V Ul finV u) u vl) as [Hy | Hn].
     - left. intros v Hv. split.
       + intro Hc. apply (proj1 (sc_rows_exists T V Ul finV u v)).
-        apply (Hy v Hv). exact Hc.
+        apply (Hy v Hv). apply Hc.
       + intro Hex. apply (Hy v Hv).
         apply (proj2 (sc_rows_exists T V Ul finV u v)). apply Hex.
     - right. intro Hall. apply Hn. intros v Hv. split.
@@ -263,9 +473,85 @@ Proof.
     - right. now intros (? & _).
 Defined.
 
+(** Cache-passing [composed_on_dec], [composed_dec], [prime_dec], [prime_reps] *)
+Definition composed_on_dec_c : forall T V Ul u (vl : list str) (finV : finite V),
+    rcache T (proj1_sig finV) ->
+    ({forall v, In v vl ->
+        cell T u v = true <->
+        exists u', In u' (row_index Ul) /\ strictly_covered T V u' u /\ cell T u' v = true}
+   + {~ forall v, In v vl ->
+        cell T u v = true <->
+        exists u', In u' (row_index Ul) /\ strictly_covered T V u' u /\ cell T u' v = true})
+    * rcache T (proj1_sig finV).
+Proof.
+    intros T V Ul u vl finV c.
+    destruct (sc_rows_c T V Ul finV u c) as (sc, c') eqn:E.
+    assert (Hsc : sc = sc_rows T V Ul finV u).
+    { rewrite <- (sc_rows_c_spec T V Ul finV u c). now rewrite E. }
+    refine (_, c').
+    destruct (composed_on_dec_aux T sc u vl) as [Hy | Hn];
+      [rewrite Hsc in Hy | rewrite Hsc in Hn].
+    - left. intros v Hv. split.
+      + intro Hc. apply (proj1 (sc_rows_exists T V Ul finV u v)).
+        apply (Hy v Hv). apply Hc.
+      + intro Hex. apply (Hy v Hv).
+        apply (proj2 (sc_rows_exists T V Ul finV u v)). apply Hex.
+    - right. intro Hall. apply Hn. intros v Hv. split.
+      + intro Hc. apply (proj2 (sc_rows_exists T V Ul finV u v)).
+        apply (Hall v Hv). apply Hc.
+      + intro Hex. apply (Hall v Hv).
+        apply (proj1 (sc_rows_exists T V Ul finV u v)). apply Hex.
+Defined.
+
+Definition composed_dec_c : forall T V Ul u (finV : finite V),
+    rcache T (proj1_sig finV) ->
+    ({composed T V Ul u} + {~ composed T V Ul u}) * rcache T (proj1_sig finV).
+Proof.
+    intros T V Ul u finV c.
+    destruct (composed_on_dec_c T V Ul u (proj1_sig finV) finV c) as (d & c').
+    refine (_, c'). unfold composed.
+    destruct finV as (vl & Hnd & Hiff). simpl in *.
+    destruct d as [Hyes | Hno].
+    - left. intros v Hv. apply Hyes. now apply Hiff.
+    - right. intro H. apply Hno. intros v Hv. apply H. now apply Hiff.
+Defined.
+
+Definition prime_dec_c : forall T V Ul u (finV : finite V),
+    rcache T (proj1_sig finV) ->
+    ({prime T V Ul u} + {~ prime T V Ul u}) * rcache T (proj1_sig finV).
+Proof.
+    intros T V Ul u finV c. unfold prime.
+    destruct (in_dec str_eq u (row_index Ul)) as [Hin | Hnin].
+    - destruct (composed_dec_c T V Ul u finV c) as (d & c').
+      destruct d as [Hcomp | Hncomp].
+      + apply (right (fun H => proj2 H Hcomp), c').
+      + apply (left (conj Hin Hncomp), c').
+    - apply (right (fun H => Hnin (proj1 H)), c).
+Defined.
+
 (* Primes_upp(T) = Primes(T) \cap Rows_upp(T) *)
 Definition prime_reps (T V : str -> bool) (Ul : list str) (finV : finite V) : list str :=
     filter (fun u => if prime_dec T V Ul u finV then true else false) Ul.
+
+(** Cache-passing [prime_reps] *)
+Definition prime_reps_c (T V : str -> bool) (Ul : list str) (finV : finite V)
+                        (c : rcache T (proj1_sig finV))
+    : list str * rcache T (proj1_sig finV) :=
+    filter_c (fun c' u =>
+                let (d, c'') := prime_dec_c T V Ul u finV c' in
+                ((if d then true else false), c''))
+             c Ul.
+
+Lemma prime_reps_c_spec : forall T V Ul finV c,
+    fst (prime_reps_c T V Ul finV c) = prime_reps T V Ul finV.
+Proof.
+    intros T V Ul finV c. unfold prime_reps_c, prime_reps.
+    apply filter_c_spec. intros c' u.
+    destruct (prime_dec_c T V Ul u finV c') as (d, c'') eqn:E.
+    replace d with (fst (prime_dec_c T V Ul u finV c')) by now rewrite E.
+    simpl. apply dec_agree.
+Qed.
+
 
 (* Prime representatives lie in the upper part U *)
 Lemma prime_reps_upper : forall T V Ul finV u,
@@ -310,6 +596,26 @@ Definition cover_set_from (T V : str -> bool) (finV : finite V)
 Lemma cover_set_from_eq : forall T V Ul finV u,
     cover_set_from T V finV (prime_reps T V Ul finV) u = cover_set T V Ul finV u.
 Proof. reflexivity. Qed.
+
+(** Cache-passing [cover_set_from] *)
+Definition cover_set_from_c (T V : str -> bool) (finV : finite V)
+                            (pr : list str) (u : str)
+                            (c : rcache T (proj1_sig finV))
+    : list str * rcache T (proj1_sig finV) :=
+    filter_c (fun c' p =>
+                let (d, c'') := covered_dec_c T V finV p u c' in
+                ((if d then true else false), c''))
+             c pr.
+
+Lemma cover_set_from_c_spec : forall T V finV pr u c,
+    fst (cover_set_from_c T V finV pr u c) = cover_set_from T V finV pr u.
+Proof.
+    intros T V finV pr u c. unfold cover_set_from_c, cover_set_from.
+    apply filter_c_spec. intros c' p.
+    destruct (covered_dec_c T V finV p u c') as (d, c'') eqn:E.
+    replace d with (fst (covered_dec_c T V finV p u c')) by now rewrite E.
+    simpl. apply dec_agree.
+Qed.
 
 (* Definition 8: r = \sqcup {r' \in Primes_upp(T) | r' \sqsubseteq r} *)
 Definition closed_row (T V : str -> bool) (Ul : list str) (u : str) : Prop :=
@@ -380,7 +686,7 @@ Proof.
         as [Hy | Hn].
     - left. intros v Hv. split.
       + intro Hc. apply (proj1 (cp_exists_iff T V Ul finV pr u v Hpr)).
-        apply (Hy v Hv). exact Hc.
+        apply (Hy v Hv). apply Hc.
       + intro Hex. apply (Hy v Hv).
         apply (proj2 (cp_exists_iff T V Ul finV pr u v Hpr)). apply Hex.
     - right. intro Hall. apply Hn. intros v Hv. split.
@@ -402,9 +708,87 @@ Proof.
     - right. intro. apply n. intros. apply H. now apply Hv.
 Defined.
 
+(* Cache-passing [closed_row_on_dec], [closed_row_dec] *)
+Definition closed_row_on_dec_c : forall T V Ul u (pr vl : list str),
+    (forall p, In p pr <-> In p Ul /\ prime T V Ul p) ->
+    forall (finV : finite V), rcache T (proj1_sig finV) ->
+    ({forall v, In v vl ->
+        cell T u v = true <->
+        exists u', In u' Ul /\ prime T V Ul u' /\ covered T V u' u /\ cell T u' v = true}
+   + {~ forall v, In v vl ->
+        cell T u v = true <->
+        exists u', In u' Ul /\ prime T V Ul u' /\ covered T V u' u /\ cell T u' v = true})
+    * rcache T (proj1_sig finV).
+Proof.
+    intros T V Ul u pr vl Hpr finV c.
+    destruct (cover_set_from_c T V finV pr u c) as (cs, c') eqn:E.
+    assert (Hcs : cs = cover_set_from T V finV pr u).
+    { rewrite <- (cover_set_from_c_spec T V finV pr u c). now rewrite E. }
+    refine (_, c').
+    destruct (composed_on_dec_aux T cs u vl) as [Hy | Hn];
+      [rewrite Hcs in Hy | rewrite Hcs in Hn].
+    - left. intros v Hv. split.
+      + intro Hc. apply (proj1 (cp_exists_iff T V Ul finV pr u v Hpr)).
+        apply (Hy v Hv). apply Hc.
+      + intro Hex. apply (Hy v Hv).
+        apply (proj2 (cp_exists_iff T V Ul finV pr u v Hpr)). apply Hex.
+    - right. intro Hall. apply Hn. intros v Hv. split.
+      + intro Hc. apply (proj2 (cp_exists_iff T V Ul finV pr u v Hpr)).
+        apply (Hall v Hv). apply Hc.
+      + intro Hex. apply (Hall v Hv).
+        apply (proj1 (cp_exists_iff T V Ul finV pr u v Hpr)). apply Hex.
+Defined.
+
+Definition closed_row_dec_c : forall T V Ul u (pr : list str),
+    (forall p, In p pr <-> In p Ul /\ prime T V Ul p) ->
+    forall (finV : finite V), rcache T (proj1_sig finV) ->
+    ({closed_row T V Ul u} + {~ closed_row T V Ul u}) * rcache T (proj1_sig finV).
+Proof.
+    intros T V Ul u pr Hpr finV c.
+    destruct (closed_row_on_dec_c T V Ul u pr (proj1_sig finV) Hpr finV c) as (d & c').
+    refine (_, c'). unfold closed_row.
+    destruct finV as (vl & Hnd & Hiff). simpl in *.
+    destruct d as [Hyes | Hno].
+    - left. intros v Hv. apply Hyes. now apply Hiff.
+    - right. intro H. apply Hno. intros v Hv. apply H. now apply Hiff.
+Defined.
+
 (* Definition 8: T is RFSA-closed if, for each r \in Rows_low(T), r = \sqcup {r' \in Primes_upp(T) | r' \sqsubseteq r} *)
 Definition closed (T V : str -> bool) {U} (Ul : finite U) : Prop :=
     forall u, In u (row_index (proj1_sig Ul)) -> closed_row T V (proj1_sig Ul) u.
+
+(** Cache-passing RFSA-closedness *)
+Definition closed_dec_c : forall T V U (fin_U : finite U) (finV : finite V),
+    rcache T (proj1_sig finV) ->
+    (closed T V fin_U
+     + {u : str | In u (row_index (proj1_sig fin_U))
+                  /\ ~ closed_row T V (proj1_sig fin_U) u})
+    * rcache T (proj1_sig finV).
+Proof.
+    intros T V U fin_U finV c0.
+    destruct (prime_reps_c T V (proj1_sig fin_U) finV c0) as (pr, c1) eqn:Epr.
+    assert (Hpr0 : pr = prime_reps T V (proj1_sig fin_U) finV).
+    { rewrite <- (prime_reps_c_spec T V (proj1_sig fin_U) finV c0). now rewrite Epr. }
+    assert (Hpr : forall p, In p pr <-> In p (proj1_sig fin_U)
+                                        /\ prime T V (proj1_sig fin_U) p).
+    { subst pr. intro p. apply prime_reps_iff. }
+    unfold closed.
+    assert (scan : forall (l : list str) (c : rcache T (proj1_sig finV)),
+        ((forall u, In u l -> closed_row T V (proj1_sig fin_U) u)
+         + {u : str | In u l /\ ~ closed_row T V (proj1_sig fin_U) u})
+        * rcache T (proj1_sig finV)).
+    { intros l. induction l as [| a l IH]; intros c.
+      - split; [|apply c]. left. intros u [].
+      - destruct (closed_row_dec_c T V (proj1_sig fin_U) a pr Hpr finV c) as (d & c').
+        destruct d as [Hyes | Hno].
+        + destruct (IH c') as (dr & c'').
+          destruct dr as [Hall | (w & Hin & Hnc)].
+          * split; [|apply c'']. left. intros u Hu.
+            destruct Hu as [He | Hu]; [subst u; apply Hyes | now apply Hall].
+          * split; [|apply c'']. right. exists w. split; [now right | apply Hnc].
+        + split; [|apply c']. right. exists a. split; [now left | apply Hno]. }
+    apply (scan (row_index (proj1_sig fin_U)) c1).
+Defined.
 
 (* RFSA-closedness is decidable, returning a witness row when it fails *)
 Lemma closed_dec : forall T V U
@@ -412,18 +796,8 @@ Lemma closed_dec : forall T V U
     finite V ->
     closed T V fin_U + {u : str | In u (row_index (proj1_sig fin_U)) /\ ~ closed_row T V (proj1_sig fin_U) u}.
 Proof.
-    intros T V U fin_U finV. unfold closed.
-    set (pr := prime_reps T V (proj1_sig fin_U) finV).
-    assert (Hpr : forall p, In p pr <-> In p (proj1_sig fin_U)
-                                        /\ prime T V (proj1_sig fin_U) p)
-        by (intro p; apply prime_reps_iff).
-    induction (row_index _).
-        left. intros. destruct H.
-    destruct (closed_row_dec T V (proj1_sig fin_U) a pr Hpr finV).
-    - destruct IHl.
-        left. intros. destruct H; auto; now subst.
-      right. destruct s, a0. eexists. split. right. eassumption. assumption.
-    - right. exists a. split; [now left | assumption].
+    intros T V U fin_U finV.
+    apply (fst (closed_dec_c T V U fin_U finV (empty_rcache T (proj1_sig finV)))).
 Defined.
 
 (* Definition 9: for all u,u' \in U and a \in \Sigma, row(u') \sqsubseteq row(u) implies row(u'a) \sqsubseteq row(ua). *)

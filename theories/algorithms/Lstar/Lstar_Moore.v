@@ -1,6 +1,6 @@
 (** L* for Moore machines *)
 
-From lstar Require Import automata.Moore ListLemmas SetLemmas RS Teacher.
+From lstar Require Import automata.Moore ListLemmas SetLemmas RS Teacher Cache.
 From lstar Require Import normalization.norm_moore.
 From Stdlib Require Import Classes.RelationClasses.
 From Stdlib Require Import Setoids.Setoid.
@@ -100,6 +100,141 @@ Proof.
         now apply HTeq, i.
 Defined.
 
+(* Cache-passing T-equivalence *)
+
+Definition row (T : str -> bool) (finT : finite T) (u : str) : list O.t :=
+    List.map (fun t => output_lang (u ++ t)) (proj1_sig finT).
+
+Lemma map_eq_pointwise : forall (A B : Type) (f g : A -> B) (l : list A),
+    List.map f l = List.map g l <-> (forall x, In x l -> f x = g x).
+Proof.
+    intros A B f g l. induction l as [| a l IH]; simpl.
+    - split.
+      + intros _ x [].
+      + reflexivity.
+    - split.
+      + intros Heq x Hx. injection Heq as Ha Htl.
+        destruct Hx as [Hx | Hx].
+        * subst x. exact Ha.
+        * apply IH; assumption.
+      + intros H. f_equal.
+        * apply H. now left.
+        * apply IH. intros x Hx. apply H. now right.
+Qed.
+
+Lemma row_iff : forall T (finT : finite T) (u v : str),
+    row T finT u = row T finT v <-> T [u == v].
+Proof.
+    intros T finT u v. unfold row.
+    destruct finT as (l & Hnd & Hiff). simpl.
+    rewrite map_eq_pointwise. split.
+    - intros H t Ht. apply H. exact (proj1 (Hiff t) Ht).
+    - intros H x Hx. apply H. exact (proj2 (Hiff x) Hx).
+Qed.
+
+(** Cache-threading counterparts of [List.find] and [existsb] *)
+Section Threaded.
+
+Variables A St : Type.
+
+Fixpoint find_c (f : St -> A -> bool * St) (c : St) (l : list A)
+    : option A * St :=
+    match l with
+    | nil => (None, c)
+    | x :: tl =>
+        let (b, c') := f c x in
+        if b then (Some x, c') else find_c f c' tl
+    end.
+
+Fixpoint existsb_c (f : St -> A -> bool * St) (c : St) (l : list A)
+    : bool * St :=
+    match l with
+    | nil => (false, c)
+    | x :: tl =>
+        let (b, c') := f c x in
+        if b then (true, c') else existsb_c f c' tl
+    end.
+
+Lemma find_c_spec : forall (f : St -> A -> bool * St) (g : A -> bool) l c,
+    (forall c' x, fst (f c' x) = g x) ->
+    fst (find_c f c l) = List.find g l.
+Proof.
+    intros f g l. induction l as [| a l IH]; intros c H; simpl.
+    - reflexivity.
+    - assert (Hb := H c a). destruct (f c a) as (b, c') eqn:Hf.
+      simpl in Hb. subst b.
+      destruct (g a); simpl.
+      + reflexivity.
+      + now apply IH.
+Qed.
+
+Lemma existsb_c_spec : forall (f : St -> A -> bool * St) (g : A -> bool) l c,
+    (forall c' x, fst (f c' x) = g x) ->
+    fst (existsb_c f c l) = existsb g l.
+Proof.
+    intros f g l. induction l as [| a l IH]; intros c H; simpl.
+    - reflexivity.
+    - assert (Hb := H c a). destruct (f c a) as (b, c') eqn:Hf.
+      simpl in Hb. subst b.
+      destruct (g a); simpl.
+      + reflexivity.
+      + now apply IH.
+Qed.
+
+End Threaded.
+
+Arguments find_c {A St}.
+Arguments existsb_c {A St}.
+
+Lemma dec_agree : forall (P : Prop) (d1 d2 : {P} + {~ P}),
+    (if d1 then true else false) = (if d2 then true else false).
+Proof.
+    intros P d1 d2. destruct d1, d2; try reflexivity; contradiction.
+Qed.
+
+Section RowCache.
+
+Variable T : str -> bool.
+Variable finT : finite T.
+
+Definition rowfact : Type :=
+    { p : str * list O.t | snd p = row T finT (fst p) }.
+
+Definition rcache : Type := Cache.trie s.t rowfact.
+
+Definition empty_rcache : rcache := Cache.empty.
+
+Definition fact_of (u : str) : rowfact :=
+    exist _ (u, row T finT u) eq_refl.
+
+Definition cached_row (c : rcache) (u : str) :
+    { r : list O.t | r = row T finT u } * rcache.
+Proof.
+    destruct (Cache.lookup s.eq_dec c u) as [p |].
+    - destruct (str_eq (fst (proj1_sig p)) u) as [Hk | _].
+      + refine (exist _ (snd (proj1_sig p)) _, c).
+        rewrite <- Hk. exact (proj2_sig p).
+      + exact (exist _ (row T finT u) eq_refl, Cache.insert s.eq_dec c u (fact_of u)).
+    - exact (exist _ (row T finT u) eq_refl, Cache.insert s.eq_dec c u (fact_of u)).
+Defined.
+
+(* Cache-passing T-equivalence *)
+Definition T_equiv_dec_c (u v : str) (c : rcache) :
+    ({T [u == v]} + {~ T [u == v]}) * rcache.
+Proof.
+    destruct (cached_row c u) as ((ru & Hu) & c1).
+    destruct (cached_row c1 v) as ((rv & Hv) & c2).
+    destruct (list_eq_dec O.eq_dec ru rv) as [Heq | Hne].
+    - refine (left _, c2).
+      apply (proj1 (row_iff T finT u v)).
+      rewrite <- Hu, <- Hv. exact Heq.
+    - refine (right _, c2).
+      intro Hc. apply Hne.
+      rewrite Hu, Hv. exact (proj2 (row_iff T finT u v) Hc).
+Defined.
+
+End RowCache.
+
 (** Q is separable wrt T when elements are pairwise T-distinguishable. *)
 Definition separable (Q T : str -> bool) : Set :=
     forall (u v : str), Q u = true -> Q v = true ->
@@ -122,10 +257,33 @@ Definition closed_dec_witness : forall Q T,
 Proof.
   intros Q T finQ finT.
   destruct finQ as (Ql & Qfin).
-  destruct (List.find (fun '(q, a) =>
-      negb (existsb (fun q' =>
-          if T_equiv_dec T (q ++ [a]) q' finT then true else false
-      ) Ql)) (list_prod Ql s.enum)) eqn:Hfind.
+  pose (gq := fun (q : str) (a : s.t) (q' : str) =>
+        if T_equiv_dec T (q ++ [a]) q' finT then true else false).
+  pose (fq := fun (q : str) (a : s.t) (c : rcache T finT) (q' : str) =>
+        let (d, c') := T_equiv_dec_c T finT (q ++ [a]) q' c in
+        ((if d then true else false), c')).
+  assert (Hq_agree : forall q a c q', fst (fq q a c q') = gq q a q').
+  { intros q a c q'. unfold fq, gq.
+    destruct (T_equiv_dec_c T finT (q ++ [a]) q' c) as (d, c') eqn:E.
+    replace d with (fst (T_equiv_dec_c T finT (q ++ [a]) q' c)) by now rewrite E.
+    simpl. apply dec_agree. }
+  pose (g := fun (pat : str * s.t) =>
+        let (q, a) := pat in negb (existsb (gq q a) Ql)).
+  pose (fc := fun (c : rcache T finT) (pat : str * s.t) =>
+        let (q, a) := pat in
+        let (b, c') := existsb_c (fq q a) c Ql in (negb b, c')).
+  assert (Hagree : forall c pat, fst (fc c pat) = g pat).
+  { intros c (q, a). unfold fc, g.
+    destruct (existsb_c (fq q a) c Ql) as (b, c') eqn:E. simpl.
+    replace b with (fst (existsb_c (fq q a) c Ql)) by now rewrite E.
+    f_equal. apply existsb_c_spec. intros. apply Hq_agree. }
+  destruct (find_c fc (empty_rcache T finT) (list_prod Ql s.enum))
+      as (o, cfin) eqn:Hfc.
+  assert (Hfind : List.find g (list_prod Ql s.enum) = o).
+  { rewrite <- (find_c_spec _ _ fc g (list_prod Ql s.enum)
+                  (empty_rcache T finT) Hagree).
+    now rewrite Hfc. }
+  destruct o as [p |].
   - destruct p as (q, a).
     apply List.find_some in Hfind.
     destruct Hfind as (HIn & Hcheck).
@@ -137,17 +295,29 @@ Proof.
     apply Hcheck. rewrite existsb_exists.
     exists q'. split.
         now apply Qfin.
-    destruct (T_equiv_dec T (q ++ [a]) q' finT); auto.
+    unfold gq. destruct (T_equiv_dec T (q ++ [a]) q' finT); auto.
   - left. intros q a Hq.
-    apply List.find_none with (x := (q, a)) in Hfind.
-    + apply Bool.negb_false_iff, existsb_exists_set in Hfind.
-      destruct Hfind as (q' & Hq' & Hcheck).
+    assert (Hex : existsb (gq q a) Ql = true).
+    { apply List.find_none with (x := (q, a)) in Hfind.
+      - now apply Bool.negb_false_iff in Hfind.
+      - apply in_prod.
+          now apply Qfin.
+          apply s.t_enumerable. }
+    (* Reuse the cache from the search above to locate the representative. *)
+    destruct (find_c (fq q a) cfin Ql) as (o2, c2) eqn:H2.
+    assert (Hfind2 : List.find (gq q a) Ql = o2).
+    { rewrite <- (find_c_spec _ _ (fq q a) (gq q a) Ql cfin
+                    (fun c' x => Hq_agree q a c' x)).
+      now rewrite H2. }
+    destruct o2 as [q' |].
+    + apply List.find_some in Hfind2. destruct Hfind2 as (HIn' & Hchk').
       exists q'. split.
         now apply Qfin.
-        now destruct (T_equiv_dec T (q ++ [a]) q' finT).
-    + apply in_prod.
-        now apply Qfin.
-        apply s.t_enumerable.
+        unfold gq in Hchk'. now destruct (T_equiv_dec T (q ++ [a]) q' finT).
+    + exfalso.
+      rewrite existsb_exists in Hex. destruct Hex as (x & HInx & Hgx).
+      apply List.find_none with (x := x) in Hfind2; [| exact HInx].
+      rewrite Hfind2 in Hgx. discriminate.
 Qed.
 
 (** Lemma 1: the transition function is well defined. *)
@@ -366,17 +536,29 @@ Lemma find_representative : forall Q T
     { forall r, Q r = true -> ~ T [u == r] }.
 Proof with try easy.
     intros Q T finQ finT u.
-    destruct finQ as (Ql & HQl),
-    (List.find (fun q =>
-        if T_equiv_dec T u q finT then true else false) Ql) eqn:Hfind.
+    destruct finQ as (Ql & HQl).
+    pose (gr := fun (q : str) => if T_equiv_dec T u q finT then true else false).
+    pose (fr := fun (c : rcache T finT) (q : str) =>
+          let (d, c') := T_equiv_dec_c T finT u q c in
+          ((if d then true else false), c')).
+    assert (Hr_agree : forall c q, fst (fr c q) = gr q).
+    { intros c q. unfold fr, gr.
+      destruct (T_equiv_dec_c T finT u q c) as (d, c') eqn:E.
+      replace d with (fst (T_equiv_dec_c T finT u q c)) by now rewrite E.
+      simpl. apply dec_agree. }
+    destruct (find_c fr (empty_rcache T finT) Ql) as (o, cfin) eqn:Hfc.
+    assert (Hfind : List.find gr Ql = o).
+    { rewrite <- (find_c_spec _ _ fr gr Ql (empty_rcache T finT) Hr_agree).
+      now rewrite Hfc. }
+    destruct o as [r0 |].
     - left. apply List.find_some in Hfind.
       destruct Hfind as (HIn & Hcheck).
-      exists s. split.
+      exists r0. split.
         apply HQl...
-      destruct (T_equiv_dec T u s finT)...
+      unfold gr in Hcheck. destruct (T_equiv_dec T u r0 finT)...
     - right. intros r Hr Contra.
       apply List.find_none with (x := r) in Hfind.
-      + destruct (T_equiv_dec T u r finT)...
+      + unfold gr in Hfind. destruct (T_equiv_dec T u r finT)...
       + apply HQl...
 Defined.
 
