@@ -28,8 +28,33 @@ Module Mealy (s : Symbol) (O : Output).
             m.(output state) q a :: output_word_from m (m.(transition state) q a) w'
         end.
 
+    Fixpoint output_word_acc {state : Type} (m : t state)
+        (q : state) (w : str) (acc : list O.t) : list O.t :=
+        match w with
+        | [] => acc
+        | a :: w' =>
+            output_word_acc m (m.(transition state) q a) w'
+                            (m.(output state) q a :: acc)
+        end.
+
+    Lemma output_word_acc_spec : forall {state : Type} (m : t state) w q acc,
+        output_word_acc m q w acc = rev_append (output_word_from m q w) acc.
+    Proof.
+        intros state m w. induction w as [| a w' IH]; intros q acc; simpl.
+        - reflexivity.
+        - apply IH.
+    Qed.
+
     Definition output_word {state : Type} (m : t state) (w : str) : list O.t :=
-        output_word_from m m.(initial state) w.
+        rev_append (output_word_acc m m.(initial state) w []) [].
+
+    Lemma output_word_eq : forall {state : Type} (m : t state) w,
+        output_word m w = output_word_from m m.(initial state) w.
+    Proof.
+        intros state m w. unfold output_word.
+        rewrite output_word_acc_spec, !rev_append_rev, !app_nil_r.
+        apply rev_involutive.
+    Qed.
 
     (** The last output emitted while reading a non-empty word starting from state [q] *)
     Fixpoint last_output_from {state : Type} (m : t state)

@@ -109,7 +109,7 @@ Section Normalize.
   Theorem normalize_output_word : forall w,
       M.output_word normalize w = M.output_word m w.
   Proof.
-    intro w. unfold M.output_word.
+    intro w. rewrite !M.output_word_eq.
     change (M.initial nat normalize) with n_initial.
     apply corr_output_word_from. exact (ND.corr_initial eq_dec sys).
   Qed.
