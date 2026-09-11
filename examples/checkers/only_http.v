@@ -1,8 +1,8 @@
 (* only_http.v
 
    Uses TTT to build a minimal DFA encoding a black-box packet firewall, then
-   decides whether the firewall ever forwards a "bad" packet: an HTTP request whose
-   destination port is not 80
+   decides whether the firewall ever forwards a "bad" packet: an HTTP DELETE
+   request arriving on destination port 80
 
    Provides:
      - [learned_dfa] : a DFA equivalent to [firewall]
@@ -17,7 +17,9 @@
        known state bound
      - [is_http] detects only five literal ASCII method tokens
        ("GET ", "POST ", "HEAD ", "PUT ", "DELETE ") at the payload start, and
-       is therefore not a general HTTP parser.
+       [is_delete] only the "DELETE " token; neither is a general HTTP parser.
+     - A request is matched by its method token alone, so a payload that merely
+       begins with "DELETE " counts even if the rest is not a valid request.
      - Packet validity is defined in terms of the HTTP parsing functions *)
 
 From lstar Require Import algorithms.TTT.TTT_DFA automata.DFA Teacher.
@@ -228,25 +230,36 @@ Section IsHTTP.
     Definition list_nat_eqb l1 l2 :=
         if list_eq_dec Nat.eq_dec l1 l2 then true else false.
 
+    Definition delete_token : list nat :=
+        [ascii_D; ascii_E; ascii_L; ascii_E; ascii_T; ascii_E; ascii_SP].   (* "DELETE " *)
+
     Definition http_tokens : list (list nat) :=
         [ [ascii_G; ascii_E; ascii_T; ascii_SP] ;                           (* "GET "    *)
         [ascii_P; ascii_O; ascii_S; ascii_T; ascii_SP] ;                    (* "POST "   *)
         [ascii_H; ascii_E; ascii_A; ascii_D; ascii_SP] ;                    (* "HEAD "   *)
         [ascii_P; ascii_U; ascii_T; ascii_SP] ;                             (* "PUT "    *)
-        [ascii_D; ascii_E; ascii_L; ascii_E; ascii_T; ascii_E; ascii_SP]    (* "DELETE " *)
+        delete_token
         ].
 
-    (* Does the payload beginning at bit offset [off] start with an HTTP method token? *)
-    Definition payload_is_http (bits : BitSequence) (off : nat) : bool :=
+    (* Does the payload beginning at bit offset [off] start with one of [toks]? *)
+    Definition payload_matches (toks : list (list nat))
+                               (bits : BitSequence) (off : nat) : bool :=
         existsb (fun tok =>
                 match bytes_at bits off (length tok) with
                 | Some cs => list_nat_eqb cs tok
                 | None => false
                 end)
-                http_tokens.
+                toks.
 
-    (* Locate the payload and test it *)
-    Definition is_http (packet : BitSequence) : bool :=
+    Definition payload_is_http : BitSequence -> nat -> bool :=
+        payload_matches http_tokens.
+
+    Definition payload_is_delete : BitSequence -> nat -> bool :=
+        payload_matches [delete_token].
+
+    (* Walk the Ethernet, IPv4 and TCP headers, then apply [test] to the payload *)
+    Definition at_payload (test : BitSequence -> nat -> bool)
+                          (packet : BitSequence) : bool :=
         let ip_packet := drop 112 packet in
         let version_ihl := take 8 ip_packet in
         match length version_ihl with
@@ -261,42 +274,44 @@ Section IsHTTP.
                 if (5 <=? doff_words) && (doff_words <=? 15) then
                 let tcp_header_bits := doff_words * 32 in
                 let payload_off := ip_header_bits + tcp_header_bits in
-                payload_is_http ip_packet payload_off
+                test ip_packet payload_off
                 else false
             else false
             else false
         | _ => false
         end.
+
+    Definition is_http : BitSequence -> bool := at_payload payload_is_http.
+
+    Definition is_delete : BitSequence -> bool := at_payload payload_is_delete.
 End IsHTTP.
 
 Section BadPackets.
-    (* A packet is "bad" if it is an HTTP request whose destination port is not 80 *)
+    (* A packet is "bad" if it is a DELETE request arriving on port 80 *)
     Definition bad_packet (s : BitSequence) : Prop :=
-        is_http s = true /\ get_port_from_packet s <> Some 80.
+        is_delete s = true /\ get_port_from_packet s = Some 80.
 
-    (* Decide whether a packet is bad *)
+    (* Decide whether a packet is bad. A packet whose destination port cannot be
+       parsed is not bad, since it did not arrive on port 80. *)
     Definition bad_packet_dec (s : BitSequence) : bool :=
-        is_http s &&
+        is_delete s &&
         (match get_port_from_packet s with
-        | Some p => negb (Nat.eqb p 80)
-        | None => true
+        | Some p => Nat.eqb p 80
+        | None => false
         end).
 
     Lemma bad_packet_dec_correct : forall s,
         bad_packet_dec s = true <-> bad_packet s.
     Proof.
         intros. unfold bad_packet_dec, bad_packet. split.
-        - intros. apply andb_prop in H. destruct H.
-        split. assumption.
-        destruct get_port_from_packet eqn:E; [|discriminate].
-            intro Contra. inversion Contra; subst.
-            now rewrite Nat.eqb_refl in H0.
-        - intros. destruct H. rewrite H. simpl.
-        destruct get_port_from_packet eqn:E; [|reflexivity].
-        apply Bool.negb_true_iff, Nat.eqb_neq. intro. subst. contradiction.
+        - intros H. apply andb_prop in H. destruct H as (Hdel & Hport).
+          split; [assumption |].
+          destruct get_port_from_packet eqn:E; [| discriminate].
+          apply Nat.eqb_eq in Hport. now subst.
+        - intros (Hdel & Hport). rewrite Hdel, Hport. apply Nat.eqb_refl.
     Qed.
 
-    (* [firweall] allows bad packets through *)
+    (* [firewall] allows bad packets through *)
     Definition firewall_allows_bad : Prop :=
         exists s, bad_packet s /\ firewall s = true.
 End BadPackets.
@@ -341,7 +356,7 @@ Section AnalyzeDFA.
         existsb (fun s => bad_packet_dec s && D.accept_string learned_dfa s)
                 (all_bitseqs_upto n).
 
-    (* A firewall vulnerability always yields a positive verdict for large-engouh [n] *)
+    (* A firewall vulnerability always yields a positive verdict for large-enough [n] *)
     Theorem checker_correct :
         firewall_allows_bad <-> exists n, check_upto n = true.
     Proof.
